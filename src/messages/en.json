@@ -1,7 +1,7 @@
 {
   "Common": {
-    "appName": "NGO Works Portal",
-    "tagline": "Unified NGO Operations Management",
+    "appName": "SKB Works Portal",
+    "tagline": "Unified SKB Operations Management",
     "language": "Language",
     "english": "English",
     "bangla": "বাংলা",
@@ -11,7 +11,7 @@
     "logout": "Log Out"
   },
   "Auth": {
-    "loginTitle": "Sign In to NGO Portal",
+    "loginTitle": "Sign In to SKB Portal",
     "loginDescription": "Enter your credentials to access your organization dashboard.",
     "email": "Email Address",
     "password": "Password",

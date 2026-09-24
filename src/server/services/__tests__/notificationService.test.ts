@@ -17,7 +17,7 @@ describe('Notification Service', () => {
   it('should send SMS notifications successfully', async () => {
     const res = await sendSMSNotification({
       recipient: '01812345678',
-      message: 'Test alert from NGO Portal',
+      message: 'Test alert from SKB Portal',
     });
 
     expect(res.success).toBe(true);

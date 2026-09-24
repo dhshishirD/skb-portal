@@ -4,8 +4,8 @@ import { NextIntlClientProvider } from 'next-intl';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'NGO Works Portal',
-  description: 'Unified NGO Operations & Field Management Platform',
+  title: 'SKB Works Portal',
+  description: 'Unified SKB Operations & Field Management Platform',
 };
 
 export const viewport: Viewport = {

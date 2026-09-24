@@ -93,7 +93,7 @@ export async function dispatchExpenseApprovalAlert(
   amountBDT: number,
   submitterName: string
 ): Promise<NotificationResult> {
-  const message = `[NGO Portal] Expense Claim #${claimId} of BDT ${amountBDT.toLocaleString()} submitted by ${submitterName} requires your approval.`;
+  const message = `[SKB Portal] Expense Claim #${claimId} of BDT ${amountBDT.toLocaleString()} submitted by ${submitterName} requires your approval.`;
   return sendSMSNotification({ recipient: recipientPhone, message });
 }
 
@@ -105,6 +105,6 @@ export async function dispatchStageGateAlert(
   projectCode: string,
   newStage: string
 ): Promise<NotificationResult> {
-  const message = `[NGO Portal] Project ${projectCode} has successfully advanced to stage: ${newStage.toUpperCase()}.`;
+  const message = `[SKB Portal] Project ${projectCode} has successfully advanced to stage: ${newStage.toUpperCase()}.`;
   return sendSMSNotification({ recipient: recipientPhone, message });
 }

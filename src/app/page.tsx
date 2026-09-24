@@ -14,7 +14,7 @@ export default function RootPage() {
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-lg">
-            N
+            S
           </div>
           <div>
             <h1 className="text-base font-bold leading-none">{t('appName')}</h1>
@@ -32,7 +32,7 @@ export default function RootPage() {
           </span>
           <h2 className="text-2xl font-bold">{t('appName')}</h2>
           <p className="text-sm text-blue-100 leading-relaxed">
-            Welcome to the NGO Operations Portal. Choose your functional workspace below.
+            Welcome to the SKB Operations Portal. Choose your functional workspace below.
           </p>
         </div>
 

@@ -28,7 +28,7 @@ export default function RootPage() {
       <main className="flex-1 p-4 max-w-4xl mx-auto w-full space-y-6">
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6 rounded-2xl shadow-md space-y-3">
           <span className="inline-block bg-blue-500/30 text-blue-100 text-xs px-2.5 py-1 rounded-full font-medium">
-            Phase 1 Foundation
+            Enterprise Platform • All 7 Phases Enabled
           </span>
           <h2 className="text-2xl font-bold">{t('appName')}</h2>
           <p className="text-sm text-blue-100 leading-relaxed">

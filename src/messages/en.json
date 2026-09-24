@@ -1,0 +1,44 @@
+{
+  "Common": {
+    "appName": "NGO Works Portal",
+    "tagline": "Unified NGO Operations Management",
+    "language": "Language",
+    "english": "English",
+    "bangla": "বাংলা",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "logout": "Log Out"
+  },
+  "Auth": {
+    "loginTitle": "Sign In to NGO Portal",
+    "loginDescription": "Enter your credentials to access your organization dashboard.",
+    "email": "Email Address",
+    "password": "Password",
+    "submit": "Sign In",
+    "inviteOnlyNotice": "Public sign-up is disabled. Please request an invite from your organization administrator."
+  },
+  "Navigation": {
+    "dashboard": "Dashboard",
+    "projects": "Projects & Grants",
+    "fieldReports": "Field Reports",
+    "finance": "Finance & Expenses",
+    "donorPortal": "Donor Portal",
+    "admin": "Administration"
+  },
+  "RoleAreas": {
+    "staff": "Staff Portal",
+    "field": "Field Operations (PWA)",
+    "donor": "Donor Portal (Read-Only)",
+    "auth": "Authentication Area"
+  },
+  "Integrations": {
+    "title": "Integrations & AI Narrative Assistant",
+    "koboSync": "KoboToolbox Field Sync",
+    "odkSync": "ODK Central Webhooks",
+    "smsAlerts": "SMS & WhatsApp Dispatch",
+    "aiAssistant": "AI Narrative Generator",
+    "generateDraft": "Draft Donor Narrative",
+    "generating": "Generating Narrative..."
+  }
+}

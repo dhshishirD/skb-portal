@@ -1,0 +1,455 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}</style><style>:root{color-scheme:light dark;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}}:root[data-theme="dark"]{color-scheme:dark;--md-bg:#0d0d0d;--md-text:rgba(255,255,255,.85);--md-muted:rgba(255,255,255,.6);--md-fill:rgba(255,255,255,.06);--md-fill-strong:rgba(255,255,255,.09);--md-rule:rgba(255,255,255,.14);--md-rule-strong:rgba(255,255,255,.22);--md-link:hsl(210 100% 72%)}:root[data-theme="light"]{color-scheme:light}@media print{:root,:root[data-theme="dark"]{color-scheme:light;--md-bg:#fff;--md-text:rgba(0,0,0,.8);--md-muted:rgba(0,0,0,.6);--md-fill:rgba(0,0,0,.04);--md-fill-strong:rgba(0,0,0,.06);--md-rule:rgba(0,0,0,.1);--md-rule-strong:rgba(0,0,0,.16);--md-link:hsl(210 100% 45%)}}body{background:var(--md-bg);color:var(--md-text);max-width:720px;margin:0 auto;padding:32px;display:flex;flex-direction:column;gap:10px;font:14px/1.55 -apple-system,BlinkMacSystemFont,'SF Pro','Segoe UI',sans-serif;overflow-wrap:break-word}body>:first-child{margin-top:0}h1,h2,h3,h4,h5,h6{margin:6px 0 0;line-height:1.25;font-weight:600;text-wrap:balance}h1{font-size:1.35em}h2{font-size:1.15em;color:var(--md-muted)}h3,h4,h5,h6{font-size:1em}p,ul,ol,blockquote,table,pre,hr{margin:0}strong{font-weight:600}a{color:var(--md-link);text-decoration:none}a:hover{text-decoration:underline}ul,ol{display:flex;flex-direction:column;gap:6px;padding-left:22px}ul{list-style:disc}ol{list-style:decimal}:is(li,td,th)>*+:is(p,ul,ol,blockquote){margin-top:6px}blockquote{display:flex;flex-direction:column;gap:10px;border-left:2px solid var(--md-rule);padding-left:10px;color:var(--md-muted)}:not(pre)>code{background:var(--md-fill);padding:1px 3px;border-radius:4px;font:.92em 'SF Mono',ui-monospace,Menlo,Consolas,monospace}a>code{background:none;color:inherit}pre{background:var(--md-fill);padding:10px 12px;border-radius:6px;overflow-x:auto;font:12px/1.5 'SF Mono',ui-monospace,Menlo,Consolas,monospace;margin-block:4px}pre code{background:none;padding:0;font:inherit}table{width:100%;border-collapse:separate;border-spacing:2px;font:inherit}th,td{padding:6px 8px;border-radius:3px;text-align:left;vertical-align:top}th{background:var(--md-fill-strong);font-weight:600}td{background:var(--md-fill)}:is(th,td) :not(pre)>code{background:transparent}hr{border:0;border-top:1px solid var(--md-rule-strong);margin-block:10px}img{max-width:100%;height:auto;border-radius:4px}</style>
+</head><body>
+<h1>NGO Works Portal — Master Plan (A to Z)</h1>
+<p><strong>Goal:</strong> one secure internal platform where HQ, project staff, finance, M&amp;E, field officers, donors and implementing partners run projects, grants, approvals and reporting, with no scattered spreadsheets.</p>
+<p><strong>Honest framing:</strong> &quot;multi-million dollar standard&quot; comes from the <em>process</em> (security, testing, review, backups, documentation), not just the tech stack. This plan builds all of that in. You will use Antigravity (AI agent IDE) to write most code, so the plan is designed around a mainstream stack the AI knows extremely well, and around guardrails that catch AI mistakes.</p>
+<hr>
+<h2>1. Guiding principles</h2>
+<ol>
+<li><strong>Boring, popular technology.</strong> Widely used tools = better AI output, easier hiring later.</li>
+<li><strong>Managed services over self-hosting.</strong> No servers for you to patch.</li>
+<li><strong>Security by default.</strong> Beneficiary data is sensitive; donors will audit you.</li>
+<li><strong>Field-first.</strong> Phone-friendly, low-bandwidth, works offline.</li>
+<li><strong>Vertical slices.</strong> Build one complete feature at a time (database → screen → tests), never everything half-done.</li>
+<li><strong>Build vs integrate.</strong> Do not rebuild what exists: for heavy survey/offline data collection, integrate <strong>KoboToolbox or ODK</strong> later; build the core workflow system yourself.</li>
+</ol>
+<hr>
+<h2>2. Users and roles</h2>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Can do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Super Admin</td>
+<td>Users, roles, settings, audit logs</td>
+</tr>
+<tr>
+<td>Executive / HQ Management</td>
+<td>See everything, approve high-value items</td>
+</tr>
+<tr>
+<td>Programme Manager</td>
+<td>Own projects, approve reports, budgets</td>
+</tr>
+<tr>
+<td>Project Officer / Programmer</td>
+<td>Proposals, logframes, work plans, reports</td>
+</tr>
+<tr>
+<td>Field Officer</td>
+<td>Submit field reports, beneficiary entries, expense claims (own area only)</td>
+</tr>
+<tr>
+<td>Finance</td>
+<td>Budgets, grants, expense verification, payments</td>
+</tr>
+<tr>
+<td>Procurement</td>
+<td>Purchase requests, vendors, quotations</td>
+</tr>
+<tr>
+<td>M&amp;E Officer</td>
+<td>Indicators, data quality review, dashboards</td>
+</tr>
+<tr>
+<td>Donor (external)</td>
+<td>Read-only view of <em>their</em> grants only; download reports</td>
+</tr>
+<tr>
+<td>Implementing Partner (external)</td>
+<td>Submit reports and expenses for <em>their</em> activities only</td>
+</tr>
+<tr>
+<td>Auditor (temporary)</td>
+<td>Read-only, time-limited access</td>
+</tr>
+</tbody>
+</table>
+<p>Access rule: a person sees only the projects, regions and grants they are assigned to. This is enforced <strong>in the database</strong> (see §6).</p>
+<hr>
+<h2>3. Modules and priorities</h2>
+<p><strong>MVP (Phases 1–3): must-have</strong></p>
+<ol>
+<li><strong>Login &amp; access control</strong> — email login, MFA, roles, per-project permissions</li>
+<li><strong>Master data</strong> — donors, grants, projects, partners, staff, locations (Division → District → Upazila → Union → Village)</li>
+<li><strong>Project lifecycle board (Kanban)</strong> — Concept → Proposal → Approved → Implementation → M&amp;E → Closure, with stage-gate checklists</li>
+<li><strong>Logframe / results framework</strong> — Goal → Outcome → Output → Activity → Indicator (target, baseline, actual, dates)</li>
+<li><strong>Work plan &amp; tasks</strong> — activities with owners, deadlines, status, comments</li>
+<li><strong>Field reporting (mobile PWA, offline)</strong> — daily/weekly forms, photos, GPS, sync later</li>
+<li><strong>Budget &amp; grant tracking</strong> — budget lines, spent vs remaining (burn rate), donor deadlines</li>
+<li><strong>Approval workflows</strong> — Field Officer → Project Manager → Finance Director, with stamp/time/comment at each step</li>
+<li><strong>Expense &amp; receipt upload</strong> — drag-and-drop, phone camera, OCR to auto-read date/amount (staff confirms)</li>
+<li><strong>Document library</strong> — versioned files, templates, donor report formats</li>
+<li><strong>Notifications</strong> — in-app + email (deadline reminders, pending approvals)</li>
+<li><strong>Audit log</strong> — who changed what, when (append-only)</li>
+</ol>
+<p><strong>Phase 4–5: strong additions</strong>
+13. <strong>Donor portal</strong> — per-donor dashboard, approved reports, financial summaries
+14. <strong>Beneficiary registry</strong> — with duplicate detection, consent record, restricted access
+15. <strong>M&amp;E dashboards &amp; maps</strong> — indicator progress, district maps, trend charts
+16. <strong>Report generator</strong> — one-click Word/PDF/Excel in donor formats
+17. <strong>Procurement module</strong> — requests, quotations comparison, PO, vendor list
+18. <strong>Multi-currency &amp; multi-language</strong> — BDT + donor currencies with recorded exchange rates; Bangla/English UI (donor-facing pages can add other languages later)</p>
+<p><strong>Later:</strong> HR/leave, asset register, WhatsApp/SMS alerts, KoboToolbox integration, AI assistant (draft reports from field data, summarize progress), API for partners.</p>
+<hr>
+<h2>4. Recommended technology stack</h2>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Choice</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Language</td>
+<td><strong>TypeScript</strong> (one language for everything)</td>
+<td>Most AI-supported, catches errors early</td>
+</tr>
+<tr>
+<td>Framework</td>
+<td><strong>Next.js</strong> (React)</td>
+<td>Web app + API in one; huge ecosystem</td>
+</tr>
+<tr>
+<td>UI kit</td>
+<td><strong>Tailwind CSS + shadcn/ui</strong></td>
+<td>Professional look fast, accessible</td>
+</tr>
+<tr>
+<td>Database</td>
+<td><strong>PostgreSQL</strong> via <strong>Supabase</strong></td>
+<td>Managed DB + login + file storage + row-level security in one; region close to Dhaka (Singapore or Mumbai)</td>
+</tr>
+<tr>
+<td>Data access</td>
+<td><strong>Drizzle ORM</strong> or Supabase client</td>
+<td>Typed, migrations tracked in Git</td>
+</tr>
+<tr>
+<td>Auth</td>
+<td>Supabase Auth (+ MFA)</td>
+<td>No need to build login yourself</td>
+</tr>
+<tr>
+<td>Files</td>
+<td>Supabase Storage or <strong>Cloudflare R2</strong></td>
+<td>R2 has no egress fees; good for many photos/reports</td>
+</tr>
+<tr>
+<td>Offline/mobile</td>
+<td><strong>PWA</strong> (installable web app) with local storage + sync queue</td>
+<td>One codebase for phone and desktop</td>
+</tr>
+<tr>
+<td>OCR</td>
+<td>Cloud OCR API (Google Vision / Azure) or an LLM vision call</td>
+<td>Extracts receipt fields; human confirms</td>
+</tr>
+<tr>
+<td>Email</td>
+<td>Resend or Postmark</td>
+<td>Reliable delivery</td>
+</tr>
+<tr>
+<td>Background jobs</td>
+<td>Supabase cron / Cloudflare Queues</td>
+<td>Reminders, report generation</td>
+</tr>
+<tr>
+<td>Monitoring</td>
+<td>Sentry (errors) + uptime monitor</td>
+<td>You learn of problems before users do</td>
+</tr>
+<tr>
+<td>Code hosting/CI</td>
+<td><strong>GitHub</strong> + GitHub Actions</td>
+<td>Automated tests on every change</td>
+</tr>
+<tr>
+<td>Edge / security</td>
+<td><strong>Cloudflare</strong> (DNS, CDN, WAF, DDoS, Turnstile)</td>
+<td>Protection layer in front of everything</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Where to host the app (pick one, decide in Phase 0):</strong></p>
+<ul>
+<li><strong>Option A (recommended for simplicity): Vercel</strong> for Next.js, with <strong>Cloudflare in front</strong> for DNS/WAF. Smoothest deploys for Next.js.</li>
+<li><strong>Option B (Cloudflare-native): Cloudflare Workers</strong> using the OpenNext adapter. Cheaper and one vendor, but Next.js on Workers has more edge cases; needs a bit more care.</li>
+<li><strong>Option C (max control): a VPS</strong> (Hetzner/DigitalOcean) with Docker. Only if you get a DevOps person; more work for you.</li>
+</ul>
+<p>Approximate running cost at your scale (<strong>verify current prices before buying</strong>): domain ~$15/yr; Supabase Pro ~$25/mo; Vercel Pro ~$20/user/mo or Cloudflare Workers paid ~$5/mo; Cloudflare Pro optional ~$25/mo; GitHub Team ~$4/user/mo; Sentry free–$26/mo; email ~$0–20/mo. Realistic total: <strong>$60–200/month</strong> at start, far below the cost of the people who build it.</p>
+<p><strong>Cloudflare Access / Zero Trust</strong> (free tier for small teams) can additionally lock the admin area behind a second gate.</p>
+<hr>
+<h2>5. Architecture</h2>
+<pre class="mermaid">flowchart TD
+  A[Staff / Field / Donors browser or phone PWA] --&gt; B[Cloudflare: DNS, WAF, CDN]
+  B --&gt; C[Next.js App: screens + API]
+  C --&gt; D[(PostgreSQL + Row Level Security)]
+  C --&gt; E[File Storage: receipts, photos, reports]
+  C --&gt; F[Auth + MFA]
+  C --&gt; G[Email / notifications]
+  C --&gt; H[OCR service]
+  D --&gt; I[Daily backups + point-in-time recovery]
+</pre>
+<p><strong>Environments (never skip):</strong></p>
+<ul>
+<li><strong>Local</strong> (your machine) → <strong>Preview</strong> (auto per GitHub pull request) → <strong>Staging</strong> (copy of production, safe testing, fake data) → <strong>Production</strong>.</li>
+</ul>
+<hr>
+<h2>6. Security and compliance (the &quot;multi-million&quot; part)</h2>
+<ul>
+<li><strong>Row-Level Security (RLS)</strong> in PostgreSQL: even a code bug cannot let a field officer read another region's data.</li>
+<li><strong>MFA required</strong> for Finance, Admin, Management; recommended for all.</li>
+<li><strong>Least privilege:</strong> roles above; donor and partner accounts strictly scoped.</li>
+<li><strong>Encryption:</strong> HTTPS everywhere, data encrypted at rest; sensitive beneficiary fields (national ID, phone) additionally encrypted at column level.</li>
+<li><strong>Audit log:</strong> append-only table; every create/update/delete/approval recorded with user, time, before/after.</li>
+<li><strong>Backups:</strong> daily automatic + point-in-time recovery; <strong>restore drill every quarter</strong> (a backup you never tested is a hope, not a backup).</li>
+<li><strong>Secrets</strong> never in code; stored in vendor secret managers.</li>
+<li><strong>Rate limiting + Turnstile</strong> on login; WAF rules in Cloudflare.</li>
+<li><strong>Data protection:</strong> consent capture for beneficiaries, retention rules, deletion process. Check applicable Bangladesh law and your donor agreements' data clauses (donors in Turkey/Canada may impose their own rules).</li>
+<li><strong>Before go-live:</strong> independent penetration test + code security review by a human professional. Budget for this; it is non-negotiable for a portal holding beneficiary and financial data.</li>
+<li><strong>Incident plan:</strong> one page: who is called, how to revoke access, how to restore.</li>
+</ul>
+<hr>
+<h2>7. Core database design (main tables)</h2>
+<p><code>organizations</code> (donors, partners) · <code>users</code> · <code>roles</code> · <code>user_project_access</code> · <code>grants</code> (donor, amount, currency, dates) · <code>projects</code> · <code>project_stages</code> · <code>budget_lines</code> · <code>expenses</code> · <code>approvals</code> (workflow steps) · <code>receipts</code> · <code>logframe_nodes</code> (goal/outcome/output/activity) · <code>indicators</code> · <code>indicator_values</code> · <code>activities</code> / <code>tasks</code> · <code>field_reports</code> · <code>report_attachments</code> · <code>beneficiaries</code> · <code>beneficiary_participation</code> · <code>locations</code> (BD admin hierarchy) · <code>documents</code> (+ versions) · <code>notifications</code> · <code>audit_log</code> · <code>exchange_rates</code>.</p>
+<p>Design rules: every table has <code>id</code>, <code>created_at</code>, <code>created_by</code>, <code>updated_at</code>; use soft-delete (mark deleted, never erase); money stored as integers/decimals with currency code.</p>
+<hr>
+<h2>8. Key workflows</h2>
+<p><strong>Expense approval:</strong> Field Officer submits (photo receipt) → OCR pre-fills → Project Manager reviews → Finance verifies against budget line → Finance Director approves → status &quot;Approved&quot; → payment recorded. Every step: stamp, time, comment; rejection returns to sender with reason. Auto-escalate if pending more than N days.</p>
+<p><strong>Field report:</strong> Officer fills form offline → saved on phone → auto-syncs when online → Project Officer reviews → M&amp;E validates indicators → feeds dashboards and donor reports.</p>
+<p><strong>Donor reporting:</strong> indicators + financials roll up automatically → report generator fills the donor's template → Programme Manager approves → published to donor portal.</p>
+<hr>
+<h2>9. Delivery roadmap</h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Duration (est.)</th>
+<th>Deliverable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>0. Discovery</strong></td>
+<td>2–3 wks</td>
+<td>Interview each role, collect current forms/spreadsheets, donor report formats; write the requirements spec; clickable wireframes; choose hosting</td>
+</tr>
+<tr>
+<td><strong>1. Foundation</strong></td>
+<td>3–4 wks</td>
+<td>GitHub repo, CI, environments, login/MFA, roles, master data, audit log, design system</td>
+</tr>
+<tr>
+<td><strong>2. Project core</strong></td>
+<td>4–5 wks</td>
+<td>Project Kanban, logframe, work plan, documents</td>
+</tr>
+<tr>
+<td><strong>3. Field + Finance</strong></td>
+<td>5–6 wks</td>
+<td>Offline field forms, budgets, grants, expenses, receipts/OCR, approval workflows, notifications. <strong>Pilot with one real project</strong></td>
+</tr>
+<tr>
+<td><strong>4. Donor &amp; M&amp;E</strong></td>
+<td>4–5 wks</td>
+<td>Donor portal, dashboards, maps, report generator</td>
+</tr>
+<tr>
+<td><strong>5. Beneficiaries &amp; Procurement</strong></td>
+<td>4–5 wks</td>
+<td>Registry with dedup, procurement flow</td>
+</tr>
+<tr>
+<td><strong>6. Hardening &amp; launch</strong></td>
+<td>3–4 wks</td>
+<td>Pen test, load test, training, data migration, go-live</td>
+</tr>
+<tr>
+<td><strong>7. Support &amp; growth</strong></td>
+<td>ongoing</td>
+<td>Monthly releases, feedback loop</td>
+</tr>
+</tbody>
+</table>
+<p>Roughly <strong>8–11 months</strong> part-time solo with AI assistance. A second person (reviewer/tester) shortens this and reduces risk.</p>
+<p>Each phase ends with a <strong>demo to real users</strong> and written acceptance. Do not start the next phase until users sign off.</p>
+<hr>
+<h2>10. How to work with Antigravity as a non-expert</h2>
+<ol>
+<li><strong>Write the spec first.</strong> Keep a <code>/docs</code> folder: requirements, roles, database design, workflows. Give it to the agent as context.</li>
+<li><strong>Create a rules file</strong> (e.g., <code>AGENTS.md</code>) telling the agent: use TypeScript, Next.js, Tailwind, shadcn/ui, Drizzle; every table needs RLS; never hardcode secrets; write tests for each feature; small changes only; explain what changed.</li>
+<li><strong>One feature per branch.</strong> Ask the agent to implement one slice, run tests, open a pull request on GitHub. Never commit straight to <code>main</code>.</li>
+<li><strong>Turn on protections:</strong> branch protection on <code>main</code>, required passing tests, Dependabot (dependency alerts), secret scanning.</li>
+<li><strong>Use a second AI as reviewer:</strong> ask a different model/session to review each pull request for security and bugs. It catches many mistakes.</li>
+<li><strong>Test with real people early</strong> on staging, using fake data.</li>
+<li><strong>Ask the agent to explain</strong> anything you do not understand; keep a <code>DECISIONS.md</code> log of why choices were made.</li>
+<li><strong>Hire a senior reviewer part-time</strong> (even 5–10 hrs/month) for architecture and security reviews. This is the best money you can spend.</li>
+</ol>
+<p><strong>Starter prompts (Phase 1):</strong></p>
+<ul>
+<li>&quot;Read /docs and propose the folder structure and a task list for Phase 1. Do not write code yet.&quot;</li>
+<li>&quot;Set up Next.js + TypeScript + Tailwind + shadcn/ui, ESLint, and a GitHub Actions workflow that runs lint and tests.&quot;</li>
+<li>&quot;Design the Postgres schema for users, roles, projects, grants, with RLS policies so users see only assigned projects. Include tests proving a user cannot read another project's rows.&quot;</li>
+</ul>
+<hr>
+<h2>11. Quality, DevOps, operations</h2>
+<ul>
+<li><strong>Testing:</strong> unit tests (logic), integration tests (database and RLS), end-to-end tests with Playwright for critical flows (login, submit expense, approve).</li>
+<li><strong>CI/CD:</strong> GitHub Actions runs tests on every pull request; merge to <code>main</code> deploys to staging; a manual click promotes to production.</li>
+<li><strong>Monitoring:</strong> Sentry, uptime checks, database usage alerts.</li>
+<li><strong>Performance for Bangladesh:</strong> small page sizes, image compression on upload, caching via Cloudflare, offline-first field forms, test on a mid-range Android phone with a slow connection.</li>
+<li><strong>Documentation:</strong> user guide (English + Bangla), short training videos, admin runbook, developer README.</li>
+<li><strong>Training:</strong> role-based sessions; appoint one &quot;portal champion&quot; per office.</li>
+<li><strong>Data migration:</strong> clean existing spreadsheets, import through scripts in staging first, reconcile totals before go-live.</li>
+<li><strong>Change management:</strong> run old and new systems in parallel for one reporting cycle.</li>
+</ul>
+<hr>
+<h2>12. Risks and answers</h2>
+<table>
+<thead>
+<tr>
+<th>Risk</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AI-written code has hidden bugs/security holes</td>
+<td>Tests, second-AI review, senior reviewer, pen test</td>
+</tr>
+<tr>
+<td>Scope creep</td>
+<td>Strict MVP; new ideas go to a backlog</td>
+</tr>
+<tr>
+<td>Staff do not adopt it</td>
+<td>Involve users from Phase 0; pilot; training; champions</td>
+</tr>
+<tr>
+<td>Poor connectivity in the field</td>
+<td>Offline PWA, small payloads</td>
+</tr>
+<tr>
+<td>Key-person dependency (only you)</td>
+<td>Documentation, clean Git history, second developer/reviewer</td>
+</tr>
+<tr>
+<td>Vendor changes pricing</td>
+<td>Standard Postgres + open tools; data exportable anywhere</td>
+</tr>
+<tr>
+<td>Data breach</td>
+<td>RLS, MFA, encryption, audit log, incident plan</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>13. Your first 14 days</h2>
+<ol>
+<li>Create a GitHub organization and private repo; enable branch protection.</li>
+<li>Buy the domain; put it on Cloudflare.</li>
+<li>Create Supabase project (Singapore or Mumbai) for staging.</li>
+<li>Interview 5–8 users (field officer, finance, PM, M&amp;E, one donor contact); collect their current forms and reports.</li>
+<li>Write the requirements and role matrix in <code>/docs</code>.</li>
+<li>Sketch wireframes for 5 screens: dashboard, project Kanban, field report, expense approval, donor view.</li>
+<li>Set up Antigravity with the rules file; run the first &quot;propose the plan&quot; prompt.</li>
+<li>Decide hosting (Option A/B/C).</li>
+</ol>
+<hr>
+<h2>14. Decisions to make in Phase 0</h2>
+<ul>
+<li>How many total users, and how many field officers?</li>
+<li>Approximately how many beneficiaries and projects per year?</li>
+<li>Which donors need custom report formats, and in which languages and currencies?</li>
+<li>Which regions have poor or no connectivity?</li>
+<li>Who is the business owner who approves scope (not just you)?</li>
+<li>Is there budget for a pen test and a part-time senior reviewer?</li>
+<li>Any donor rules on where data must be stored?</li>
+</ul>
+
+
+<!--claude-mermaid-runtime-begin:3477-->
+<style>.mermaid-diagram{margin-block:4px}.mermaid-diagram svg{display:block;margin:0 auto;max-width:100%;height:auto}</style>
+<script src="/_runtime/mermaid-11.16.1.min.js"></script>
+<script>(function(){
+var CFG={"palettes":{"light":{"surface":"#f4efe4","text":"#42392e","line":"#8a7f6d","border":"#7a6c52","bg":"#fffdf8"},"dark":{"surface":"#262b34","text":"#f2f3f5","line":"#a8adb8","border":"#9aa4b8","bg":"#1f232b"}}};
+if(typeof mermaid==='undefined')return;
+var pres=Array.prototype.slice.call(document.querySelectorAll('pre.mermaid')).filter(function(p){if(p.hasAttribute('data-claude-mermaid-claimed'))return false;p.setAttribute('data-claude-mermaid-claimed','1');return true;});
+if(!pres.length)return;
+var mq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+var root=document.documentElement;
+var items=pres.map(function(pre){
+var mount=document.createElement('div');mount.className='mermaid-diagram';
+return {pre:pre,mount:mount,src:pre.textContent||''};
+});
+var seq=0;
+var renderGen=0;
+var lastKey='';
+function pageBg(fallback){
+var els=[document.body,document.documentElement];
+for(var i=0;i<els.length;i++){
+var c=els[i]&&getComputedStyle(els[i]).backgroundColor;
+if(c&&c!=='transparent'&&c!=='rgba(0, 0, 0, 0)')return c;
+}
+return fallback;
+}
+function render(){
+var theme=root.getAttribute('data-theme');
+var dark=theme==='dark'||(!!(mq&&mq.matches)&&theme!=='light');
+var pal=dark?CFG.palettes.dark:CFG.palettes.light;
+var bg=pageBg(pal.bg);
+var key=(dark?'d':'l')+'|'+bg;
+if(key===lastKey)return;
+lastKey=key;
+var gen=++renderGen;
+var font=getComputedStyle(document.body).fontFamily||'sans-serif';
+var nat={useMaxWidth:false};
+mermaid.initialize({
+startOnLoad:false,securityLevel:'strict',theme:'base',
+flowchart:nat,sequence:nat,er:nat,state:nat,class:nat,pie:nat,
+gantt:nat,journey:nat,timeline:nat,gitGraph:nat,mindmap:nat,xyChart:nat,
+quadrantChart:nat,sankey:nat,c4:nat,requirement:nat,block:nat,
+packet:nat,kanban:nat,architecture:nat,radar:nat,
+themeVariables:{background:bg,mainBkg:pal.surface,primaryColor:pal.surface,
+primaryTextColor:pal.text,lineColor:pal.line,primaryBorderColor:pal.border,
+nodeBorder:pal.border,clusterBorder:pal.border,edgeLabelBackground:bg,
+clusterBkg:'rgba(127,127,127,0.07)',titleColor:pal.text,
+darkMode:dark,rowOdd:bg,rowEven:'rgba(127,127,127,0.07)',
+attributeBackgroundColorOdd:bg,attributeBackgroundColorEven:'rgba(127,127,127,0.07)',
+fontSize:'16px',fontFamily:font},
+themeCSS:'.node rect, .node circle, .node polygon, .node path, .cluster rect { stroke-width: 2px; }'
+});
+items.forEach(function(it){
+var id='claude-mermaid-'+seq++;
+mermaid.render(id,it.src).then(function(r){
+if(gen!==renderGen)return;
+var prev=it.pre.previousElementSibling;
+if(prev&&prev.className==='mermaid-diagram'&&prev!==it.mount)return;
+it.mount.innerHTML=r.svg;
+if(!it.mount.parentNode)it.pre.parentNode.insertBefore(it.mount,it.pre);
+it.pre.style.display='none';
+},function(){
+var scratch=document.getElementById(id);
+if(scratch)scratch.parentNode.removeChild(scratch);
+scratch=document.getElementById('d'+id);
+if(scratch)scratch.parentNode.removeChild(scratch);
+if(gen!==renderGen)return;
+if(it.mount.parentNode)it.mount.parentNode.removeChild(it.mount);
+it.pre.style.display='';
+});
+});
+}
+render();
+if(mq&&mq.addEventListener)mq.addEventListener('change',render);
+if(typeof MutationObserver!=='undefined')new MutationObserver(render).observe(root,{attributes:true,attributeFilter:['data-theme']});
+})();</script>
+<!--claude-mermaid-runtime-end-->
+</body></html>

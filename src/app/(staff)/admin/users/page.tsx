@@ -176,10 +176,10 @@ export default function AdminUsersPage() {
             <form
               action={async (formData) => {
                 try {
-                  await inviteUserAction(formData);
-                  setStatusMsg('User invitation successfully processed!');
-                } catch {
-                  setStatusMsg('User invited locally (Mock mode).');
+                  const res = await inviteUserAction(formData);
+                  setStatusMsg(res.message || 'User invitation email sent successfully!');
+                } catch (err: any) {
+                  setStatusMsg(`Invitation notice: ${err.message || 'User registered'}`);
                 }
                 setShowInviteModal(false);
               }}

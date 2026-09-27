@@ -55,11 +55,13 @@ export default function StaffLayout({
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
-            <Link href="/dashboard" className="font-bold text-base sm:text-lg flex items-center gap-2 text-white">
-              <span className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-xs font-black shadow-sm">
-                SKB
-              </span>
-              <span className="hidden sm:inline">SKB Works Portal</span>
+            <Link href="/dashboard" className="font-bold text-base sm:text-lg flex items-center gap-2.5 text-white group">
+              <img
+                src="/skb-logo.png"
+                alt="Small Kindness Bangladesh Logo"
+                className="w-8 h-8 object-contain filter drop-shadow transition-transform group-hover:scale-105"
+              />
+              <span className="hidden sm:inline tracking-tight font-extrabold text-slate-100">SKB Works Portal</span>
               <span className="text-[10px] bg-blue-500/20 text-blue-300 font-semibold px-2 py-0.5 rounded-full border border-blue-400/30">
                 HQ Staff
               </span>

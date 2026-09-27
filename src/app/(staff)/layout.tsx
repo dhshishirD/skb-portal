@@ -63,7 +63,7 @@ export default function StaffLayout({
 
   const navItems = [
     { href: '/dashboard', label: navT('dashboard'), icon: LayoutDashboard },
-    { href: '/projects/1/kanban', label: navT('projects'), icon: FolderKanban },
+    { href: '/projects', label: navT('projects'), icon: FolderKanban },
     { href: '/finance/approvals', label: 'Finance & Approvals', icon: Receipt },
     { href: '/me/dashboard', label: 'M&E Analytics', icon: BarChart2 },
     { href: '/me/report-generator', label: 'AI Donor Generator', icon: Sparkles, badge: 'AI' },

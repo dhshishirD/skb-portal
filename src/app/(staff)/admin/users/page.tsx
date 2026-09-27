@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { createClient } from '@/lib/supabase/client';
 import { UserPlus, Shield, MapPin, FolderKanban, UserX, UserCheck, Calendar } from 'lucide-react';
 import { inviteUserAction } from '@/server/actions/admin';
 
@@ -78,12 +80,46 @@ export default function AdminUsersPage() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
   const [statusMsg, setStatusMsg] = useState('');
+  const [accessDenied, setAccessDenied] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        const designation = (user.user_metadata?.designation || '').toLowerCase();
+        const isAdmin = designation.includes('admin') || designation.includes('director') || designation.includes('executive') || designation.includes('it');
+        if (!isAdmin) {
+          setAccessDenied(true);
+        }
+      }
+    });
+  }, []);
 
   const toggleStatus = (id: string) => {
     setUsers((prev) =>
       prev.map((u) => (u.id === id ? { ...u, isActive: !u.isActive } : u))
     );
   };
+
+  if (accessDenied) {
+    return (
+      <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center max-w-lg mx-auto my-12 space-y-4 shadow-sm">
+        <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
+          <Shield className="w-6 h-6" />
+        </div>
+        <h2 className="text-lg font-bold text-slate-900">🔒 Access Restricted</h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          The Users & Access Management workspace is restricted to Executive Directors, Super Admins, and IT Officers.
+        </p>
+        <Link 
+          href="/dashboard" 
+          className="inline-block bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-sm transition"
+        >
+          Return to My Workspace
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

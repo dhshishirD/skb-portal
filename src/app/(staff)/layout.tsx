@@ -55,6 +55,12 @@ export default function StaffLayout({
     });
   }, []);
 
+  const isAdminUser = 
+    userProfile.role.toLowerCase().includes('admin') || 
+    userProfile.role.toLowerCase().includes('director') || 
+    userProfile.role.toLowerCase().includes('executive') || 
+    userProfile.role.toLowerCase().includes('it');
+
   const navItems = [
     { href: '/dashboard', label: navT('dashboard'), icon: LayoutDashboard },
     { href: '/projects/1/kanban', label: navT('projects'), icon: FolderKanban },
@@ -62,7 +68,7 @@ export default function StaffLayout({
     { href: '/me/dashboard', label: 'M&E Analytics', icon: BarChart2 },
     { href: '/me/report-generator', label: 'AI Donor Generator', icon: Sparkles, badge: 'AI' },
     { href: '/beneficiaries', label: 'Beneficiary Registry', icon: Users },
-    { href: '/admin/users', label: 'Admin & Governance', icon: ShieldCheck },
+    ...(isAdminUser ? [{ href: '/admin/users', label: 'Admin & Governance', icon: ShieldCheck }] : []),
   ];
 
   return (

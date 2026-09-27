@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { createClient } from '@/lib/supabase/client';
 import { 
   LayoutDashboard, 
   FolderKanban, 
@@ -27,10 +28,32 @@ export default function StaffLayout({
   children: React.ReactNode;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<{ name: string; role: string; initial: string }>({
+    name: 'SKB Staff User',
+    role: 'Staff Workspace',
+    initial: 'S'
+  });
+
   const pathname = usePathname();
   const commonT = useTranslations('Common');
   const navT = useTranslations('Navigation');
   const roleT = useTranslations('RoleAreas');
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'SKB User';
+        const designation = user.user_metadata?.designation || 'Staff Member';
+        const initial = fullName.charAt(0).toUpperCase();
+        setUserProfile({
+          name: fullName,
+          role: designation,
+          initial: initial
+        });
+      }
+    });
+  }, []);
 
   const navItems = [
     { href: '/dashboard', label: navT('dashboard'), icon: LayoutDashboard },
@@ -70,12 +93,12 @@ export default function StaffLayout({
 
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-2.5 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700/60">
-              <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center">
-                D
+              <div className="w-6.5 h-6.5 rounded-full bg-blue-600 text-white text-[11px] font-extrabold flex items-center justify-center shadow-sm">
+                {userProfile.initial}
               </div>
               <div className="text-left leading-none">
-                <p className="text-xs font-bold text-slate-100">Daloyar Admin</p>
-                <p className="text-[10px] text-blue-400 font-medium">Super Admin</p>
+                <p className="text-xs font-bold text-slate-100">{userProfile.name}</p>
+                <p className="text-[10px] text-blue-400 font-medium mt-0.5">{userProfile.role}</p>
               </div>
             </div>
 

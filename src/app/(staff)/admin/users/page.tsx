@@ -17,38 +17,29 @@ interface UserItem {
 
 const REAL_SKB_TEAM: UserItem[] = [
   {
-    id: '0a88393f-1283-42d2-b4c2-31c502b1d538',
-    fullName: 'Daloyar Hassan',
-    email: 'daloyar.pro@gmail.com',
-    orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['super_admin'],
-    isActive: true,
-    projectsCount: 4,
-  },
-  {
     id: '10000000-0000-0000-0000-000000000002',
     fullName: 'Md. Abu Huraira',
     email: 'kindnessforbeauty@gmail.com',
     orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['executive_director', 'org_admin'],
+    roles: ['Executive Director', 'Org Admin'],
     isActive: true,
     projectsCount: 4,
   },
   {
-    id: 'd963309c-1da4-4a4a-947c-c10785d43f1e',
+    id: '0a88393f-1283-42d2-b4c2-31c502b1d538',
     fullName: 'Daloyar Hassan',
-    email: 'daloyar.pro2@gmail.com',
+    email: 'daloyar.pro@gmail.com',
     orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['programme_officer_admin_hr'],
+    roles: ['Super Admin', 'Program Officer (Admin, HR)'],
     isActive: true,
-    projectsCount: 3,
+    projectsCount: 4,
   },
   {
     id: 'dbde8263-de6d-40ca-9ae8-75b42e8915f3',
     fullName: 'Khondokar Md Mukitur Rahman',
     email: 'mukitur.it@gmail.com',
     orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['it_officer', 'system_admin'],
+    roles: ['IT Officer', 'System Admin'],
     isActive: true,
     projectsCount: 4,
   },
@@ -57,7 +48,7 @@ const REAL_SKB_TEAM: UserItem[] = [
     fullName: 'MD. Emran',
     email: 'ih815338@gmail.com',
     orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['programme_officer'],
+    roles: ['Program Officer'],
     isActive: true,
     projectsCount: 2,
   },
@@ -66,7 +57,7 @@ const REAL_SKB_TEAM: UserItem[] = [
     fullName: 'Mizbah Uddin',
     email: 'uddinmizbah902@gmail.com',
     orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['programme_officer'],
+    roles: ['Program Officer'],
     isActive: true,
     projectsCount: 3,
   },
@@ -75,7 +66,7 @@ const REAL_SKB_TEAM: UserItem[] = [
     fullName: 'Adv. Aminul Islam Bulbul',
     email: 'bulbuluu43@gmail.com',
     orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['legal_officer'],
+    roles: ['Legal Officer'],
     isActive: true,
     projectsCount: 4,
   },
@@ -240,14 +231,16 @@ export default function AdminUsersPage() {
                   name="role"
                   className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="project_officer">Project Officer</option>
+                  <option value="program_officer">Program Officer</option>
                   <option value="field_officer">Field Officer</option>
-                  <option value="programme_manager">Programme Manager</option>
-                  <option value="finance">Finance</option>
-                  <option value="procurement">Procurement</option>
+                  <option value="executive_director">Executive Director</option>
+                  <option value="admin_hr">Admin & HR Officer</option>
+                  <option value="it_officer">IT Officer</option>
+                  <option value="finance">Finance Officer</option>
+                  <option value="procurement">Procurement Officer</option>
                   <option value="me_officer">M&E Officer</option>
+                  <option value="legal_officer">Legal Officer</option>
                   <option value="donor">Donor Representative</option>
-                  <option value="auditor">Temporary Auditor</option>
                 </select>
               </div>
 

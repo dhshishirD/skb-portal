@@ -12,13 +12,15 @@ export default function RootPage() {
     <div className="flex flex-col min-h-screen">
       {/* Mobile-first Header */}
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 shadow-sm flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-lg">
-            S
-          </div>
+        <div className="flex items-center gap-3">
+          <img
+            src="/skb-logo.png"
+            alt="Small Kindness Bangladesh Logo"
+            className="w-9 h-9 object-contain filter drop-shadow-sm"
+          />
           <div>
             <h1 className="text-base font-bold leading-none">{t('appName')}</h1>
-            <p className="text-[10px] text-slate-500">{t('tagline')}</p>
+            <p className="text-[10px] text-slate-500 font-medium">Small Kindness Bangladesh</p>
           </div>
         </div>
         <LanguageSwitcher />

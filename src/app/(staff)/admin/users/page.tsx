@@ -15,48 +15,75 @@ interface UserItem {
   projectsCount: number;
 }
 
-const MOCK_USERS: UserItem[] = [
+const REAL_SKB_TEAM: UserItem[] = [
   {
-    id: '10000000-0000-0000-0000-000000000001',
-    fullName: 'System Administrator',
-    email: 'admin@ngo-portal.org',
-    orgName: 'Internal HQ',
+    id: '0a88393f-1283-42d2-b4c2-31c502b1d538',
+    fullName: 'Daloyar Hassan',
+    email: 'daloyar.pro@gmail.com',
+    orgName: 'Small Kindness Bangladesh (HQ)',
     roles: ['super_admin'],
     isActive: true,
     projectsCount: 4,
   },
   {
-    id: '10000000-0000-0000-0000-000000000003',
-    fullName: 'Rahim Ahmed (PM)',
-    email: 'rahim@ngo-portal.org',
-    orgName: 'Internal HQ',
-    roles: ['programme_manager'],
+    id: '10000000-0000-0000-0000-000000000002',
+    fullName: 'Md. Abu Huraira',
+    email: 'kindnessforbeauty@gmail.com',
+    orgName: 'Small Kindness Bangladesh (HQ)',
+    roles: ['executive_director', 'org_admin'],
+    isActive: true,
+    projectsCount: 4,
+  },
+  {
+    id: 'd963309c-1da4-4a4a-947c-c10785d43f1e',
+    fullName: 'Daloyar Hassan',
+    email: 'daloyar.pro2@gmail.com',
+    orgName: 'Small Kindness Bangladesh (HQ)',
+    roles: ['program_officer_admin_hr'],
+    isActive: true,
+    projectsCount: 3,
+  },
+  {
+    id: 'dbde8263-de6d-40ca-9ae8-75b42e8915f3',
+    fullName: 'Khondokar Md Mukitur Rahman',
+    email: 'mukitur.it@gmail.com',
+    orgName: 'Small Kindness Bangladesh (HQ)',
+    roles: ['it_officer', 'system_admin'],
+    isActive: true,
+    projectsCount: 4,
+  },
+  {
+    id: 'b958f6f5-4980-462c-b18c-b9d9a5220220',
+    fullName: 'MD. Emran',
+    email: 'ih815338@gmail.com',
+    orgName: 'Small Kindness Bangladesh (HQ)',
+    roles: ['programme_officer'],
     isActive: true,
     projectsCount: 2,
   },
   {
-    id: '10000000-0000-0000-0000-000000000004',
-    fullName: 'Karim Field Officer',
-    email: 'karim@ngo-portal.org',
-    orgName: 'Internal HQ',
-    roles: ['field_officer'],
+    id: '90ba0964-65b6-48c7-b84e-ba61ff10661a',
+    fullName: 'Mizbah Uddin',
+    email: 'uddinmizbah902@gmail.com',
+    orgName: 'Small Kindness Bangladesh (HQ)',
+    roles: ['me_officer'],
     isActive: true,
-    projectsCount: 1,
+    projectsCount: 3,
   },
   {
-    id: '10000000-0000-0000-0000-000000000007',
-    fullName: 'USAID Representative',
-    email: 'donor@usaid.gov',
-    orgName: 'Donor Organization',
-    roles: ['donor'],
+    id: 'ce42a183-612a-4de5-86dd-b880698aae4c',
+    fullName: 'Adv. Aminul Islam Bulbul',
+    email: 'bulbuluu43@gmail.com',
+    orgName: 'Small Kindness Bangladesh (HQ)',
+    roles: ['legal_officer', 'auditor'],
     isActive: true,
-    projectsCount: 1,
+    projectsCount: 4,
   },
 ];
 
 export default function AdminUsersPage() {
   const t = useTranslations('Common');
-  const [users, setUsers] = useState<UserItem[]>(MOCK_USERS);
+  const [users, setUsers] = useState<UserItem[]>(REAL_SKB_TEAM);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
   const [statusMsg, setStatusMsg] = useState('');

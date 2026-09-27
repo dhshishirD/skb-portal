@@ -1,7 +1,9 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
 import { 
   FolderKanban, 
   Receipt, 
@@ -14,12 +16,27 @@ import {
   TrendingUp,
   AlertCircle,
   Building2,
-  Calendar
+  Calendar,
+  Briefcase
 } from 'lucide-react';
 
 export default function StaffDashboardPage() {
+  const [designation, setDesignation] = useState<string>('Staff Workspace');
   const navT = useTranslations('Navigation');
   const roleT = useTranslations('RoleAreas');
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.user_metadata?.designation) {
+        setDesignation(user.user_metadata.designation);
+      }
+    });
+  }, []);
+
+  const isProgramOfficer = designation.toLowerCase().includes('program') || designation.toLowerCase().includes('officer');
+  const isExecutive = designation.toLowerCase().includes('director') || designation.toLowerCase().includes('executive');
+  const isAdmin = designation.toLowerCase().includes('admin') || designation.toLowerCase().includes('it');
 
   return (
     <div className="space-y-6">
@@ -27,11 +44,17 @@ export default function StaffDashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 mb-1">
-            <Building2 className="w-3.5 h-3.5" /> SKB Works Headquarters
+            <Building2 className="w-3.5 h-3.5" /> SKB Operations • {designation}
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">{roleT('staff')} Executive Control Panel</h1>
+          <h1 className="text-2xl font-bold text-slate-900">
+            {isProgramOfficer ? 'Program Officer Workspace' : isExecutive ? 'Executive Control Panel' : 'Staff Operations Center'}
+          </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Overview of active projects, multi-tenant grants, pending financial approvals, and M&E analytics.
+            {isProgramOfficer 
+              ? 'Manage project logframes, work plans, field submissions, and M&E indicator progress.'
+              : isExecutive
+              ? 'High-level strategic portfolio overview, grant burn rates, and financial approvals.'
+              : 'Overview of active projects, multi-tenant grants, pending approvals, and system telemetry.'}
           </p>
         </div>
         <div className="flex items-center gap-3">

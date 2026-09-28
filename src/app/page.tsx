@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { LayoutDashboard, Smartphone, ShieldCheck, HeartHandshake } from 'lucide-react';
@@ -13,9 +14,12 @@ export default function RootPage() {
       {/* Mobile-first Header */}
       <header className="sticky top-0 z-40 bg-white border-b border-slate-200 px-4 py-3 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img
+          <Image
             src="/skb-logo.png"
             alt="Small Kindness Bangladesh Logo"
+            width={36}
+            height={36}
+            priority
             className="w-9 h-9 object-contain filter drop-shadow-sm"
           />
           <div>

@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { LanguageSwitcher } from '@/components/language-switcher';
 
 export default function AuthLayout({
@@ -11,9 +12,12 @@ export default function AuthLayout({
         <LanguageSwitcher />
       </div>
       <div className="flex flex-col items-center space-y-2 text-center">
-        <img 
+        <Image 
           src="/skb-logo.png" 
           alt="Small Kindness Bangladesh Logo" 
+          width={80}
+          height={80}
+          priority
           className="w-20 h-20 object-contain drop-shadow-md"
         />
         <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">SKB Works Portal</h1>

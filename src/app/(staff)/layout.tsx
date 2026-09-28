@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -28,6 +29,7 @@ export default function StaffLayout({
   children: React.ReactNode;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loadingUser, setLoadingUser] = useState(true);
   const [userProfile, setUserProfile] = useState<{ name: string; role: string; initial: string }>({
     name: 'SKB Staff User',
     role: 'Staff Workspace',
@@ -52,6 +54,7 @@ export default function StaffLayout({
           initial: initial
         });
       }
+      setLoadingUser(false);
     });
   }, []);
 
@@ -85,9 +88,12 @@ export default function StaffLayout({
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
             <Link href="/dashboard" className="font-bold text-base sm:text-lg flex items-center gap-2.5 text-white group">
-              <img
+              <Image
                 src="/skb-logo.png"
                 alt="Small Kindness Bangladesh Logo"
+                width={32}
+                height={32}
+                priority
                 className="w-8 h-8 object-contain filter drop-shadow transition-transform group-hover:scale-105"
               />
               <span className="hidden sm:inline tracking-tight font-extrabold text-slate-100">SKB Works Portal</span>
@@ -98,15 +104,25 @@ export default function StaffLayout({
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-2.5 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700/60">
-              <div className="w-6.5 h-6.5 rounded-full bg-blue-600 text-white text-[11px] font-extrabold flex items-center justify-center shadow-sm">
-                {userProfile.initial}
+            {loadingUser ? (
+              <div className="hidden sm:flex items-center gap-2.5 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700/60 animate-pulse">
+                <div className="w-7 h-7 rounded-full bg-slate-700" />
+                <div className="space-y-1">
+                  <div className="h-3 w-20 bg-slate-700 rounded" />
+                  <div className="h-2.5 w-14 bg-slate-700/60 rounded" />
+                </div>
               </div>
-              <div className="text-left leading-none">
-                <p className="text-xs font-bold text-slate-100">{userProfile.name}</p>
-                <p className="text-[10px] text-blue-400 font-medium mt-0.5">{userProfile.role}</p>
+            ) : (
+              <div className="hidden sm:flex items-center gap-2.5 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700/60">
+                <div className="w-6.5 h-6.5 rounded-full bg-blue-600 text-white text-[11px] font-extrabold flex items-center justify-center shadow-sm">
+                  {userProfile.initial}
+                </div>
+                <div className="text-left leading-none">
+                  <p className="text-xs font-bold text-slate-100">{userProfile.name}</p>
+                  <p className="text-[10px] text-blue-400 font-medium mt-0.5">{userProfile.role}</p>
+                </div>
               </div>
-            </div>
+            )}
 
             <LanguageSwitcher />
             

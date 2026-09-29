@@ -85,7 +85,39 @@ export async function sendWhatsAppNotification(payload: WhatsAppPayload): Promis
 }
 
 /**
- * Dispatch automated expense approval notification alert
+ * Send Email notification alert via Resend API / Mock
+ */
+export interface ResendEmailPayload {
+  to: string;
+  subject: string;
+  html: string;
+}
+
+export async function sendResendEmail(payload: ResendEmailPayload): Promise<NotificationResult> {
+  const messageId = `msg_email_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+  if (!payload.to || !payload.html) {
+    return {
+      success: false,
+      messageId: '',
+      channel: 'email',
+      recipient: payload.to || '',
+      provider: 'resend',
+      error: 'Recipient email and HTML content are required',
+    };
+  }
+
+  return {
+    success: true,
+    messageId,
+    channel: 'email',
+    recipient: payload.to,
+    provider: 'resend',
+  };
+}
+
+/**
+ * Dispatch automated expense approval notification alert via SMS
  */
 export async function dispatchExpenseApprovalAlert(
   recipientPhone: string,
@@ -95,6 +127,42 @@ export async function dispatchExpenseApprovalAlert(
 ): Promise<NotificationResult> {
   const message = `[SKB Portal] Expense Claim #${claimId} of BDT ${amountBDT.toLocaleString()} submitted by ${submitterName} requires your approval.`;
   return sendSMSNotification({ recipient: recipientPhone, message });
+}
+
+/**
+ * Dispatch instant dual Email (Resend) and SMS approval alert
+ */
+export async function dispatchApprovalEmailAndSMS(
+  recipientEmail: string,
+  recipientPhone: string,
+  claimId: string,
+  amountBDT: number,
+  submitterName: string,
+  status: 'submitted' | 'approved' | 'rejected'
+): Promise<{ emailResult: NotificationResult; smsResult: NotificationResult }> {
+  const statusUpper = status.toUpperCase();
+  const emailHtml = `
+    <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
+      <h2 style="color: #1e293b;">SKB Operations Portal — Expense Claim Alert</h2>
+      <p>Expense Claim <strong>#${claimId}</strong> submitted by <strong>${submitterName}</strong> for <strong>৳${amountBDT.toLocaleString()} BDT</strong> status updated to: <span style="font-weight: bold; color: #2563eb;">${statusUpper}</span>.</p>
+      <a href="https://skbportal.online/finance/approvals" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 10px 18px; border-radius: 6px; text-decoration: none; font-weight: bold;">Review Claim on Portal</a>
+    </div>
+  `;
+
+  const emailResult = await sendResendEmail({
+    to: recipientEmail,
+    subject: `[SKB Portal] Expense Claim #${claimId} Status: ${statusUpper}`,
+    html: emailHtml,
+  });
+
+  const smsResult = await dispatchExpenseApprovalAlert(
+    recipientPhone,
+    claimId,
+    amountBDT,
+    submitterName
+  );
+
+  return { emailResult, smsResult };
 }
 
 /**
@@ -108,3 +176,4 @@ export async function dispatchStageGateAlert(
   const message = `[SKB Portal] Project ${projectCode} has successfully advanced to stage: ${newStage.toUpperCase()}.`;
   return sendSMSNotification({ recipient: recipientPhone, message });
 }
+

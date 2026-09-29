@@ -25,9 +25,12 @@ import {
   AlertTriangle,
   FolderArchive,
   Layers,
-  ArrowUpRight,
   PieChart,
-  CheckSquare
+  CheckSquare,
+  FileCheck2,
+  PlusCircle,
+  Eye,
+  FileCode2
 } from 'lucide-react';
 import { formatCurrencyString, SupportedCurrency } from '@/server/services/multiCurrency';
 import { 
@@ -35,6 +38,16 @@ import {
   INITIAL_DONOR_QUERIES, 
   createDonorQuery 
 } from '@/server/services/donorQueryService';
+
+interface ProjectDocument {
+  id: string;
+  name: string;
+  category: 'MANDATORY_PRIMARY' | 'SPECIAL_AD_HOC';
+  fileSize: string;
+  status: 'Submitted' | 'Missing' | 'Special Request Pending';
+  downloadUrl?: string;
+  specialReason?: string;
+}
 
 interface SKBDonorGrantProject {
   pid: string;
@@ -51,8 +64,8 @@ interface SKBDonorGrantProject {
   location: string;
   assignedOfficer: string;
   assignedOfficerEmail: string;
-  submittedDocsCount: number; // Out of 9
-  missingDocsList: string[];
+  primaryDocs: ProjectDocument[];
+  specialDocs: ProjectDocument[];
 }
 
 const ALL_SKB_DONOR_PROJECTS: SKBDonorGrantProject[] = [
@@ -67,12 +80,23 @@ const ALL_SKB_DONOR_PROJECTS: SKBDonorGrantProject[] = [
     spentAmount: 1850000,
     beneficiariesCount: 120,
     statusCategory: 'ATTENTION',
-    statusLabel: 'Needs Attention (Guardian Clarification Requested)',
+    statusLabel: 'Needs Attention (Special Guardian Clarification Pending)',
     location: 'Sylhet & Kurigram Rural Districts',
     assignedOfficer: 'Mizbah Uddin',
     assignedOfficerEmail: 'uddinmizbah902@gmail.com',
-    submittedDocsCount: 8,
-    missingDocsList: ['Underaged Guardian Replacement Certificate'],
+    primaryDocs: [
+      { id: '1', name: '1. Form-7 Project Completion Report.pdf', category: 'MANDATORY_PRIMARY', fileSize: '3.2 MB', status: 'Submitted' },
+      { id: '2', name: '2. Invoice Declaration.pdf', category: 'MANDATORY_PRIMARY', fileSize: '1.3 MB', status: 'Submitted' },
+      { id: '3', name: '3. AC Audit Clearance Certificate.pdf', category: 'MANDATORY_PRIMARY', fileSize: '287 KB', status: 'Submitted' },
+      { id: '4', name: '4. Verified Beneficiary Master List.pdf', category: 'MANDATORY_PRIMARY', fileSize: '438 KB', status: 'Submitted' },
+      { id: '5', name: '5. Beneficiary NID Cards Archive.pdf', category: 'MANDATORY_PRIMARY', fileSize: '18.6 MB', status: 'Submitted' },
+      { id: '6', name: '6. High-Res Picture Documentation Album.docx', category: 'MANDATORY_PRIMARY', fileSize: '15 KB', status: 'Submitted' },
+      { id: '7', name: '7. Bank Fund Receival Certificate.pdf', category: 'MANDATORY_PRIMARY', fileSize: '217 KB', status: 'Submitted' },
+    ],
+    specialDocs: [
+      { id: 's1', name: 'Special: Underaged Beneficiary Replacement & Guardian Letter.pdf', category: 'SPECIAL_AD_HOC', fileSize: '2.1 MB', status: 'Special Request Pending', specialReason: 'Beneficiary #14 is an orphan child represented by legal guardian/mother.' },
+      { id: 's2', name: 'Special: Orphan Legal Signature Explanation Certificate.pdf', category: 'SPECIAL_AD_HOC', fileSize: '687 KB', status: 'Submitted', specialReason: 'Requested by IHH Audit for thumbprint sign-off.' },
+    ],
   },
   {
     pid: 'PID 22211',
@@ -89,8 +113,19 @@ const ALL_SKB_DONOR_PROJECTS: SKBDonorGrantProject[] = [
     location: 'Northern Bangladesh Districts',
     assignedOfficer: 'Mizbah Uddin',
     assignedOfficerEmail: 'uddinmizbah902@gmail.com',
-    submittedDocsCount: 9,
-    missingDocsList: [],
+    primaryDocs: [
+      { id: '1', name: '1. Form-7 Project Completion Report (PID 22211).pdf', category: 'MANDATORY_PRIMARY', fileSize: '3.2 MB', status: 'Submitted' },
+      { id: '2', name: '2. Invoice Declaration (PID 22211).pdf', category: 'MANDATORY_PRIMARY', fileSize: '1.3 MB', status: 'Submitted' },
+      { id: '3', name: '3. AC Audit Clearance Certificate (PID 22211).pdf', category: 'MANDATORY_PRIMARY', fileSize: '287 KB', status: 'Submitted' },
+      { id: '4', name: '4. Verified Beneficiary Master List (PID 22211).pdf', category: 'MANDATORY_PRIMARY', fileSize: '438 KB', status: 'Submitted' },
+      { id: '5', name: '5. Beneficiary NID Cards Archive (PID 22211).pdf', category: 'MANDATORY_PRIMARY', fileSize: '18.6 MB', status: 'Submitted' },
+      { id: '6', name: '6. High-Res Picture Documentation Album (PID 22211).docx', category: 'MANDATORY_PRIMARY', fileSize: '15 KB', status: 'Submitted' },
+      { id: '7', name: '7. Fund Receival Certificate 7085 EURO.pdf', category: 'MANDATORY_PRIMARY', fileSize: '217 KB', status: 'Submitted' },
+    ],
+    specialDocs: [
+      { id: 's3', name: 'Special: Underaged Beneficiary Replacement (PID 22211).pdf', category: 'SPECIAL_AD_HOC', fileSize: '2.1 MB', status: 'Submitted', specialReason: 'Approved by donor for guardian representation.' },
+      { id: 's4', name: 'Special: Orphan Signature Explanation (PID 22211).pdf', category: 'SPECIAL_AD_HOC', fileSize: '687 KB', status: 'Submitted', specialReason: 'Verified by legal officer.' },
+    ],
   },
   {
     pid: 'PID 23431',
@@ -107,26 +142,18 @@ const ALL_SKB_DONOR_PROJECTS: SKBDonorGrantProject[] = [
     location: 'Rohingya Camps, Cox’s Bazar',
     assignedOfficer: 'MD. Emran',
     assignedOfficerEmail: 'emran@skb.org.bd',
-    submittedDocsCount: 7,
-    missingDocsList: ['Form-7 Final PDF Report', 'Beneficiary NID Archive PDF'],
-  },
-  {
-    pid: 'PID 23429',
-    title: 'Ramadan Support Program for Vulnerable Bangladeshi Families 2026',
-    category: 'Seasonal Relief',
-    partner: 'SKB Local & Global Donors',
-    donorLogo: '🇧🇩',
-    currency: 'BDT',
-    budgetAmount: 12500000,
-    spentAmount: 9800000,
-    beneficiariesCount: 6200,
-    statusCategory: 'RUNNING',
-    statusLabel: 'Running (78% Disbursed)',
-    location: 'Northern & Southern Bangladesh',
-    assignedOfficer: 'Mizbah Uddin',
-    assignedOfficerEmail: 'uddinmizbah902@gmail.com',
-    submittedDocsCount: 9,
-    missingDocsList: [],
+    primaryDocs: [
+      { id: '1', name: '1. Form-7 Project Completion Report.pdf', category: 'MANDATORY_PRIMARY', fileSize: 'Pending', status: 'Missing' },
+      { id: '2', name: '2. Invoice Declaration.pdf', category: 'MANDATORY_PRIMARY', fileSize: '1.1 MB', status: 'Submitted' },
+      { id: '3', name: '3. AC Audit Clearance Certificate.pdf', category: 'MANDATORY_PRIMARY', fileSize: '240 KB', status: 'Submitted' },
+      { id: '4', name: '4. Verified Beneficiary Master List.pdf', category: 'MANDATORY_PRIMARY', fileSize: '520 KB', status: 'Submitted' },
+      { id: '5', name: '5. Beneficiary NID Cards Archive.pdf', category: 'MANDATORY_PRIMARY', fileSize: 'Pending', status: 'Missing' },
+      { id: '6', name: '6. High-Res Picture Documentation Album.docx', category: 'MANDATORY_PRIMARY', fileSize: '18 KB', status: 'Submitted' },
+      { id: '7', name: '7. Bank Fund Receival Certificate.pdf', category: 'MANDATORY_PRIMARY', fileSize: '210 KB', status: 'Submitted' },
+    ],
+    specialDocs: [
+      { id: 's5', name: 'Special: Refugee Camp Water & Sanitation Inspection Report.pdf', category: 'SPECIAL_AD_HOC', fileSize: '1.4 MB', status: 'Submitted', specialReason: 'Requested for WASH compliance.' },
+    ],
   },
   {
     pid: 'PID 23616',
@@ -143,69 +170,38 @@ const ALL_SKB_DONOR_PROJECTS: SKBDonorGrantProject[] = [
     location: 'Ukhiya Camp 11 Fire Affected Zone',
     assignedOfficer: 'MD. Emran',
     assignedOfficerEmail: 'emran@skb.org.bd',
-    submittedDocsCount: 9,
-    missingDocsList: [],
-  },
-  {
-    pid: 'PID 20742',
-    title: 'Mobile Medical Emergency Team for Rohingya Refugees',
-    category: 'Emergency & Health',
-    partner: 'EU ECHO & Medical Partners',
-    donorLogo: '🇪🇺',
-    currency: 'EUR',
-    budgetAmount: 180000,
-    spentAmount: 150000,
-    beneficiariesCount: 10500,
-    statusCategory: 'RUNNING',
-    statusLabel: 'Running (83% Disbursed)',
-    location: 'Cox’s Bazar Refugee Camps',
-    assignedOfficer: 'Adv. Aminul Islam Bulbul',
-    assignedOfficerEmail: 'bulbuluu43@gmail.com',
-    submittedDocsCount: 8,
-    missingDocsList: ['Invoice Declaration Certificate'],
-  },
-  {
-    pid: 'PID 20967',
-    title: 'IGP Livelihoods Support 2024-2025 Archive',
-    category: 'Income Generation (IGP)',
-    partner: 'IHH Turkey Relief',
-    donorLogo: '🇹🇷',
-    currency: 'TRY',
-    budgetAmount: 1200000,
-    spentAmount: 1200000,
-    beneficiariesCount: 95,
-    statusCategory: 'ARCHIVED',
-    statusLabel: 'Archived Prior Grant (2024-2025)',
-    location: 'Kurigram Villages',
-    assignedOfficer: 'Mizbah Uddin',
-    assignedOfficerEmail: 'uddinmizbah902@gmail.com',
-    submittedDocsCount: 9,
-    missingDocsList: [],
+    primaryDocs: [
+      { id: '1', name: '1. Form-7 Project Completion Report.pdf', category: 'MANDATORY_PRIMARY', fileSize: '3.1 MB', status: 'Submitted' },
+      { id: '2', name: '2. Invoice Declaration.pdf', category: 'MANDATORY_PRIMARY', fileSize: '1.2 MB', status: 'Submitted' },
+      { id: '3', name: '3. AC Audit Clearance Certificate.pdf', category: 'MANDATORY_PRIMARY', fileSize: '280 KB', status: 'Submitted' },
+      { id: '4', name: '4. Verified Beneficiary Master List.pdf', category: 'MANDATORY_PRIMARY', fileSize: '410 KB', status: 'Submitted' },
+      { id: '5', name: '5. Beneficiary NID Cards Archive.pdf', category: 'MANDATORY_PRIMARY', fileSize: '14.2 MB', status: 'Submitted' },
+      { id: '6', name: '6. High-Res Picture Documentation Album.docx', category: 'MANDATORY_PRIMARY', fileSize: '22 KB', status: 'Submitted' },
+      { id: '7', name: '7. Bank Fund Receival Certificate.pdf', category: 'MANDATORY_PRIMARY', fileSize: '200 KB', status: 'Submitted' },
+    ],
+    specialDocs: [
+      { id: 's6', name: 'Special: Emergency Fire Victim Shelter Damage Assessment.pdf', category: 'SPECIAL_AD_HOC', fileSize: '3.8 MB', status: 'Submitted', specialReason: 'Emergency response verification.' },
+    ],
   }
 ];
 
 export default function DonorDashboardPage() {
   const roleT = useTranslations('RoleAreas');
   const [projects] = useState<SKBDonorGrantProject[]>(ALL_SKB_DONOR_PROJECTS);
-  const [activeTab, setActiveTab] = useState<'ALL' | 'RUNNING' | 'ATTENTION' | 'COMPLETED' | 'ARCHIVED'>('ALL');
+  const [activeTab, setActiveTab] = useState<'ALL' | 'RUNNING' | 'ATTENTION' | 'COMPLETED'>('ALL');
   const [tickets, setTickets] = useState<DonorQueryTicket[]>(INITIAL_DONOR_QUERIES);
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Modal State for Donor Query / Objection
+  // Inspector Drawer State
+  const [inspectingProject, setInspectingProject] = useState<SKBDonorGrantProject | null>(null);
+
+  // Modal State for Donor Query / Special Document Request
   const [activeModalProject, setActiveModalProject] = useState<SKBDonorGrantProject | null>(null);
-  const [donorEmail, setDonorEmail] = useState('audit-donor@partner.org');
+  const [donorEmail, setDonorEmail] = useState('donor-audit@partner.org');
   const [queryType, setQueryType] = useState<DonorQueryTicket['queryType']>('Underage Beneficiary Query');
   const [queryMessage, setQueryMessage] = useState('');
   const [submitSuccessMsg, setSubmitSuccessMsg] = useState('');
-
-  // Calculate High-Level Executive KPI Metrics
-  const totalProjectsCount = projects.length;
-  const runningCount = projects.filter((p) => p.statusCategory === 'RUNNING').length;
-  const attentionCount = projects.filter((p) => p.statusCategory === 'ATTENTION').length;
-  const completedCount = projects.filter((p) => p.statusCategory === 'COMPLETED').length;
-  const archivedCount = projects.filter((p) => p.statusCategory === 'ARCHIVED').length;
-  const totalBeneficiariesReached = projects.reduce((sum, p) => sum + p.beneficiariesCount, 0);
 
   const filteredProjects = projects.filter((p) => {
     const matchesSearch = 
@@ -245,7 +241,7 @@ export default function DonorDashboardPage() {
     );
 
     setTickets([newTicket, ...tickets]);
-    setSubmitSuccessMsg(`Clarification Ticket #${newTicket.id} submitted to Officer ${activeModalProject.assignedOfficer}!`);
+    setSubmitSuccessMsg(`Clarification / Special Document Request #${newTicket.id} sent to ${activeModalProject.assignedOfficer}!`);
     setTimeout(() => {
       setActiveModalProject(null);
     }, 1800);
@@ -253,15 +249,15 @@ export default function DonorDashboardPage() {
 
   return (
     <div className="space-y-6 pb-8">
-      {/* 1. FIRST SIGHT EXECUTIVE DONOR KPI DASHBOARD */}
+      {/* 1. EXECUTIVE DONOR DASHBOARD HEADER */}
       <div className="bg-white p-6 rounded-2xl border border-amber-200 shadow-sm space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-2">
             <span className="text-xs bg-amber-100 text-amber-900 px-3 py-1 rounded-full font-bold flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5 text-amber-700" /> Executive Donor Intelligence Dashboard
+              <Lock className="w-3.5 h-3.5 text-amber-700" /> Executive Donor Intelligence Portal
             </span>
             <span className="text-xs bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Audit Verified Portal
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Primary & Special Document Inspection
             </span>
           </div>
 
@@ -277,39 +273,12 @@ export default function DonorDashboardPage() {
         <div>
           <h1 className="text-xl font-extrabold text-slate-900">Welcome to SKB International Partner Portal</h1>
           <p className="text-xs text-slate-600 leading-relaxed mt-1">
-            First-sight executive overview of active grants, required document submission compliance, logframe progress, and direct clarification channels with SKB Officers.
+            Donors can inspect **Primary Mandatory Baseline Documents (7 Always Required)** as well as **Special Project-Specific Submissions (e.g. Underaged Guardian Replacement Letters)**.
           </p>
-        </div>
-
-        {/* Executive KPI Summary Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-          <div className="bg-blue-50/60 border border-blue-200/80 p-3.5 rounded-xl space-y-1">
-            <span className="text-[10px] uppercase font-bold text-blue-700 block">On-Going / Running</span>
-            <span className="text-2xl font-extrabold text-blue-900">{runningCount} Grants</span>
-            <span className="text-[10px] text-blue-600 block">Live Field Intake</span>
-          </div>
-
-          <div className="bg-amber-50/70 border border-amber-300 p-3.5 rounded-xl space-y-1">
-            <span className="text-[10px] uppercase font-bold text-amber-800 block">Needs Attention</span>
-            <span className="text-2xl font-extrabold text-amber-900">{attentionCount} Project</span>
-            <span className="text-[10px] text-amber-700 font-semibold block">Missing / Clarification Query</span>
-          </div>
-
-          <div className="bg-emerald-50/60 border border-emerald-200/80 p-3.5 rounded-xl space-y-1">
-            <span className="text-[10px] uppercase font-bold text-emerald-700 block">Completed & Audited</span>
-            <span className="text-2xl font-extrabold text-emerald-900">{completedCount} Grants</span>
-            <span className="text-[10px] text-emerald-600 block">Form-7 Certified</span>
-          </div>
-
-          <div className="bg-slate-100 border border-slate-200 p-3.5 rounded-xl space-y-1">
-            <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Beneficiaries</span>
-            <span className="text-2xl font-extrabold text-slate-900">{totalBeneficiariesReached.toLocaleString()}</span>
-            <span className="text-[10px] text-slate-500 block">Verified Families</span>
-          </div>
         </div>
       </div>
 
-      {/* 2. INTERACTIVE TAB SELECTION ENGINE */}
+      {/* 2. TAB SELECTION & PROJECT LIST */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div className="flex flex-wrap gap-2">
@@ -321,18 +290,18 @@ export default function DonorDashboardPage() {
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
-              All Projects ({totalProjectsCount})
+              All Projects ({projects.length})
             </button>
 
             <button
               onClick={() => setActiveTab('RUNNING')}
-              className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${
+              className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all ${
                 activeTab === 'RUNNING'
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
               }`}
             >
-              <PieChart className="w-3.5 h-3.5" /> Running / On-Going ({runningCount})
+              Running / On-Going ({projects.filter(p => p.statusCategory === 'RUNNING').length})
             </button>
 
             <button
@@ -343,7 +312,7 @@ export default function DonorDashboardPage() {
                   : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
               }`}
             >
-              <AlertTriangle className="w-3.5 h-3.5" /> Needs Attention / Corrections ({attentionCount})
+              <AlertTriangle className="w-3.5 h-3.5" /> Needs Special Attention ({projects.filter(p => p.statusCategory === 'ATTENTION').length})
             </button>
 
             <button
@@ -354,18 +323,7 @@ export default function DonorDashboardPage() {
                   : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
               }`}
             >
-              <CheckCircle2 className="w-3.5 h-3.5" /> Completed & Audited ({completedCount})
-            </button>
-
-            <button
-              onClick={() => setActiveTab('ARCHIVED')}
-              className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${
-                activeTab === 'ARCHIVED'
-                  ? 'bg-slate-800 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              <FolderArchive className="w-3.5 h-3.5" /> Archived Prior Grants ({archivedCount})
+              <CheckCircle2 className="w-3.5 h-3.5" /> Completed & Audited ({projects.filter(p => p.statusCategory === 'COMPLETED').length})
             </button>
           </div>
 
@@ -381,11 +339,12 @@ export default function DonorDashboardPage() {
           </div>
         </div>
 
-        {/* Projects Cards List */}
+        {/* Project Cards */}
         <div className="grid grid-cols-1 gap-5">
           {filteredProjects.map((project) => {
             const projectTickets = tickets.filter((t) => t.pid === project.pid);
-            const isDocComplete = project.submittedDocsCount === 9;
+            const submittedPrimaryCount = project.primaryDocs.filter(d => d.status === 'Submitted').length;
+            const hasSpecialDocs = project.specialDocs.length > 0;
 
             return (
               <div 
@@ -409,18 +368,9 @@ export default function DonorDashboardPage() {
                     <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
                       project.statusCategory === 'ATTENTION' ? 'bg-amber-100 text-amber-900 border-amber-300' :
                       project.statusCategory === 'COMPLETED' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
-                      project.statusCategory === 'ARCHIVED' ? 'bg-slate-100 text-slate-700 border-slate-300' :
                       'bg-blue-50 text-blue-800 border-blue-200'
                     }`}>
                       {project.statusLabel}
-                    </span>
-
-                    {/* Required Documents Submission Status Badge */}
-                    <span className={`text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1 border ${
-                      isDocComplete ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-300'
-                    }`}>
-                      <CheckSquare className="w-3.5 h-3.5" />
-                      Required Docs: {project.submittedDocsCount}/9 Submitted
                     </span>
                   </div>
                 </div>
@@ -430,74 +380,58 @@ export default function DonorDashboardPage() {
                   <p className="text-xs text-slate-500 mt-0.5">Location: 📍 {project.location}</p>
                 </div>
 
-                {/* Missing / Required Documents Breakdown */}
-                {project.missingDocsList.length > 0 && (
-                  <div className="bg-amber-50/80 border border-amber-200 p-3 rounded-xl text-xs space-y-1">
-                    <p className="font-bold text-amber-900 flex items-center gap-1.5">
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600" /> Action Needed: {project.missingDocsList.length} Missing Document(s):
-                    </p>
-                    <div className="flex flex-wrap gap-1.5 pt-0.5">
-                      {project.missingDocsList.map((doc, i) => (
-                        <span key={i} className="bg-white text-amber-900 border border-amber-300 text-[10px] font-bold px-2 py-0.5 rounded">
-                          ⚠️ {doc}
-                        </span>
-                      ))}
+                {/* Document Status Overview Bar */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">
+                  <div className="flex items-center gap-2">
+                    <FileCheck2 className="w-4 h-4 text-blue-600" />
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block">Primary Mandatory Documents</span>
+                      <span className="font-bold text-slate-900">
+                        {submittedPrimaryCount} / 7 Submitted {submittedPrimaryCount === 7 ? '✓' : ''}
+                      </span>
                     </div>
                   </div>
-                )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Grant Funding</span>
-                    <span className="font-bold text-slate-900">
-                      {formatCurrencyString(project.budgetAmount, project.currency)}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Verified Beneficiaries</span>
-                    <span className="font-bold text-emerald-700 flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5 text-emerald-600" /> {project.beneficiariesCount.toLocaleString()} Families
-                    </span>
-                  </div>
-
-                  <div className="col-span-2 sm:col-span-1">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Assigned Officer</span>
-                    <span className="font-semibold text-slate-700">{project.assignedOfficer} ({project.assignedOfficerEmail})</span>
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-purple-600" />
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block">Special Project Submissions</span>
+                      <span className="font-bold text-purple-900">
+                        {hasSpecialDocs ? `${project.specialDocs.length} Special Files (e.g. Guardian Letter)` : 'None Required'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Action Bar */}
+                {/* Action Toolbar */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
-                  <span className="text-xs text-slate-500">
-                    Need corrections, additions, or official clarification from officer?
-                  </span>
+                  <button
+                    onClick={() => setInspectingProject(project)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> Inspect Primary & Special Documents ({project.primaryDocs.length + project.specialDocs.length})
+                  </button>
                   
                   <button
                     onClick={() => handleOpenQueryModal(project)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all active:scale-[0.98]"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
                   >
-                    <MessageSquare className="w-3.5 h-3.5" /> Request Officer Correction / Feedback
+                    <MessageSquare className="w-3.5 h-3.5" /> Request Special Extra Document / Correction
                   </button>
                 </div>
 
-                {/* Live Clarification Thread */}
+                {/* Active Clarification Thread */}
                 {projectTickets.length > 0 && (
                   <div className="bg-amber-50/60 border border-amber-200 p-4 rounded-xl space-y-3">
                     <div className="flex items-center gap-2">
                       <MessageSquare className="w-4 h-4 text-amber-700" />
-                      <h4 className="text-xs font-bold text-amber-950">Active Donor Feedback Thread ({projectTickets.length})</h4>
+                      <h4 className="text-xs font-bold text-amber-950">Active Clarification & Special Request Thread</h4>
                     </div>
 
                     {projectTickets.map((t) => (
                       <div key={t.id} className="bg-white p-3.5 rounded-xl border border-amber-200/80 space-y-2 text-xs">
                         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-slate-900">{t.id}</span>
-                            <span className="bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded text-[10px]">
-                              {t.queryType}
-                            </span>
-                          </div>
+                          <span className="font-mono font-bold text-slate-900">{t.id} • {t.queryType}</span>
                           <span className={`font-semibold text-[10px] px-2 py-0.5 rounded-full ${
                             t.status === 'Officer Clarification Posted' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                           }`}>
@@ -505,22 +439,13 @@ export default function DonorDashboardPage() {
                           </span>
                         </div>
 
-                        <div className="space-y-1">
-                          <p className="text-[10px] text-slate-400 font-bold uppercase">Donor Feedback ({t.donorName}):</p>
-                          <p className="text-slate-800 italic leading-relaxed">&ldquo;{t.message}&rdquo;</p>
-                        </div>
+                        <p className="text-slate-800 italic leading-relaxed">&ldquo;{t.message}&rdquo;</p>
 
-                        {t.officerResponse ? (
-                          <div className="bg-blue-50/70 p-3 rounded-lg border border-blue-200 space-y-1.5 mt-2">
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-blue-900 flex items-center gap-1.5">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" /> {t.officerResponse.responderName} ({t.officerResponse.responderRole})
-                              </span>
-                              <span className="text-[10px] text-blue-700 font-mono">{t.officerResponse.respondedAt}</span>
-                            </div>
-                            <p className="text-slate-800 text-xs font-medium leading-relaxed">
-                              {t.officerResponse.responseText}
-                            </p>
+                        {t.officerResponse && (
+                          <div className="bg-blue-50/70 p-3 rounded-lg border border-blue-200 space-y-1 mt-2">
+                            <span className="font-bold text-blue-900 text-xs">
+                              Officer {t.officerResponse.responderName}: {t.officerResponse.responseText}
+                            </span>
                             {t.officerResponse.attachmentName && (
                               <div className="pt-1">
                                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-100 px-2 py-1 rounded border border-blue-300">
@@ -528,11 +453,6 @@ export default function DonorDashboardPage() {
                                 </span>
                               </div>
                             )}
-                          </div>
-                        ) : (
-                          <div className="bg-amber-100/50 p-2.5 rounded-lg border border-amber-200 text-[11px] text-amber-900 flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5 text-amber-700 animate-pulse" />
-                            <span>Assigned Officer <strong>{t.assignedOfficerName}</strong> is reviewing and uploading required clarification document.</span>
                           </div>
                         )}
                       </div>
@@ -545,13 +465,105 @@ export default function DonorDashboardPage() {
         </div>
       </div>
 
-      {/* Modal: Submit Clarification / Feedback Ticket */}
+      {/* MODAL 1: INSPECT ALL PRIMARY & SPECIAL DOCUMENTS */}
+      {inspectingProject && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 max-h-[85vh] overflow-y-auto animate-in fade-in duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">Document Inspection Vault</h3>
+                <p className="text-xs text-slate-500 font-mono">{inspectingProject.pid} • {inspectingProject.partner}</p>
+              </div>
+              <button 
+                onClick={() => setInspectingProject(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Section A: Mandatory Primary Documents */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <FileCheck2 className="w-4 h-4 text-blue-600" /> A. Primary Mandatory Baseline Documents (7 Always Required)
+              </h4>
+
+              <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden text-xs">
+                {inspectingProject.primaryDocs.map((doc) => (
+                  <div key={doc.id} className="p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50">
+                    <div className="flex items-center gap-2.5">
+                      <Paperclip className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                      <div>
+                        <p className="font-bold text-slate-900">{doc.name}</p>
+                        <p className="text-[10px] text-slate-500">{doc.fileSize}</p>
+                      </div>
+                    </div>
+
+                    <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                      doc.status === 'Submitted' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {doc.status === 'Submitted' ? '✓ Submitted' : '⚠️ Missing'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Section B: Special Ad-Hoc Requested Documents */}
+            <div className="space-y-3 pt-2 border-t border-slate-100">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-purple-700 flex items-center gap-1.5">
+                <Layers className="w-4 h-4 text-purple-600" /> B. Special Project-Specific Submissions (Requested for Special Reasons)
+              </h4>
+
+              {inspectingProject.specialDocs.length > 0 ? (
+                <div className="divide-y divide-purple-100 border border-purple-200 bg-purple-50/30 rounded-xl overflow-hidden text-xs">
+                  {inspectingProject.specialDocs.map((doc) => (
+                    <div key={doc.id} className="p-3.5 space-y-1.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <Paperclip className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                          <p className="font-bold text-slate-900">{doc.name}</p>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                          doc.status === 'Submitted' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800 border border-amber-300'
+                        }`}>
+                          {doc.status}
+                        </span>
+                      </div>
+                      {doc.specialReason && (
+                        <p className="text-[11px] text-purple-900 bg-purple-100/80 p-2 rounded-lg italic">
+                          Special Reason: &ldquo;{doc.specialReason}&rdquo;
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 italic bg-slate-50 p-3 rounded-xl">
+                  No special ad-hoc document requests recorded for this standard project.
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setInspectingProject(null)}
+                className="py-2.5 px-5 bg-slate-900 text-white font-bold text-xs rounded-xl"
+              >
+                Close Inspection Vault
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: REQUEST SPECIAL EXTRA DOCUMENT */}
       {activeModalProject && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in duration-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-base font-extrabold text-slate-900">Request Officer Clarification / Addition</h3>
+                <h3 className="text-base font-extrabold text-slate-900">Request Special Extra Document</h3>
                 <p className="text-xs text-slate-500 font-mono">{activeModalProject.pid} • {activeModalProject.partner}</p>
               </div>
               <button 
@@ -565,7 +577,7 @@ export default function DonorDashboardPage() {
             {submitSuccessMsg ? (
               <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-xs text-emerald-800 space-y-1">
                 <p className="font-bold flex items-center gap-1.5 text-emerald-900">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Feedback Ticket Submitted!
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Special Document Request Sent!
                 </p>
                 <p>{submitSuccessMsg}</p>
               </div>
@@ -583,36 +595,36 @@ export default function DonorDashboardPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Feedback / Request Type</label>
+                  <label className="block font-bold text-slate-700 mb-1">Type of Special Submission Needed</label>
                   <select
                     value={queryType}
                     onChange={(e) => setQueryType(e.target.value as any)}
                     className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-amber-500 font-semibold"
                   >
-                    <option value="Underage Beneficiary Query">Underage / Guardian Replacement Request</option>
-                    <option value="Photo Request">Missing Document / Photo Evidence Request</option>
-                    <option value="Budget Discrepancy">Budget Reconciliation Query</option>
-                    <option value="Logframe Question">Logframe Target Metric Question</option>
-                    <option value="General Feedback">General Correction / Addition</option>
+                    <option value="Underage Beneficiary Query">Underaged Beneficiary Replacement & Guardian Letter</option>
+                    <option value="Photo Request">Additional Field Photo Evidence Album</option>
+                    <option value="Budget Discrepancy">Special Audit Expenditure Clarification</option>
+                    <option value="Logframe Question">Water Quality / Sanitation Testing Inspection Certificate</option>
+                    <option value="General Feedback">Other Special Ad-Hoc Request</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Details of Correction / Question</label>
+                  <label className="block font-bold text-slate-700 mb-1">Special Reason for Request</label>
                   <textarea
                     rows={4}
                     value={queryMessage}
                     onChange={(e) => setQueryMessage(e.target.value)}
-                    placeholder="Describe what addition, correction, or clarification is requested from SKB officers..."
+                    placeholder="Specify why this special document is requested (e.g. Beneficiary #14 is listed as a minor under guardian care)..."
                     className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-amber-500"
                     required
                   />
                 </div>
 
-                <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-[11px] text-amber-900 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
+                <div className="bg-purple-50 border border-purple-200 p-2.5 rounded-xl text-[11px] text-purple-900 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-purple-700 flex-shrink-0 mt-0.5" />
                   <span>
-                    Directly alerts Program Officer <strong>{activeModalProject.assignedOfficer}</strong> ({activeModalProject.assignedOfficerEmail}) via Email & SMS.
+                    Routes to assigned Program Officer <strong>{activeModalProject.assignedOfficer}</strong> ({activeModalProject.assignedOfficerEmail}).
                   </span>
                 </div>
 
@@ -628,7 +640,7 @@ export default function DonorDashboardPage() {
                     type="submit"
                     className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-md flex items-center justify-center gap-1.5"
                   >
-                    <Send className="w-4 h-4" /> Send Ticket to Officer
+                    <Send className="w-4 h-4" /> Send Special Request to Officer
                   </button>
                 </div>
               </form>

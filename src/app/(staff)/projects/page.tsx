@@ -232,7 +232,7 @@ export default function ProjectsHubPage() {
             </div>
 
             {/* Project Quick Sub-Tabs Bar */}
-            <div className="pt-2 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[11px] font-semibold">
+            <div className="pt-2 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-5 gap-1.5 text-center text-[11px] font-semibold">
               <Link 
                 href={`/projects/${p.id}/kanban`} 
                 className="p-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-600 text-slate-700 transition"
@@ -256,6 +256,12 @@ export default function ProjectsHubPage() {
                 className="p-1.5 rounded-lg bg-slate-50 hover:bg-emerald-50 hover:text-emerald-600 text-slate-700 transition"
               >
                 👥 Beneficiaries
+              </Link>
+              <Link 
+                href={`/projects/${p.id}/documents`} 
+                className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold transition flex items-center justify-center gap-1"
+              >
+                📂 Documents
               </Link>
             </div>
           </div>

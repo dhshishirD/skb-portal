@@ -111,12 +111,12 @@ export default function FieldDashboardPage() {
         </Link>
 
         <a 
-          href="https://ee.kobotoolbox.org/x/aGM7t5NmdoWuXPSoa3ty7k"
+          href="https://eu.kobotoolbox.org"
           target="_blank"
           rel="noopener noreferrer"
           className="w-full py-3 px-4 bg-emerald-950 hover:bg-emerald-900 text-emerald-200 font-medium rounded-xl text-xs border border-emerald-800 flex items-center justify-center gap-2 transition-all"
         >
-          <ExternalLink className="w-4 h-4 text-emerald-400" /> Fill Out Form Directly on KoBo Web App
+          <ExternalLink className="w-4 h-4 text-emerald-400" /> Open KoBoToolbox Form Dashboard
         </a>
       </div>
 

@@ -20,7 +20,10 @@ import {
   Building2,
   UserCheck,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  MessageSquare,
+  Camera,
+  ChevronDown
 } from 'lucide-react';
 
 export default function StaffLayout({
@@ -30,7 +33,8 @@ export default function StaffLayout({
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
-  const [userProfile, setUserProfile] = useState<{ name: string; role: string; initial: string }>({
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<{ name: string; role: string; initial: string; avatarUrl?: string }>({
     name: 'SKB Staff User',
     role: 'Staff Workspace',
     initial: 'S'
@@ -48,10 +52,12 @@ export default function StaffLayout({
         const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'SKB User';
         const designation = user.user_metadata?.designation || 'Staff Member';
         const initial = fullName.charAt(0).toUpperCase();
+        const avatarUrl = user.user_metadata?.avatar_url;
         setUserProfile({
           name: fullName,
           role: designation,
-          initial: initial
+          initial: initial,
+          avatarUrl: avatarUrl
         });
       }
       setLoadingUser(false);
@@ -68,11 +74,22 @@ export default function StaffLayout({
     { href: '/dashboard', label: navT('dashboard'), icon: LayoutDashboard },
     { href: '/projects', label: navT('projects'), icon: FolderKanban },
     { href: '/finance/approvals', label: 'Finance & Approvals', icon: Receipt },
+    { href: '/community', label: 'HQ Community Hub', icon: MessageSquare, badge: 'Hub' },
     { href: '/me/dashboard', label: 'M&E Analytics', icon: BarChart2 },
     { href: '/me/report-generator', label: 'AI Donor Generator', icon: Sparkles, badge: 'AI' },
     { href: '/beneficiaries', label: 'Beneficiary Registry', icon: Users },
     ...(isAdminUser ? [{ href: '/admin/users', label: 'Admin & Governance', icon: ShieldCheck }] : []),
   ];
+
+  const handleSelectOfficerProfile = (name: string, role: string, avatarUrl?: string) => {
+    setUserProfile({
+      name,
+      role,
+      initial: name.charAt(0).toUpperCase(),
+      avatarUrl
+    });
+    setProfileDropdownOpen(false);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
@@ -113,14 +130,78 @@ export default function StaffLayout({
                 </div>
               </div>
             ) : (
-              <div className="hidden sm:flex items-center gap-2.5 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700/60">
-                <div className="w-6.5 h-6.5 rounded-full bg-blue-600 text-white text-[11px] font-extrabold flex items-center justify-center shadow-sm">
-                  {userProfile.initial}
-                </div>
-                <div className="text-left leading-none">
-                  <p className="text-xs font-bold text-slate-100">{userProfile.name}</p>
-                  <p className="text-[10px] text-blue-400 font-medium mt-0.5">{userProfile.role}</p>
-                </div>
+              <div className="relative">
+                <button 
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  className="hidden sm:flex items-center gap-2.5 bg-slate-800/80 hover:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700/60 transition text-left"
+                >
+                  {userProfile.avatarUrl ? (
+                    <img 
+                      src={userProfile.avatarUrl} 
+                      alt={userProfile.name} 
+                      className="w-7 h-7 rounded-full object-cover border border-blue-400/50" 
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-blue-600 text-white text-[11px] font-extrabold flex items-center justify-center shadow-sm">
+                      {userProfile.initial}
+                    </div>
+                  )}
+                  <div className="text-left leading-none">
+                    <p className="text-xs font-bold text-slate-100 flex items-center gap-1">
+                      {userProfile.name} <ChevronDown className="w-3 h-3 text-slate-400" />
+                    </p>
+                    <p className="text-[10px] text-blue-400 font-medium mt-0.5">{userProfile.role}</p>
+                  </div>
+                </button>
+
+                {/* Profile Switcher Menu */}
+                {profileDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 z-50 text-xs space-y-1 animate-in fade-in duration-150">
+                    <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-3 py-1">
+                      Switch Officer Profile
+                    </p>
+                    <button
+                      onClick={() => handleSelectOfficerProfile('Md. Abu Huraira', 'Executive Director')}
+                      className="w-full text-left p-2 hover:bg-slate-800 rounded-xl flex items-center gap-2 text-slate-200"
+                    >
+                      <div className="w-6 h-6 rounded-full bg-amber-600 text-white text-[10px] font-bold flex items-center justify-center">M</div>
+                      <div>
+                        <p className="font-bold text-slate-100 text-xs">Md. Abu Huraira</p>
+                        <p className="text-[10px] text-amber-400">Executive Director</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => handleSelectOfficerProfile('Mizbah Uddin', 'Program Officer (Assigned)', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80')}
+                      className="w-full text-left p-2 hover:bg-slate-800 rounded-xl flex items-center gap-2 text-slate-200"
+                    >
+                      <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Mizbah" className="w-6 h-6 rounded-full object-cover" />
+                      <div>
+                        <p className="font-bold text-slate-100 text-xs">Mizbah Uddin</p>
+                        <p className="text-[10px] text-blue-400">Program Officer (IGP)</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => handleSelectOfficerProfile('MD. Emran', 'Program Officer (Rohingya Relief)')}
+                      className="w-full text-left p-2 hover:bg-slate-800 rounded-xl flex items-center gap-2 text-slate-200"
+                    >
+                      <div className="w-6 h-6 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center">E</div>
+                      <div>
+                        <p className="font-bold text-slate-100 text-xs">MD. Emran</p>
+                        <p className="text-[10px] text-emerald-400">Program Officer (Relief)</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => handleSelectOfficerProfile('Muktadir Rahaman', 'HQ Admin & IT Manager')}
+                      className="w-full text-left p-2 hover:bg-slate-800 rounded-xl flex items-center gap-2 text-slate-200"
+                    >
+                      <div className="w-6 h-6 rounded-full bg-purple-600 text-white text-[10px] font-bold flex items-center justify-center">M</div>
+                      <div>
+                        <p className="font-bold text-slate-100 text-xs">Muktadir Rahaman</p>
+                        <p className="text-[10px] text-purple-400">Admin & IT Manager</p>
+                      </div>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

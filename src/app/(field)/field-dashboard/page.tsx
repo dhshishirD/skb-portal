@@ -13,7 +13,8 @@ import {
   Smartphone, 
   ExternalLink,
   MapPin,
-  RefreshCw
+  RefreshCw,
+  UserCheck
 } from 'lucide-react';
 import { getOfflineReports, clearOfflineReport, OfflineFieldReport } from '@/lib/offline/db';
 
@@ -96,19 +97,26 @@ export default function FieldDashboardPage() {
       {/* Main Action Grid */}
       <div className="space-y-2.5">
         <Link 
-          href="/field-dashboard/new-report"
+          href="/field-dashboard/new-beneficiary"
           className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-sm shadow-lg flex items-center justify-center gap-2.5 transition-all active:scale-[0.99]"
         >
-          <PlusCircle className="w-5 h-5" /> + New Field Progress Report
+          <UserCheck className="w-5 h-5 text-white" /> + Register Beneficiary (KoBo 8-Field Form)
+        </Link>
+
+        <Link 
+          href="/field-dashboard/new-report"
+          className="w-full py-3 px-4 bg-emerald-800/90 hover:bg-emerald-700 text-emerald-100 font-semibold rounded-xl text-xs border border-emerald-700 flex items-center justify-center gap-2 transition-all"
+        >
+          <PlusCircle className="w-4 h-4 text-emerald-300" /> + Submit Field Progress Report
         </Link>
 
         <a 
-          href="https://kf.kobotoolbox.org"
+          href="https://ee.kobotoolbox.org/x/aGM7t5NmdoWuXPSoa3ty7k"
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full py-3 px-4 bg-emerald-800/80 hover:bg-emerald-700 text-emerald-100 font-semibold rounded-xl text-xs border border-emerald-700 flex items-center justify-center gap-2 transition-all"
+          className="w-full py-3 px-4 bg-emerald-950 hover:bg-emerald-900 text-emerald-200 font-medium rounded-xl text-xs border border-emerald-800 flex items-center justify-center gap-2 transition-all"
         >
-          <ExternalLink className="w-4 h-4 text-emerald-300" /> Open KoBoToolbox Mobile Intake
+          <ExternalLink className="w-4 h-4 text-emerald-400" /> Fill Out Form Directly on KoBo Web App
         </a>
       </div>
 

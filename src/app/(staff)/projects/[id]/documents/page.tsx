@@ -175,13 +175,13 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
         </div>
       )}
 
-      {/* Section A: Mandatory Primary Documents */}
+      {/* Section A: Baseline Compliance Documents */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
             <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-blue-600" />
-              A. Primary Mandatory Baseline Documents (7 Always Required)
+              A. Project Baseline Compliance Documents
             </h2>
             <p className="text-xs text-slate-500">
               Standard submission package required by NGO Affairs Bureau & International Donors.
@@ -222,13 +222,13 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
         </div>
       </div>
 
-      {/* Section B: Special Ad-Hoc Requested Documents */}
+      {/* Section B: Special Project Submissions & Clarifications */}
       <div className="bg-white rounded-2xl border border-purple-200 p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
             <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <Layers className="w-4 h-4 text-purple-600" />
-              B. Special Project-Specific Submissions (Requested for Special Reasons)
+              B. Special Project Submissions & Clarifications
             </h2>
             <p className="text-xs text-slate-500">
               Extra documents submitted for special audit reasons (e.g. Underaged Guardian Representation Letters).

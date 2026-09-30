@@ -323,8 +323,8 @@ Using your partner access credentials below, your team can review live project p
 ----------------------------------------------------------------------
 ORGANIZATION: IHH Humanitarian Relief Foundation (Turkey 🇹🇷)
 DIRECT PORTAL LINK: https://skbportal.online/donor-dashboard?partner=IHH
-PARTNER ACCESS CODE: IHH-SKB-2026
-ACCESS PASSWORD: ihh-partner-access-2026
+IHH OFFICIAL EMAIL: audit@ihh.org.tr
+ACCESS PASSWORD: IHH-SKB-2026
 ----------------------------------------------------------------------
 
 YOUR ASSIGNED ACTIVE PROJECTS (3):
@@ -477,7 +477,7 @@ Contact: info@skb.org.bd | +880 1711-000000`;
 
             <div className="flex items-center gap-2">
               <span className="font-mono text-[11px] bg-blue-100 text-blue-900 px-2.5 py-1 rounded-lg border border-blue-300 font-bold">
-                Passcode: ihh-partner-access-2026
+                Passcode: IHH-SKB-2026
               </span>
             </div>
           </div>

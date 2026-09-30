@@ -117,6 +117,29 @@ export default function StaffDashboardPage() {
         </div>
       </div>
 
+      {/* Respectful Executive & Donor Development Preview Banner */}
+      <div className="bg-gradient-to-r from-blue-700 via-indigo-800 to-slate-900 text-white p-5 rounded-2xl shadow-md border border-blue-600/30 flex flex-wrap items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] bg-white/20 text-white font-extrabold px-2.5 py-0.5 rounded-full border border-white/20">
+              Live Development & Field Progress
+            </span>
+            <span className="text-xs text-blue-200 font-bold">
+              Updated Daily for Donor Partners & Executive Directorate
+            </span>
+          </div>
+          <p className="text-xs text-blue-100 leading-relaxed max-w-2xl">
+            Welcome to Small Kindness Bangladesh. External stakeholders and executive management can preview live operational progress, field telemetry, and compliance vault submissions in real-time.
+          </p>
+        </div>
+        <Link
+          href="/donor-dashboard"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition shrink-0"
+        >
+          Inspect Live Donor Hub &rsaquo;
+        </Link>
+      </div>
+
       {/* Primary Telemetry Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">

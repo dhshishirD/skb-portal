@@ -202,10 +202,10 @@ export default function DonorDashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Multi-tenant Partner Isolation State (Default to IHH view for partners)
+  // Multi-tenant Partner Isolation State (Default to IHH view)
   const [selectedPartnerView, setSelectedPartnerView] = useState<'ALL' | 'IHH' | 'UNHCR'>('IHH');
 
-  // Parse URL query string on mount for direct link partner isolation (e.g. ?partner=IHH)
+  // Parse URL query string on mount for partner isolation
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -342,7 +342,7 @@ export default function DonorDashboardPage() {
               <span>🇹🇷</span> IHH Humanitarian Relief Foundation
             </span>
             <span className="text-xs bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" /> Verified Partner Audit Portal
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" /> Verified Partner Audit Hub
             </span>
           </div>
 
@@ -356,9 +356,11 @@ export default function DonorDashboardPage() {
         </div>
 
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900">Welcome to SKB International Partner Portal</h1>
+          <h1 className="text-xl font-extrabold text-slate-900">
+            Welcome to IHH Humanitarian Relief Foundation Partner Portal
+          </h1>
           <p className="text-xs text-slate-600 leading-relaxed mt-1">
-            Inspect verified project baseline compliance documents, audit clearance reports, and field verification packages with real-time donor sign-off capabilities.
+            Inspect verified project baseline compliance documents, audit clearance reports, and field verification packages for your assigned development initiatives in Bangladesh.
           </p>
         </div>
       </div>
@@ -375,7 +377,7 @@ export default function DonorDashboardPage() {
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
-              All Partner Projects ({tenantFilteredProjects.length})
+              All IHH Projects ({tenantFilteredProjects.length})
             </button>
 
             <button

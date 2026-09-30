@@ -1,77 +1,67 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
-import { signInAction } from '@/app/actions/auth';
-import { Globe, Lock, CheckCircle2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Globe, ArrowRight, ShieldCheck, Building2 } from 'lucide-react';
 
 export default function LoginPage() {
-  const [emailInput, setEmailInput] = useState('audit@ihh.org.tr');
-  const [passwordInput, setPasswordInput] = useState('IHH-SKB-2026');
+  const router = useRouter();
 
   return (
-    <div className="space-y-5 max-w-sm mx-auto">
-      <div className="space-y-1 text-center">
-        <h2 className="text-xl font-extrabold text-slate-900">Sign In to SKB Portal</h2>
-        <p className="text-xs text-slate-500">IHH Partner Access & Audit Clearance Portal</p>
+    <div className="space-y-5 max-w-md mx-auto text-center">
+      <div className="space-y-1">
+        <h2 className="text-xl font-extrabold text-slate-900">Welcome to SKB Works Portal</h2>
+        <p className="text-xs text-slate-500">Small Kindness Bangladesh • Open Access Mode</p>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 text-blue-900 p-3.5 rounded-xl text-xs space-y-1.5">
-        <div className="flex items-center gap-1.5 font-bold">
-          <Globe className="w-4 h-4 text-blue-600 shrink-0" />
-          <span>IHH Humanitarian Relief Foundation (Turkey 🇹🇷)</span>
+      <div className="bg-emerald-50 border border-emerald-200 text-emerald-950 p-3.5 rounded-2xl text-xs space-y-1 text-left">
+        <div className="flex items-center gap-1.5 font-extrabold text-emerald-900">
+          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>Password-Free Direct Access Active</span>
         </div>
-        <p className="text-[11px] text-blue-800 leading-relaxed">
-          Default credentials pre-filled below. Click &quot;Sign In to Donor Hub&quot; to open your portal.
+        <p className="text-[11px] text-emerald-800 leading-relaxed">
+          No login password is required right now. Select a workspace below to enter instantly.
         </p>
       </div>
 
-      <form action={signInAction} className="space-y-3.5">
-        <div>
-          <label className="block text-xs font-bold text-slate-700 mb-1">
-            IHH Official Email
-          </label>
-          <input
-            name="email"
-            type="text"
-            value={emailInput}
-            onChange={(e) => setEmailInput(e.target.value)}
-            placeholder="audit@ihh.org.tr"
-            required
-            className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono font-semibold"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-slate-700 mb-1">
-            Access Password
-          </label>
-          <input
-            name="password"
-            type="password"
-            value={passwordInput}
-            onChange={(e) => setPasswordInput(e.target.value)}
-            placeholder="IHH-SKB-2026"
-            required
-            className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono font-semibold"
-          />
-        </div>
-
+      <div className="space-y-3 pt-1">
+        {/* 1. Primary IHH Donor Hub Access */}
         <button
-          type="submit"
-          className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5"
+          onClick={() => router.push('/donor-dashboard?partner=IHH')}
+          className="w-full p-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl shadow-md transition-all text-left flex items-center justify-between group cursor-pointer"
         >
-          <Lock className="w-3.5 h-3.5" /> Sign In to Donor Hub
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-1.5">
+              <span className="text-base">🇹🇷</span>
+              <span className="font-extrabold text-sm">IHH International Donor Portal</span>
+            </div>
+            <p className="text-[11px] text-blue-100">
+              Inspect IHH-funded projects, Form-7 clearance, beneficiary register & 1-click audit ZIP export.
+            </p>
+          </div>
+          <ArrowRight className="w-5 h-5 text-blue-200 group-hover:translate-x-1 transition-transform shrink-0 ml-2" />
         </button>
-      </form>
 
-      <div className="text-center pt-1">
-        <Link 
-          href="/donor-dashboard?partner=IHH"
-          className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline"
+        {/* 2. Staff & Executive Dashboard */}
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="w-full p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl shadow-sm transition-all text-left flex items-center justify-between group cursor-pointer"
         >
-          Direct Link: https://www.skbportal.online/donor-dashboard?partner=IHH &rsaquo;
-        </Link>
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-1.5">
+              <Building2 className="w-4 h-4 text-slate-300" />
+              <span className="font-extrabold text-sm">Staff & Executive Directorate Dashboard</span>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              Program Management, Procurement, Finance Approvals & NGO Bureau Compliance.
+            </p>
+          </div>
+          <ArrowRight className="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform shrink-0 ml-2" />
+        </button>
+      </div>
+
+      <div className="pt-2 text-xs text-slate-500">
+        Direct URL: <Link href="/donor-dashboard?partner=IHH" className="font-bold text-blue-600 hover:underline">https://www.skbportal.online/donor-dashboard?partner=IHH</Link>
       </div>
     </div>
   );

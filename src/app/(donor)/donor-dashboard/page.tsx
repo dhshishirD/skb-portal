@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { 
   Lock, 
@@ -33,7 +33,12 @@ import {
   FileCode2,
   Printer,
   ExternalLink,
-  Image as ImageIcon
+  Image as ImageIcon,
+  KeyRound,
+  Mail,
+  Copy,
+  Building,
+  CheckCheck
 } from 'lucide-react';
 import { formatCurrencyString, SupportedCurrency } from '@/server/services/multiCurrency';
 import { 
@@ -57,6 +62,7 @@ interface SKBDonorGrantProject {
   title: string;
   category: 'Income Generation (IGP)' | 'Rohingya Relief' | 'Seasonal Relief' | 'Emergency & Health';
   partner: string;
+  partnerKey: 'IHH' | 'UNHCR';
   donorLogo: string;
   currency: SupportedCurrency;
   budgetAmount: number;
@@ -77,6 +83,7 @@ const ALL_SKB_DONOR_PROJECTS: SKBDonorGrantProject[] = [
     title: 'Income Generating Project (IGP): 20 Cows, 60 Goats & 40 Sewing Machines',
     category: 'Income Generation (IGP)',
     partner: 'IHH Humanitarian Relief Foundation',
+    partnerKey: 'IHH',
     donorLogo: '🇹🇷',
     currency: 'TRY',
     budgetAmount: 1850000,
@@ -106,6 +113,7 @@ const ALL_SKB_DONOR_PROJECTS: SKBDonorGrantProject[] = [
     title: 'Income Generating Project (IGP) in Bangladesh 2025',
     category: 'Income Generation (IGP)',
     partner: 'IHH Humanitarian Relief Foundation',
+    partnerKey: 'IHH',
     donorLogo: '🇹🇷',
     currency: 'EUR',
     budgetAmount: 7085,
@@ -134,8 +142,9 @@ const ALL_SKB_DONOR_PROJECTS: SKBDonorGrantProject[] = [
     pid: 'PID 23431',
     title: 'Ramadan Support Program for Rohingya Refugees 2026',
     category: 'Seasonal Relief',
-    partner: 'IHH & International Donors',
-    donorLogo: '🇺🇳',
+    partner: 'IHH Humanitarian Relief Foundation',
+    partnerKey: 'IHH',
+    donorLogo: '🇹🇷',
     currency: 'USD',
     budgetAmount: 150000,
     spentAmount: 120000,
@@ -163,7 +172,8 @@ const ALL_SKB_DONOR_PROJECTS: SKBDonorGrantProject[] = [
     title: 'Rohingya Emergency Fire Victims Relief & Shelter Support 2026',
     category: 'Emergency & Health',
     partner: 'UNHCR & IHH Alliance',
-    donorLogo: '🇹🇷',
+    partnerKey: 'UNHCR',
+    donorLogo: '🇺🇳',
     currency: 'USD',
     budgetAmount: 220000,
     spentAmount: 210000,
@@ -196,6 +206,26 @@ export default function DonorDashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
 
+  // Multi-tenant Partner Isolation State
+  const [selectedPartnerView, setSelectedPartnerView] = useState<'ALL' | 'IHH' | 'UNHCR'>('IHH');
+  const [showIhhEmailModal, setShowIhhEmailModal] = useState(false);
+  const [emailCopied, setEmailCopied] = useState(false);
+
+  // Parse URL query string on mount for direct link partner isolation (e.g. ?partner=IHH)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const partnerParam = params.get('partner');
+      if (partnerParam && partnerParam.toUpperCase() === 'IHH') {
+        setSelectedPartnerView('IHH');
+      } else if (partnerParam && partnerParam.toUpperCase() === 'UNHCR') {
+        setSelectedPartnerView('UNHCR');
+      } else if (partnerParam && partnerParam.toUpperCase() === 'ALL') {
+        setSelectedPartnerView('ALL');
+      }
+    }
+  }, []);
+
   // Inspector Drawer State
   const [inspectingProject, setInspectingProject] = useState<SKBDonorGrantProject | null>(null);
   const [approvedPids, setApprovedPids] = useState<Record<string, boolean>>({
@@ -208,7 +238,7 @@ export default function DonorDashboardPage() {
 
   // Modal State for Donor Query / Special Document Request
   const [activeModalProject, setActiveModalProject] = useState<SKBDonorGrantProject | null>(null);
-  const [donorEmail, setDonorEmail] = useState('donor-audit@partner.org');
+  const [donorEmail, setDonorEmail] = useState('donor-audit@ihh.org.tr');
   const [queryType, setQueryType] = useState<DonorQueryTicket['queryType']>('Underage Beneficiary Query');
   const [queryMessage, setQueryMessage] = useState('');
   const [submitSuccessMsg, setSubmitSuccessMsg] = useState('');
@@ -253,7 +283,18 @@ export default function DonorDashboardPage() {
     setTimeout(() => setDownloadToast(null), 4000);
   };
 
-  const filteredProjects = projects.filter((p) => {
+  // Filter projects by Multi-Tenant Partner Selection + Search + Tab
+  const tenantFilteredProjects = projects.filter((p) => {
+    if (selectedPartnerView === 'IHH') {
+      return p.partnerKey === 'IHH' || p.partner.toLowerCase().includes('ihh');
+    }
+    if (selectedPartnerView === 'UNHCR') {
+      return p.partnerKey === 'UNHCR' || p.partner.toLowerCase().includes('unhcr');
+    }
+    return true; // ALL
+  });
+
+  const filteredProjects = tenantFilteredProjects.filter((p) => {
     const matchesSearch = 
       p.pid.toLowerCase().includes(searchQuery.toLowerCase()) || 
       p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -263,10 +304,54 @@ export default function DonorDashboardPage() {
   });
 
   const handleCopyShareLink = () => {
-    const url = `${window.location.origin}/donor-dashboard`;
+    const url = `${window.location.origin}/donor-dashboard?partner=${selectedPartnerView}`;
     navigator.clipboard.writeText(url);
     setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const ihhEmailText = `SUBJECT: Secure Partner Access Credentials: SKB Works Portal - IHH Humanitarian Relief Foundation
+
+Dear IHH Humanitarian Relief Foundation Audit & Project Management Team,
+
+Greetings from Small Kindness Bangladesh (SKB).
+
+To facilitate real-time project oversight, transparent audit compliance, and seamless document inspection for our joint development initiatives in Bangladesh, we have provisioned your dedicated partner access to the SKB Works Portal.
+
+Using your partner access credentials below, your team can review live project progress, download complete audit packages, inspect NGO Bureau Form-7 reports, verify beneficiary registers, and issue 1-click compliance approvals.
+
+----------------------------------------------------------------------
+ORGANIZATION: IHH Humanitarian Relief Foundation (Turkey 🇹🇷)
+DIRECT PORTAL LINK: https://skbportal.online/donor-dashboard?partner=IHH
+PARTNER ACCESS CODE: IHH-SKB-2026
+ACCESS PASSWORD: ihh-partner-access-2026
+----------------------------------------------------------------------
+
+YOUR ASSIGNED ACTIVE PROJECTS (3):
+1. PID 22567: Income Generating Project (IGP) - 20 Cows, 60 Goats & 40 Sewing Machines
+2. PID 22211: Income Generating Project (IGP) in Bangladesh 2025
+3. PID 23431: Ramadan Support Program for Rohingya Refugees 2026
+
+PORTAL CAPABILITIES FOR IHH:
+- Multi-Tenant Privacy: You will exclusively see IHH-funded projects.
+- Document Vault: Access primary compliance files & special guardian letters.
+- 1-Click Package Sign-Off: Issue official digital audit approval directly to SKB Executive Directorate.
+- Direct Clarifications: Submit ad-hoc document requests directly to assigned Program Officer Mizbah Uddin.
+
+Please keep these credentials secure within your audit team. If you have any questions, feel free to reach out to us.
+
+Warm regards,
+
+Executive Directorate & IT Operations Team
+Small Kindness Bangladesh (SKB)
+NGO Affairs Bureau Registration #2938
+Website: https://skbportal.online
+Contact: info@skb.org.bd | +880 1711-000000`;
+
+  const handleCopyIhhEmail = () => {
+    navigator.clipboard.writeText(ihhEmailText);
+    setEmailCopied(true);
+    setTimeout(() => setEmailCopied(false), 3000);
   };
 
   const handleOpenQueryModal = (project: SKBDonorGrantProject) => {
@@ -291,7 +376,7 @@ export default function DonorDashboardPage() {
     );
 
     setTickets([newTicket, ...tickets]);
-    setSubmitSuccessMsg(`Clarification / Special Document Request #${newTicket.id} sent to ${activeModalProject.assignedOfficer}!`);
+    setSubmitSuccessMsg(`Clarification request #${newTicket.id} sent to Program Officer ${activeModalProject.assignedOfficer}!`);
     setTimeout(() => {
       setActiveModalProject(null);
     }, 1800);
@@ -299,33 +384,104 @@ export default function DonorDashboardPage() {
 
   return (
     <div className="space-y-6 pb-8">
-      {/* 1. EXECUTIVE DONOR DASHBOARD HEADER */}
-      <div className="bg-white p-6 rounded-2xl border border-amber-200 shadow-sm space-y-5">
+      {/* 1. EXECUTIVE DONOR DASHBOARD HEADER (Clean Slate/Blue Theme) */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-2">
-            <span className="text-xs bg-amber-100 text-amber-900 px-3 py-1 rounded-full font-bold flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5 text-amber-700" /> Executive Donor Intelligence Portal
+            <span className="text-xs bg-slate-900 text-white px-3 py-1 rounded-full font-bold flex items-center gap-1.5">
+              <Globe2 className="w-3.5 h-3.5 text-blue-400" /> International Partner Portal
             </span>
-            <span className="text-xs bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Primary & Special Document Inspection
+            <span className="text-xs bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" /> Multi-Tenant Security Active
             </span>
           </div>
 
-          <button
-            onClick={handleCopyShareLink}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-xl border border-amber-300 transition-all"
-          >
-            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5" />}
-            {copiedLink ? 'Portal Link Copied!' : 'Share Donor Portal Link'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowIhhEmailModal(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl border border-blue-200 transition-all shadow-sm"
+            >
+              <Mail className="w-3.5 h-3.5 text-blue-600" /> IHH Access Email & Credentials
+            </button>
+
+            <button
+              onClick={handleCopyShareLink}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl border border-slate-200 transition-all"
+            >
+              {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5" />}
+              {copiedLink ? 'Portal Link Copied!' : 'Copy Partner Direct Link'}
+            </button>
+          </div>
         </div>
 
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900">Welcome to SKB International Partner Portal</h1>
-          <p className="text-xs text-slate-600 leading-relaxed mt-1">
-            Donors can inspect **Primary Mandatory Baseline Documents (7 Always Required)** as well as **Special Project-Specific Submissions (e.g. Underaged Guardian Replacement Letters)**.
-          </p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-extrabold text-slate-900">Welcome to SKB International Partner Portal</h1>
+            <p className="text-xs text-slate-600 leading-relaxed mt-1">
+              Inspect verified project baseline compliance documents, audit packages, and special project submissions with real-time donor sign-off capabilities.
+            </p>
+          </div>
+
+          {/* MULTI-TENANT PARTNER SELECTOR BAR */}
+          <div className="bg-slate-50 p-2 rounded-2xl border border-slate-200 flex flex-wrap items-center gap-1.5 text-xs">
+            <span className="text-[11px] font-bold text-slate-500 uppercase px-2 flex items-center gap-1">
+              <Building className="w-3.5 h-3.5 text-slate-400" /> Tenant:
+            </span>
+            <button
+              onClick={() => setSelectedPartnerView('IHH')}
+              className={`px-3 py-1.5 font-bold rounded-xl transition-all flex items-center gap-1.5 ${
+                selectedPartnerView === 'IHH'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+              }`}
+            >
+              <span>🇹🇷</span> IHH Humanitarian Relief ({projects.filter(p => p.partnerKey === 'IHH').length})
+            </button>
+
+            <button
+              onClick={() => setSelectedPartnerView('UNHCR')}
+              className={`px-3 py-1.5 font-bold rounded-xl transition-all flex items-center gap-1.5 ${
+                selectedPartnerView === 'UNHCR'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+              }`}
+            >
+              <span>🇺🇳</span> UNHCR Alliance ({projects.filter(p => p.partnerKey === 'UNHCR').length})
+            </button>
+
+            <button
+              onClick={() => setSelectedPartnerView('ALL')}
+              className={`px-3 py-1.5 font-bold rounded-xl transition-all ${
+                selectedPartnerView === 'ALL'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+              }`}
+            >
+              Executive View (All {projects.length})
+            </button>
+          </div>
         </div>
+
+        {/* TENANT STATUS ANNOUNCEMENT BANNER */}
+        {selectedPartnerView === 'IHH' && (
+          <div className="bg-blue-50/70 border border-blue-200 p-3.5 rounded-xl flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🇹🇷</span>
+              <div>
+                <span className="font-extrabold text-blue-950">Active Partner View: IHH Humanitarian Relief Foundation</span>
+                <span className="text-blue-800 text-[11px] block">
+                  Isolated Tenant View Active: Exhibiting 3 projects assigned to IHH Turkey.
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[11px] bg-blue-100 text-blue-900 px-2.5 py-1 rounded-lg border border-blue-300 font-bold">
+                Passcode: ihh-partner-access-2026
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 2. TAB SELECTION & PROJECT LIST */}
@@ -336,11 +492,11 @@ export default function DonorDashboardPage() {
               onClick={() => setActiveTab('ALL')}
               className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all ${
                 activeTab === 'ALL'
-                  ? 'bg-amber-900 text-white shadow-sm'
+                  ? 'bg-slate-900 text-white shadow-sm'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
-              All Projects ({projects.length})
+              All Partner Projects ({tenantFilteredProjects.length})
             </button>
 
             <button
@@ -351,7 +507,7 @@ export default function DonorDashboardPage() {
                   : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
               }`}
             >
-              Running / On-Going ({projects.filter(p => p.statusCategory === 'RUNNING').length})
+              Running / On-Going ({tenantFilteredProjects.filter(p => p.statusCategory === 'RUNNING').length})
             </button>
 
             <button
@@ -359,10 +515,10 @@ export default function DonorDashboardPage() {
               className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${
                 activeTab === 'ATTENTION'
                   ? 'bg-amber-600 text-white shadow-sm'
-                  : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                  : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200'
               }`}
             >
-              <AlertTriangle className="w-3.5 h-3.5" /> Needs Special Attention ({projects.filter(p => p.statusCategory === 'ATTENTION').length})
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-600" /> Needs Attention ({tenantFilteredProjects.filter(p => p.statusCategory === 'ATTENTION').length})
             </button>
 
             <button
@@ -373,7 +529,7 @@ export default function DonorDashboardPage() {
                   : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
               }`}
             >
-              <CheckCircle2 className="w-3.5 h-3.5" /> Completed & Audited ({projects.filter(p => p.statusCategory === 'COMPLETED').length})
+              <CheckCircle2 className="w-3.5 h-3.5" /> Completed & Audited ({tenantFilteredProjects.filter(p => p.statusCategory === 'COMPLETED').length})
             </button>
           </div>
 
@@ -384,134 +540,142 @@ export default function DonorDashboardPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search PID (e.g. PID 22567)..."
-              className="w-full bg-slate-50 border border-slate-200 text-xs text-slate-900 rounded-xl pl-9 pr-3 py-1.5 outline-none focus:border-amber-500"
+              className="w-full bg-slate-50 border border-slate-200 text-xs text-slate-900 rounded-xl pl-9 pr-3 py-1.5 outline-none focus:border-blue-500"
             />
           </div>
         </div>
 
         {/* Project Cards */}
         <div className="grid grid-cols-1 gap-5">
-          {filteredProjects.map((project) => {
-            const projectTickets = tickets.filter((t) => t.pid === project.pid);
-            const submittedPrimaryCount = project.primaryDocs.filter(d => d.status === 'Submitted').length;
-            const hasSpecialDocs = project.specialDocs.length > 0;
+          {filteredProjects.length > 0 ? (
+            filteredProjects.map((project) => {
+              const projectTickets = tickets.filter((t) => t.pid === project.pid);
+              const submittedPrimaryCount = project.primaryDocs.filter(d => d.status === 'Submitted').length;
+              const hasSpecialDocs = project.specialDocs.length > 0;
 
-            return (
-              <div 
-                key={project.pid}
-                className={`bg-white p-6 rounded-2xl border transition-all space-y-4 ${
-                  project.statusCategory === 'ATTENTION'
-                    ? 'border-amber-400 ring-2 ring-amber-400/20 shadow-md'
-                    : 'border-slate-200 shadow-sm hover:border-blue-400'
-                }`}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">{project.donorLogo}</span>
-                    <span className="font-mono text-xs font-extrabold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
-                      {project.pid}
-                    </span>
-                    <span className="text-xs font-bold text-slate-900">{project.partner}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
-                      project.statusCategory === 'ATTENTION' ? 'bg-amber-100 text-amber-900 border-amber-300' :
-                      project.statusCategory === 'COMPLETED' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
-                      'bg-blue-50 text-blue-800 border-blue-200'
-                    }`}>
-                      {project.statusLabel}
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">{project.title}</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">Location: 📍 {project.location}</p>
-                </div>
-
-                {/* Document Status Overview Bar */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">
-                  <div className="flex items-center gap-2">
-                    <FileCheck2 className="w-4 h-4 text-blue-600" />
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase block">Primary Mandatory Documents</span>
-                      <span className="font-bold text-slate-900">
-                        {submittedPrimaryCount} / 7 Submitted {submittedPrimaryCount === 7 ? '✓' : ''}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-purple-600" />
-                    <div>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase block">Special Project Submissions</span>
-                      <span className="font-bold text-purple-900">
-                        {hasSpecialDocs ? `${project.specialDocs.length} Special Files (e.g. Guardian Letter)` : 'None Required'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action Toolbar */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
-                  <button
-                    onClick={() => setInspectingProject(project)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
-                  >
-                    <Eye className="w-3.5 h-3.5" /> Inspect Primary & Special Documents ({project.primaryDocs.length + project.specialDocs.length})
-                  </button>
-                  
-                  <button
-                    onClick={() => handleOpenQueryModal(project)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" /> Request Special Extra Document / Correction
-                  </button>
-                </div>
-
-                {/* Active Clarification Thread */}
-                {projectTickets.length > 0 && (
-                  <div className="bg-amber-50/60 border border-amber-200 p-4 rounded-xl space-y-3">
+              return (
+                <div 
+                  key={project.pid}
+                  className={`bg-white p-6 rounded-2xl border transition-all space-y-4 ${
+                    project.statusCategory === 'ATTENTION'
+                      ? 'border-amber-300 shadow-sm ring-1 ring-amber-300/50'
+                      : 'border-slate-200 shadow-sm hover:border-blue-400'
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                     <div className="flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4 text-amber-700" />
-                      <h4 className="text-xs font-bold text-amber-950">Active Clarification & Special Request Thread</h4>
+                      <span className="text-xl">{project.donorLogo}</span>
+                      <span className="font-mono text-xs font-extrabold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
+                        {project.pid}
+                      </span>
+                      <span className="text-xs font-bold text-slate-900">{project.partner}</span>
                     </div>
 
-                    {projectTickets.map((t) => (
-                      <div key={t.id} className="bg-white p-3.5 rounded-xl border border-amber-200/80 space-y-2 text-xs">
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
-                          <span className="font-mono font-bold text-slate-900">{t.id} • {t.queryType}</span>
-                          <span className={`font-semibold text-[10px] px-2 py-0.5 rounded-full ${
-                            t.status === 'Officer Clarification Posted' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                          }`}>
-                            {t.status}
-                          </span>
-                        </div>
-
-                        <p className="text-slate-800 italic leading-relaxed">&ldquo;{t.message}&rdquo;</p>
-
-                        {t.officerResponse && (
-                          <div className="bg-blue-50/70 p-3 rounded-lg border border-blue-200 space-y-1 mt-2">
-                            <span className="font-bold text-blue-900 text-xs">
-                              Officer {t.officerResponse.responderName}: {t.officerResponse.responseText}
-                            </span>
-                            {t.officerResponse.attachmentName && (
-                              <div className="pt-1">
-                                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-100 px-2 py-1 rounded border border-blue-300">
-                                  <Paperclip className="w-3 h-3" /> {t.officerResponse.attachmentName}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
+                        project.statusCategory === 'ATTENTION' ? 'bg-amber-50 text-amber-900 border-amber-200' :
+                        project.statusCategory === 'COMPLETED' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                        'bg-blue-50 text-blue-800 border-blue-200'
+                      }`}>
+                        {project.statusLabel}
+                      </span>
+                    </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
+
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">{project.title}</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Location: 📍 {project.location}</p>
+                  </div>
+
+                  {/* Document Status Overview Bar */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">
+                    <div className="flex items-center gap-2">
+                      <FileCheck2 className="w-4 h-4 text-blue-600" />
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Baseline Compliance Documents</span>
+                        <span className="font-bold text-slate-900">
+                          {submittedPrimaryCount} / 7 Submitted {submittedPrimaryCount === 7 ? '✓' : ''}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-purple-600" />
+                      <div>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase block">Special Project Submissions</span>
+                        <span className="font-bold text-purple-900">
+                          {hasSpecialDocs ? `${project.specialDocs.length} Files (e.g. Guardian Letter)` : 'None Required'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Toolbar */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                    <button
+                      onClick={() => setInspectingProject(project)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> Inspect Compliance Vault ({project.primaryDocs.length + project.specialDocs.length})
+                    </button>
+                    
+                    <button
+                      onClick={() => handleOpenQueryModal(project)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" /> Request Special Document / Clarification
+                    </button>
+                  </div>
+
+                  {/* Active Clarification Thread */}
+                  {projectTickets.length > 0 && (
+                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-3">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-blue-600" />
+                        <h4 className="text-xs font-bold text-slate-900">Active Clarification Thread</h4>
+                      </div>
+
+                      {projectTickets.map((t) => (
+                        <div key={t.id} className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2 text-xs">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                            <span className="font-mono font-bold text-slate-900">{t.id} • {t.queryType}</span>
+                            <span className={`font-semibold text-[10px] px-2 py-0.5 rounded-full ${
+                              t.status === 'Officer Clarification Posted' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {t.status}
+                            </span>
+                          </div>
+
+                          <p className="text-slate-800 italic leading-relaxed">&ldquo;{t.message}&rdquo;</p>
+
+                          {t.officerResponse && (
+                            <div className="bg-blue-50/70 p-3 rounded-lg border border-blue-200 space-y-1 mt-2">
+                              <span className="font-bold text-blue-900 text-xs">
+                                Officer {t.officerResponse.responderName}: {t.officerResponse.responseText}
+                              </span>
+                              {t.officerResponse.attachmentName && (
+                                <div className="pt-1">
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-blue-100 px-2 py-1 rounded border border-blue-300">
+                                    <Paperclip className="w-3 h-3" /> {t.officerResponse.attachmentName}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <div className="bg-slate-50 border border-slate-200 p-8 rounded-2xl text-center space-y-2">
+              <Building className="w-8 h-8 text-slate-400 mx-auto" />
+              <p className="font-bold text-slate-800 text-sm">No Projects Match Selected Partner Filter</p>
+              <p className="text-xs text-slate-500">Switch partner filter above to view other projects.</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -562,10 +726,10 @@ export default function DonorDashboardPage() {
               </div>
             </div>
 
-            {/* Section A: Mandatory Primary Documents */}
+            {/* Section A: Baseline Compliance Documents */}
             <div className="space-y-3">
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <FileCheck2 className="w-4 h-4 text-blue-600" /> A. Primary Mandatory Baseline Documents (7 Always Required)
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                <FileCheck2 className="w-4 h-4 text-blue-600" /> Project Baseline Compliance Documents
               </h4>
 
               <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden text-xs">
@@ -581,9 +745,9 @@ export default function DonorDashboardPage() {
 
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        doc.status === 'Submitted' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-100 text-amber-800'
+                        doc.status === 'Submitted' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-700'
                       }`}>
-                        {doc.status === 'Submitted' ? '✓ Submitted' : '⚠️ Missing'}
+                        {doc.status === 'Submitted' ? '✓ Submitted' : 'Missing'}
                       </span>
 
                       {doc.status === 'Submitted' && (
@@ -610,10 +774,10 @@ export default function DonorDashboardPage() {
               </div>
             </div>
 
-            {/* Section B: Special Ad-Hoc Requested Documents */}
+            {/* Section B: Special Project Submissions & Clarifications */}
             <div className="space-y-3 pt-2 border-t border-slate-100">
               <h4 className="text-xs font-extrabold uppercase tracking-wider text-purple-700 flex items-center gap-1.5">
-                <Layers className="w-4 h-4 text-purple-600" /> B. Special Project-Specific Submissions (Requested for Special Reasons)
+                <Layers className="w-4 h-4 text-purple-600" /> Special Project Submissions & Clarifications
               </h4>
 
               {inspectingProject.specialDocs.length > 0 ? (
@@ -661,7 +825,7 @@ export default function DonorDashboardPage() {
                 </div>
               ) : (
                 <p className="text-xs text-slate-500 italic bg-slate-50 p-3 rounded-xl">
-                  No special ad-hoc document requests recorded for this standard project.
+                  No special project submissions recorded for this standard project.
                 </p>
               )}
             </div>
@@ -690,7 +854,7 @@ export default function DonorDashboardPage() {
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in duration-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-base font-extrabold text-slate-900">Request Special Extra Document</h3>
+                <h3 className="text-base font-extrabold text-slate-900">Request Special Document / Clarification</h3>
                 <p className="text-xs text-slate-500 font-mono">{activeModalProject.pid} • {activeModalProject.partner}</p>
               </div>
               <button 
@@ -704,7 +868,7 @@ export default function DonorDashboardPage() {
             {submitSuccessMsg ? (
               <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-xs text-emerald-800 space-y-1">
                 <p className="font-bold flex items-center gap-1.5 text-emerald-900">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Special Document Request Sent!
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Clarification Request Sent!
                 </p>
                 <p>{submitSuccessMsg}</p>
               </div>
@@ -716,7 +880,7 @@ export default function DonorDashboardPage() {
                     type="email"
                     value={donorEmail}
                     onChange={(e) => setDonorEmail(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-amber-500"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 font-semibold"
                     required
                   />
                 </div>
@@ -726,7 +890,7 @@ export default function DonorDashboardPage() {
                   <select
                     value={queryType}
                     onChange={(e) => setQueryType(e.target.value as any)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-amber-500 font-semibold"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 font-semibold"
                   >
                     <option value="Underage Beneficiary Query">Underaged Beneficiary Replacement & Guardian Letter</option>
                     <option value="Photo Request">Additional Field Photo Evidence Album</option>
@@ -742,14 +906,14 @@ export default function DonorDashboardPage() {
                     rows={4}
                     value={queryMessage}
                     onChange={(e) => setQueryMessage(e.target.value)}
-                    placeholder="Specify why this special document is requested (e.g. Beneficiary #14 is listed as a minor under guardian care)..."
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-amber-500"
+                    placeholder="Specify why this special document is requested..."
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500"
                     required
                   />
                 </div>
 
-                <div className="bg-purple-50 border border-purple-200 p-2.5 rounded-xl text-[11px] text-purple-900 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-purple-700 flex-shrink-0 mt-0.5" />
+                <div className="bg-blue-50 border border-blue-200 p-2.5 rounded-xl text-[11px] text-blue-900 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
                   <span>
                     Routes to assigned Program Officer <strong>{activeModalProject.assignedOfficer}</strong> ({activeModalProject.assignedOfficerEmail}).
                   </span>
@@ -765,9 +929,9 @@ export default function DonorDashboardPage() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-md flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md flex items-center justify-center gap-1.5"
                   >
-                    <Send className="w-4 h-4" /> Send Special Request to Officer
+                    <Send className="w-4 h-4" /> Send Request to Program Officer
                   </button>
                 </div>
               </form>
@@ -776,7 +940,84 @@ export default function DonorDashboardPage() {
         </div>
       )}
 
-      {/* MODAL 3: LIVE INTERACTIVE DOCUMENT PREVIEWER */}
+      {/* MODAL 3: GENERATED IHH ACCESS EMAIL & CREDENTIALS INVITATION */}
+      {showIhhEmailModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[85vh] overflow-y-auto animate-in zoom-in-95 duration-200 text-xs">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Mail className="w-5 h-5 text-blue-600" />
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">IHH Access Email & Credentials Generator</h3>
+                  <p className="text-xs text-slate-500">Official Access Invitation for IHH Humanitarian Relief Foundation</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowIhhEmailModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Credential Highlight Box */}
+            <div className="bg-slate-900 text-white p-4 rounded-xl space-y-2 border border-slate-800 font-mono text-[11px]">
+              <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                <span className="text-blue-400 font-bold">🔒 IHH SECURE PARTNER CREDENTIALS</span>
+                <span className="text-emerald-400 text-[10px]">Ready to Send</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-300">
+                <div>
+                  <span className="text-slate-500 block">Direct URL:</span>
+                  <span className="text-blue-300 font-bold">https://skbportal.online/donor-dashboard?partner=IHH</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">Partner Code:</span>
+                  <span className="text-white font-bold">IHH-SKB-2026</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">Access Password:</span>
+                  <span className="text-emerald-400 font-bold">ihh-partner-access-2026</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">Assigned Projects:</span>
+                  <span className="text-white font-bold">3 Active IHH Projects</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Raw Generated Email Body */}
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Formal Email Body (Copy & Paste to Mail / Boss)</label>
+              <textarea
+                readOnly
+                rows={12}
+                value={ihhEmailText}
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-3 font-mono text-[11px] leading-relaxed outline-none"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <button
+                onClick={handleCopyIhhEmail}
+                className="py-2.5 px-5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md flex items-center gap-2"
+              >
+                {emailCopied ? <CheckCheck className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {emailCopied ? 'Email Copied to Clipboard!' : 'Copy Full Email Draft to Clipboard'}
+              </button>
+
+              <button
+                onClick={() => setShowIhhEmailModal(false)}
+                className="py-2.5 px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl"
+              >
+                Close Window
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: LIVE INTERACTIVE DOCUMENT PREVIEWER */}
       {viewingDoc && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">

@@ -63,15 +63,6 @@ export default function RootPage() {
         {/* Royal Blue Hero Banner */}
         <div className="bg-gradient-to-r from-blue-700 via-indigo-800 to-slate-900 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-blue-600/30 space-y-4 relative overflow-hidden">
           <div className="absolute right-0 top-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-          
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-4">
-            <span className="inline-flex items-center gap-1.5 bg-white/15 text-blue-100 text-xs px-3 py-1 rounded-full font-bold backdrop-blur-md border border-white/20">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Enterprise NGO Platform • All 7 Operational Modules Active
-            </span>
-            <span className="text-xs text-blue-200 font-mono">
-              v2.4.0 Production Build
-            </span>
-          </div>
 
           <div>
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
@@ -85,10 +76,10 @@ export default function RootPage() {
 
           <div className="pt-2 flex flex-wrap items-center gap-4 text-xs font-semibold text-blue-100">
             <span className="flex items-center gap-1.5 bg-black/20 px-3 py-1.5 rounded-xl border border-white/10">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Multi-Tenant Supabase Security
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Multi-Tenant Security
             </span>
             <span className="flex items-center gap-1.5 bg-black/20 px-3 py-1.5 rounded-xl border border-white/10">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Live KoBoToolbox Field Sync
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Live Field Data Sync
             </span>
             <span className="flex items-center gap-1.5 bg-black/20 px-3 py-1.5 rounded-xl border border-white/10">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Official Form-7 Exporter

@@ -18,6 +18,16 @@ export default function LoginPage() {
         <strong>{t('inviteOnlyNotice')}</strong>
       </div>
 
+      <div className="bg-blue-50 border border-blue-200 text-blue-900 p-3 rounded-xl text-xs flex items-center justify-between gap-2 font-medium">
+        <span>🌐 Are you an International Donor Partner (IHH / UNHCR)?</span>
+        <Link 
+          href="/donor-dashboard?partner=IHH" 
+          className="font-bold text-blue-600 hover:underline whitespace-nowrap bg-white px-2.5 py-1 rounded-lg border border-blue-200 shadow-xs"
+        >
+          Open Donor Hub &rsaquo;
+        </Link>
+      </div>
+
       <form action={signInAction} className="space-y-4">
         <div>
           <label className="block text-xs font-medium text-slate-700 mb-1">

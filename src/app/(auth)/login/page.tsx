@@ -1,11 +1,17 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Globe, ArrowRight, ShieldCheck, Building2 } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Building2 } from 'lucide-react';
 
 export default function LoginPage() {
-  const router = useRouter();
+  // Auto-redirect on page load to Donor Dashboard
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.location.href = '/donor-dashboard?partner=IHH';
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div className="space-y-5 max-w-md mx-auto text-center">
@@ -17,18 +23,18 @@ export default function LoginPage() {
       <div className="bg-emerald-50 border border-emerald-200 text-emerald-950 p-3.5 rounded-2xl text-xs space-y-1 text-left">
         <div className="flex items-center gap-1.5 font-extrabold text-emerald-900">
           <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>Password-Free Direct Access Active</span>
+          <span>Password-Free Access Active (Auto-Opening Donor Hub...)</span>
         </div>
         <p className="text-[11px] text-emerald-800 leading-relaxed">
-          No login password is required right now. Select a workspace below to enter instantly.
+          No password required. Redirecting to IHH Donor Hub automatically...
         </p>
       </div>
 
       <div className="space-y-3 pt-1">
         {/* 1. Primary IHH Donor Hub Access */}
-        <button
-          onClick={() => router.push('/donor-dashboard?partner=IHH')}
-          className="w-full p-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl shadow-md transition-all text-left flex items-center justify-between group cursor-pointer"
+        <a
+          href="/donor-dashboard?partner=IHH"
+          className="w-full p-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl shadow-md transition-all text-left flex items-center justify-between group cursor-pointer block"
         >
           <div className="space-y-0.5">
             <div className="flex items-center gap-1.5">
@@ -40,12 +46,12 @@ export default function LoginPage() {
             </p>
           </div>
           <ArrowRight className="w-5 h-5 text-blue-200 group-hover:translate-x-1 transition-transform shrink-0 ml-2" />
-        </button>
+        </a>
 
         {/* 2. Staff & Executive Dashboard */}
-        <button
-          onClick={() => router.push('/dashboard')}
-          className="w-full p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl shadow-sm transition-all text-left flex items-center justify-between group cursor-pointer"
+        <a
+          href="/dashboard"
+          className="w-full p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl shadow-sm transition-all text-left flex items-center justify-between group cursor-pointer block"
         >
           <div className="space-y-0.5">
             <div className="flex items-center gap-1.5">
@@ -57,11 +63,11 @@ export default function LoginPage() {
             </p>
           </div>
           <ArrowRight className="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform shrink-0 ml-2" />
-        </button>
+        </a>
       </div>
 
       <div className="pt-2 text-xs text-slate-500">
-        Direct URL: <Link href="/donor-dashboard?partner=IHH" className="font-bold text-blue-600 hover:underline">https://www.skbportal.online/donor-dashboard?partner=IHH</Link>
+        Direct URL: <a href="/donor-dashboard?partner=IHH" className="font-bold text-blue-600 hover:underline">https://www.skbportal.online/donor-dashboard?partner=IHH</a>
       </div>
     </div>
   );

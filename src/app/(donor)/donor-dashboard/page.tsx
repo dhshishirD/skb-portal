@@ -476,8 +476,8 @@ Contact: info@skb.org.bd | +880 1711-000000`;
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="font-mono text-[11px] bg-blue-100 text-blue-900 px-2.5 py-1 rounded-lg border border-blue-300 font-bold">
-                Passcode: IHH-SKB-2026
+              <span className="text-[11px] bg-emerald-100 text-emerald-900 px-2.5 py-1 rounded-lg border border-emerald-300 font-extrabold flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Open Access Active
               </span>
             </div>
           </div>

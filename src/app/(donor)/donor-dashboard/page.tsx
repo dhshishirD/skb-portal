@@ -34,11 +34,7 @@ import {
   Printer,
   ExternalLink,
   Image as ImageIcon,
-  KeyRound,
-  Mail,
-  Copy,
-  Building,
-  CheckCheck
+  Building
 } from 'lucide-react';
 import { formatCurrencyString, SupportedCurrency } from '@/server/services/multiCurrency';
 import { 
@@ -206,10 +202,8 @@ export default function DonorDashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Multi-tenant Partner Isolation State
+  // Multi-tenant Partner Isolation State (Default to IHH view for partners)
   const [selectedPartnerView, setSelectedPartnerView] = useState<'ALL' | 'IHH' | 'UNHCR'>('IHH');
-  const [showIhhEmailModal, setShowIhhEmailModal] = useState(false);
-  const [emailCopied, setEmailCopied] = useState(false);
 
   // Parse URL query string on mount for direct link partner isolation (e.g. ?partner=IHH)
   useEffect(() => {
@@ -238,7 +232,7 @@ export default function DonorDashboardPage() {
 
   // Modal State for Donor Query / Special Document Request
   const [activeModalProject, setActiveModalProject] = useState<SKBDonorGrantProject | null>(null);
-  const [donorEmail, setDonorEmail] = useState('donor-audit@ihh.org.tr');
+  const [donorEmail, setDonorEmail] = useState('audit@ihh.org.tr');
   const [queryType, setQueryType] = useState<DonorQueryTicket['queryType']>('Underage Beneficiary Query');
   const [queryMessage, setQueryMessage] = useState('');
   const [submitSuccessMsg, setSubmitSuccessMsg] = useState('');
@@ -310,50 +304,6 @@ export default function DonorDashboardPage() {
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
-  const ihhEmailText = `SUBJECT: Secure Partner Access Credentials: SKB Works Portal - IHH Humanitarian Relief Foundation
-
-Dear IHH Humanitarian Relief Foundation Audit & Project Management Team,
-
-Greetings from Small Kindness Bangladesh (SKB).
-
-To facilitate real-time project oversight, transparent audit compliance, and seamless document inspection for our joint development initiatives in Bangladesh, we have provisioned your dedicated partner access to the SKB Works Portal.
-
-Using your partner access credentials below, your team can review live project progress, download complete audit packages, inspect NGO Bureau Form-7 reports, verify beneficiary registers, and issue 1-click compliance approvals.
-
-----------------------------------------------------------------------
-ORGANIZATION: IHH Humanitarian Relief Foundation (Turkey 🇹🇷)
-DIRECT PORTAL LINK: https://skbportal.online/donor-dashboard?partner=IHH
-IHH OFFICIAL EMAIL: audit@ihh.org.tr
-ACCESS PASSWORD: IHH-SKB-2026
-----------------------------------------------------------------------
-
-YOUR ASSIGNED ACTIVE PROJECTS (3):
-1. PID 22567: Income Generating Project (IGP) - 20 Cows, 60 Goats & 40 Sewing Machines
-2. PID 22211: Income Generating Project (IGP) in Bangladesh 2025
-3. PID 23431: Ramadan Support Program for Rohingya Refugees 2026
-
-PORTAL CAPABILITIES FOR IHH:
-- Multi-Tenant Privacy: You will exclusively see IHH-funded projects.
-- Document Vault: Access primary compliance files & special guardian letters.
-- 1-Click Package Sign-Off: Issue official digital audit approval directly to SKB Executive Directorate.
-- Direct Clarifications: Submit ad-hoc document requests directly to assigned Program Officer Mizbah Uddin.
-
-Please keep these credentials secure within your audit team. If you have any questions, feel free to reach out to us.
-
-Warm regards,
-
-Executive Directorate & IT Operations Team
-Small Kindness Bangladesh (SKB)
-NGO Affairs Bureau Registration #2938
-Website: https://skbportal.online
-Contact: info@skb.org.bd | +880 1711-000000`;
-
-  const handleCopyIhhEmail = () => {
-    navigator.clipboard.writeText(ihhEmailText);
-    setEmailCopied(true);
-    setTimeout(() => setEmailCopied(false), 3000);
-  };
-
   const handleOpenQueryModal = (project: SKBDonorGrantProject) => {
     setActiveModalProject(project);
     setQueryType('Underage Beneficiary Query');
@@ -384,104 +334,33 @@ Contact: info@skb.org.bd | +880 1711-000000`;
 
   return (
     <div className="space-y-6 pb-8">
-      {/* 1. EXECUTIVE DONOR DASHBOARD HEADER (Clean Slate/Blue Theme) */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+      {/* 1. EXECUTIVE DONOR DASHBOARD HEADER (Clean Professional Theme) */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
             <span className="text-xs bg-slate-900 text-white px-3 py-1 rounded-full font-bold flex items-center gap-1.5">
-              <Globe2 className="w-3.5 h-3.5 text-blue-400" /> International Partner Portal
+              <span>🇹🇷</span> IHH Humanitarian Relief Foundation
             </span>
             <span className="text-xs bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" /> Multi-Tenant Security Active
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" /> Verified Partner Audit Portal
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowIhhEmailModal(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl border border-blue-200 transition-all shadow-sm"
-            >
-              <Mail className="w-3.5 h-3.5 text-blue-600" /> IHH Access Email & Credentials
-            </button>
-
-            <button
-              onClick={handleCopyShareLink}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl border border-slate-200 transition-all"
-            >
-              {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5" />}
-              {copiedLink ? 'Portal Link Copied!' : 'Copy Partner Direct Link'}
-            </button>
-          </div>
+          <button
+            onClick={handleCopyShareLink}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl border border-slate-200 transition-all"
+          >
+            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5" />}
+            {copiedLink ? 'Portal Link Copied!' : 'Copy Portal Link'}
+          </button>
         </div>
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-extrabold text-slate-900">Welcome to SKB International Partner Portal</h1>
-            <p className="text-xs text-slate-600 leading-relaxed mt-1">
-              Inspect verified project baseline compliance documents, audit packages, and special project submissions with real-time donor sign-off capabilities.
-            </p>
-          </div>
-
-          {/* MULTI-TENANT PARTNER SELECTOR BAR */}
-          <div className="bg-slate-50 p-2 rounded-2xl border border-slate-200 flex flex-wrap items-center gap-1.5 text-xs">
-            <span className="text-[11px] font-bold text-slate-500 uppercase px-2 flex items-center gap-1">
-              <Building className="w-3.5 h-3.5 text-slate-400" /> Tenant:
-            </span>
-            <button
-              onClick={() => setSelectedPartnerView('IHH')}
-              className={`px-3 py-1.5 font-bold rounded-xl transition-all flex items-center gap-1.5 ${
-                selectedPartnerView === 'IHH'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-              }`}
-            >
-              <span>🇹🇷</span> IHH Humanitarian Relief ({projects.filter(p => p.partnerKey === 'IHH').length})
-            </button>
-
-            <button
-              onClick={() => setSelectedPartnerView('UNHCR')}
-              className={`px-3 py-1.5 font-bold rounded-xl transition-all flex items-center gap-1.5 ${
-                selectedPartnerView === 'UNHCR'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-              }`}
-            >
-              <span>🇺🇳</span> UNHCR Alliance ({projects.filter(p => p.partnerKey === 'UNHCR').length})
-            </button>
-
-            <button
-              onClick={() => setSelectedPartnerView('ALL')}
-              className={`px-3 py-1.5 font-bold rounded-xl transition-all ${
-                selectedPartnerView === 'ALL'
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-              }`}
-            >
-              Executive View (All {projects.length})
-            </button>
-          </div>
+        <div>
+          <h1 className="text-xl font-extrabold text-slate-900">Welcome to SKB International Partner Portal</h1>
+          <p className="text-xs text-slate-600 leading-relaxed mt-1">
+            Inspect verified project baseline compliance documents, audit clearance reports, and field verification packages with real-time donor sign-off capabilities.
+          </p>
         </div>
-
-        {/* TENANT STATUS ANNOUNCEMENT BANNER */}
-        {selectedPartnerView === 'IHH' && (
-          <div className="bg-blue-50/70 border border-blue-200 p-3.5 rounded-xl flex items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🇹🇷</span>
-              <div>
-                <span className="font-extrabold text-blue-950">Active Partner View: IHH Humanitarian Relief Foundation</span>
-                <span className="text-blue-800 text-[11px] block">
-                  Isolated Tenant View Active: Exhibiting 3 projects assigned to IHH Turkey.
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] bg-emerald-100 text-emerald-900 px-2.5 py-1 rounded-lg border border-emerald-300 font-extrabold flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Open Access Active
-              </span>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* 2. TAB SELECTION & PROJECT LIST */}
@@ -672,8 +551,8 @@ Contact: info@skb.org.bd | +880 1711-000000`;
           ) : (
             <div className="bg-slate-50 border border-slate-200 p-8 rounded-2xl text-center space-y-2">
               <Building className="w-8 h-8 text-slate-400 mx-auto" />
-              <p className="font-bold text-slate-800 text-sm">No Projects Match Selected Partner Filter</p>
-              <p className="text-xs text-slate-500">Switch partner filter above to view other projects.</p>
+              <p className="font-bold text-slate-800 text-sm">No Projects Match Selected Filter</p>
+              <p className="text-xs text-slate-500">Select another filter tab above.</p>
             </div>
           )}
         </div>
@@ -940,84 +819,7 @@ Contact: info@skb.org.bd | +880 1711-000000`;
         </div>
       )}
 
-      {/* MODAL 3: GENERATED IHH ACCESS EMAIL & CREDENTIALS INVITATION */}
-      {showIhhEmailModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[85vh] overflow-y-auto animate-in zoom-in-95 duration-200 text-xs">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <Mail className="w-5 h-5 text-blue-600" />
-                <div>
-                  <h3 className="text-base font-extrabold text-slate-900">IHH Access Email & Credentials Generator</h3>
-                  <p className="text-xs text-slate-500">Official Access Invitation for IHH Humanitarian Relief Foundation</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setShowIhhEmailModal(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Credential Highlight Box */}
-            <div className="bg-slate-900 text-white p-4 rounded-xl space-y-2 border border-slate-800 font-mono text-[11px]">
-              <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                <span className="text-blue-400 font-bold">🔒 IHH SECURE PARTNER CREDENTIALS</span>
-                <span className="text-emerald-400 text-[10px]">Ready to Send</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-300">
-                <div>
-                  <span className="text-slate-500 block">Direct URL:</span>
-                  <span className="text-blue-300 font-bold">https://skbportal.online/donor-dashboard?partner=IHH</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block">Partner Code:</span>
-                  <span className="text-white font-bold">IHH-SKB-2026</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block">Access Password:</span>
-                  <span className="text-emerald-400 font-bold">ihh-partner-access-2026</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 block">Assigned Projects:</span>
-                  <span className="text-white font-bold">3 Active IHH Projects</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Raw Generated Email Body */}
-            <div>
-              <label className="block font-bold text-slate-700 mb-1">Formal Email Body (Copy & Paste to Mail / Boss)</label>
-              <textarea
-                readOnly
-                rows={12}
-                value={ihhEmailText}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl p-3 font-mono text-[11px] leading-relaxed outline-none"
-              />
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              <button
-                onClick={handleCopyIhhEmail}
-                className="py-2.5 px-5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md flex items-center gap-2"
-              >
-                {emailCopied ? <CheckCheck className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                {emailCopied ? 'Email Copied to Clipboard!' : 'Copy Full Email Draft to Clipboard'}
-              </button>
-
-              <button
-                onClick={() => setShowIhhEmailModal(false)}
-                className="py-2.5 px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl"
-              >
-                Close Window
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 4: LIVE INTERACTIVE DOCUMENT PREVIEWER */}
+      {/* MODAL 3: LIVE INTERACTIVE DOCUMENT PREVIEWER */}
       {viewingDoc && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">

@@ -42,8 +42,8 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  // Protect private route groups if unauthenticated
-  const protectedPrefixes = ['/dashboard', '/field-dashboard', '/donor-dashboard'];
+  // Protect private staff route groups if unauthenticated (allow public access to /donor-dashboard)
+  const protectedPrefixes = ['/admin'];
   const isProtectedRoute = protectedPrefixes.some((prefix) => pathname.startsWith(prefix));
 
   if (isProtectedRoute && !user) {

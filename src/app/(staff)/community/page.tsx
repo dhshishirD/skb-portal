@@ -290,9 +290,10 @@ export default function StaffCommunityPage() {
     dataUrl?: string;
   } | null>(null);
 
-  // File Input Hidden Refs
+  // File Input Hidden & Dynamic Textarea Refs
   const postFileInputRef = useRef<HTMLInputElement>(null);
   const dmFileInputRef = useRef<HTMLInputElement>(null);
+  const dmTextareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -326,6 +327,14 @@ export default function StaffCommunityPage() {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [activeTab, selectedContact, directMessages]);
+
+  // Dynamic Auto-Resizing Textarea Height as User Types
+  useEffect(() => {
+    if (dmTextareaRef.current) {
+      dmTextareaRef.current.style.height = 'auto';
+      dmTextareaRef.current.style.height = `${Math.min(dmTextareaRef.current.scrollHeight, 140)}px`;
+    }
+  }, [dmInputText]);
 
   const showToast = (msg: string) => {
     setActionToast(msg);
@@ -1053,13 +1062,17 @@ SKB Operations Portal - https://skbportal.online
                     </div>
 
                     <div
-                      className={`max-w-md rounded-2xl px-4 py-2.5 text-xs shadow-sm space-y-2 ${
+                      className={`max-w-md w-full rounded-2xl px-4 py-2.5 text-xs shadow-sm space-y-2 break-words [word-break:break-word] overflow-hidden ${
                         msg.isMine
                           ? 'bg-blue-600 text-white rounded-br-none'
                           : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
                       }`}
                     >
-                      {msg.text && <p className="leading-relaxed whitespace-pre-line">{msg.text}</p>}
+                      {msg.text && (
+                        <p className="leading-relaxed whitespace-pre-wrap break-words [word-break:break-word]">
+                          {msg.text}
+                        </p>
+                      )}
 
                       {/* Clickable Real Attachment Button inside DM */}
                       {msg.attachment && (
@@ -1102,27 +1115,34 @@ SKB Operations Portal - https://skbportal.online
                 </div>
               )}
 
-              <form onSubmit={handleSendDirectMessage} className="flex items-center gap-2">
+              <form onSubmit={handleSendDirectMessage} className="flex items-end gap-2">
                 <button
                   type="button"
                   onClick={() => dmFileInputRef.current?.click()}
-                  className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition border border-slate-200"
+                  className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition border border-slate-200 h-[42px] shrink-0"
                   title="Attach Real File"
                 >
                   <Paperclip className="w-4 h-4 text-blue-600" />
                 </button>
 
-                <input
-                  type="text"
+                <textarea
+                  ref={dmTextareaRef}
+                  rows={1}
                   value={dmInputText}
                   onChange={(e) => setDmInputText(e.target.value)}
-                  placeholder={`Type personal message to ${selectedContact.name}...`}
-                  className="flex-1 bg-slate-50 border border-slate-200 text-xs rounded-xl px-4 py-2.5 outline-none focus:border-blue-500"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendDirectMessage();
+                    }
+                  }}
+                  placeholder={`Type personal message to ${selectedContact.name}... (Press Enter to send, Shift+Enter for newline)`}
+                  className="flex-1 bg-slate-50 border border-slate-200 text-xs rounded-xl px-4 py-2.5 outline-none focus:border-blue-500 resize-none min-h-[42px] max-h-[140px] overflow-y-auto leading-relaxed whitespace-pre-wrap break-words [word-break:break-word]"
                 />
 
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-sm shrink-0"
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-sm shrink-0 h-[42px]"
                 >
                   <Send className="w-3.5 h-3.5" /> Send
                 </button>

@@ -303,7 +303,7 @@ export default function DonorDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/70 py-6 px-4 sm:px-6 lg:px-8 space-y-6 max-w-6xl mx-auto font-sans">
+    <div className="space-y-6 max-w-6xl mx-auto font-sans">
       {/* 1. EXECUTIVE DONOR BANNER (Clean Professional Styling) */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">

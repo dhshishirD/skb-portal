@@ -402,10 +402,10 @@ export default function StaffDashboardPage() {
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-indigo-600" /> HQ Community Bulletin
+              <MessageSquare className="w-4 h-4 text-indigo-600" /> HQ Staff Community Bulletin
             </h2>
             <Link href="/community" className="text-xs text-blue-600 hover:underline font-semibold">
-              Open Hub &rsaquo;
+              Open Community &rsaquo;
             </Link>
           </div>
 

@@ -34,7 +34,9 @@ import {
   Printer,
   ExternalLink,
   Image as ImageIcon,
-  Building
+  Building,
+  DollarSign,
+  Briefcase
 } from 'lucide-react';
 import { formatCurrencyString, SupportedCurrency } from '@/server/services/multiCurrency';
 import { 
@@ -86,7 +88,7 @@ const ALL_SKB_DONOR_PROJECTS: SKBDonorGrantProject[] = [
     spentAmount: 1850000,
     beneficiariesCount: 120,
     statusCategory: 'ATTENTION',
-    statusLabel: 'Needs Attention (Special Guardian Clarification Pending)',
+    statusLabel: 'Needs Attention (Guardian Clarification Letter Attached)',
     location: 'Sylhet & Kurigram Rural Districts',
     assignedOfficer: 'Mizbah Uddin',
     assignedOfficerEmail: 'uddinmizbah902@gmail.com',
@@ -100,7 +102,7 @@ const ALL_SKB_DONOR_PROJECTS: SKBDonorGrantProject[] = [
       { id: '7', name: '7. Bank Fund Receival Certificate.pdf', category: 'MANDATORY_PRIMARY', fileSize: '217 KB', status: 'Submitted' },
     ],
     specialDocs: [
-      { id: 's1', name: 'Special: Underaged Beneficiary Replacement & Guardian Letter.pdf', category: 'SPECIAL_AD_HOC', fileSize: '2.1 MB', status: 'Special Request Pending', specialReason: 'Beneficiary #14 is an orphan child represented by legal guardian/mother.' },
+      { id: 's1', name: 'Special: Underaged Beneficiary Replacement & Guardian Letter.pdf', category: 'SPECIAL_AD_HOC', fileSize: '2.1 MB', status: 'Special Request Pending', specialReason: 'Beneficiary #14 is an orphan child represented by legal guardian/mother Fatema Begum.' },
       { id: 's2', name: 'Special: Orphan Legal Signature Explanation Certificate.pdf', category: 'SPECIAL_AD_HOC', fileSize: '687 KB', status: 'Submitted', specialReason: 'Requested by IHH Audit for thumbprint sign-off.' },
     ],
   },
@@ -149,54 +151,22 @@ const ALL_SKB_DONOR_PROJECTS: SKBDonorGrantProject[] = [
     statusLabel: 'Running (80% Disbursed)',
     location: 'Rohingya Camps, Cox’s Bazar',
     assignedOfficer: 'MD. Emran',
-    assignedOfficerEmail: 'emran@skb.org.bd',
+    assignedOfficerEmail: 'emran.rohingya@skb.org.bd',
     primaryDocs: [
-      { id: '1', name: '1. Form-7 Project Completion Report.pdf', category: 'MANDATORY_PRIMARY', fileSize: 'Pending', status: 'Missing' },
-      { id: '2', name: '2. Invoice Declaration.pdf', category: 'MANDATORY_PRIMARY', fileSize: '1.1 MB', status: 'Submitted' },
-      { id: '3', name: '3. AC Audit Clearance Certificate.pdf', category: 'MANDATORY_PRIMARY', fileSize: '240 KB', status: 'Submitted' },
-      { id: '4', name: '4. Verified Beneficiary Master List.pdf', category: 'MANDATORY_PRIMARY', fileSize: '520 KB', status: 'Submitted' },
-      { id: '5', name: '5. Beneficiary NID Cards Archive.pdf', category: 'MANDATORY_PRIMARY', fileSize: 'Pending', status: 'Missing' },
-      { id: '6', name: '6. High-Res Picture Documentation Album.docx', category: 'MANDATORY_PRIMARY', fileSize: '18 KB', status: 'Submitted' },
-      { id: '7', name: '7. Bank Fund Receival Certificate.pdf', category: 'MANDATORY_PRIMARY', fileSize: '210 KB', status: 'Submitted' },
+      { id: '1', name: '1. Form-7 Interim Distribution Report.pdf', category: 'MANDATORY_PRIMARY', fileSize: '2.4 MB', status: 'Submitted' },
+      { id: '2', name: '2. Vendor Quotations & Purchase Orders.pdf', category: 'MANDATORY_PRIMARY', fileSize: '4.1 MB', status: 'Submitted' },
+      { id: '3', name: '3. Camp RRRC Permission Certificate.pdf', category: 'MANDATORY_PRIMARY', fileSize: '512 KB', status: 'Submitted' },
+      { id: '4', name: '4. Camp 11 Food Ration Register.pdf', category: 'MANDATORY_PRIMARY', fileSize: '1.1 MB', status: 'Submitted' },
+      { id: '5', name: '5. Beneficiary Token Archive.pdf', category: 'MANDATORY_PRIMARY', fileSize: '12.4 MB', status: 'Submitted' },
+      { id: '6', name: '6. Distribution Site Album.docx', category: 'MANDATORY_PRIMARY', fileSize: '15 KB', status: 'Submitted' },
+      { id: '7', name: '7. Bank Grant Receipt 150K USD.pdf', category: 'MANDATORY_PRIMARY', fileSize: '340 KB', status: 'Submitted' },
     ],
-    specialDocs: [
-      { id: 's5', name: 'Special: Refugee Camp Water & Sanitation Inspection Report.pdf', category: 'SPECIAL_AD_HOC', fileSize: '1.4 MB', status: 'Submitted', specialReason: 'Requested for WASH compliance.' },
-    ],
-  },
-  {
-    pid: 'PID 23616',
-    title: 'Rohingya Emergency Fire Victims Relief & Shelter Support 2026',
-    category: 'Emergency & Health',
-    partner: 'UNHCR & IHH Alliance',
-    partnerKey: 'UNHCR',
-    donorLogo: '🇺🇳',
-    currency: 'USD',
-    budgetAmount: 220000,
-    spentAmount: 210000,
-    beneficiariesCount: 1800,
-    statusCategory: 'COMPLETED',
-    statusLabel: 'Completed (Closed & Audited)',
-    location: 'Ukhiya Camp 11 Fire Affected Zone',
-    assignedOfficer: 'MD. Emran',
-    assignedOfficerEmail: 'emran@skb.org.bd',
-    primaryDocs: [
-      { id: '1', name: '1. Form-7 Project Completion Report.pdf', category: 'MANDATORY_PRIMARY', fileSize: '3.1 MB', status: 'Submitted' },
-      { id: '2', name: '2. Invoice Declaration.pdf', category: 'MANDATORY_PRIMARY', fileSize: '1.2 MB', status: 'Submitted' },
-      { id: '3', name: '3. AC Audit Clearance Certificate.pdf', category: 'MANDATORY_PRIMARY', fileSize: '280 KB', status: 'Submitted' },
-      { id: '4', name: '4. Verified Beneficiary Master List.pdf', category: 'MANDATORY_PRIMARY', fileSize: '410 KB', status: 'Submitted' },
-      { id: '5', name: '5. Beneficiary NID Cards Archive.pdf', category: 'MANDATORY_PRIMARY', fileSize: '14.2 MB', status: 'Submitted' },
-      { id: '6', name: '6. High-Res Picture Documentation Album.docx', category: 'MANDATORY_PRIMARY', fileSize: '22 KB', status: 'Submitted' },
-      { id: '7', name: '7. Bank Fund Receival Certificate.pdf', category: 'MANDATORY_PRIMARY', fileSize: '200 KB', status: 'Submitted' },
-    ],
-    specialDocs: [
-      { id: 's6', name: 'Special: Emergency Fire Victim Shelter Damage Assessment.pdf', category: 'SPECIAL_AD_HOC', fileSize: '3.8 MB', status: 'Submitted', specialReason: 'Emergency response verification.' },
-    ],
+    specialDocs: [],
   }
 ];
 
 export default function DonorDashboardPage() {
-  const roleT = useTranslations('RoleAreas');
-  const [projects] = useState<SKBDonorGrantProject[]>(ALL_SKB_DONOR_PROJECTS);
+  const [projects, setProjects] = useState<SKBDonorGrantProject[]>(ALL_SKB_DONOR_PROJECTS);
   const [activeTab, setActiveTab] = useState<'ALL' | 'RUNNING' | 'ATTENTION' | 'COMPLETED'>('ALL');
   const [tickets, setTickets] = useState<DonorQueryTicket[]>(INITIAL_DONOR_QUERIES);
   const [searchQuery, setSearchQuery] = useState('');
@@ -333,9 +303,9 @@ export default function DonorDashboardPage() {
   };
 
   return (
-    <div className="space-y-6 pb-8">
-      {/* 1. EXECUTIVE DONOR DASHBOARD HEADER (Clean Professional Theme) */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+    <div className="min-h-screen bg-slate-50/70 py-6 px-4 sm:px-6 lg:px-8 space-y-6 max-w-6xl mx-auto font-sans">
+      {/* 1. EXECUTIVE DONOR BANNER (Clean Professional Styling) */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
             <span className="text-xs bg-slate-900 text-white px-3 py-1 rounded-full font-bold flex items-center gap-1.5">
@@ -348,25 +318,64 @@ export default function DonorDashboardPage() {
 
           <button
             onClick={handleCopyShareLink}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl border border-slate-200 transition-all"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl border border-slate-200 transition-all"
           >
             {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5" />}
-            {copiedLink ? 'Portal Link Copied!' : 'Copy Portal Link'}
+            {copiedLink ? 'Portal Link Copied!' : 'Copy Direct Link'}
           </button>
         </div>
 
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900">
-            Welcome to IHH Humanitarian Relief Foundation Partner Portal
+          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
+            IHH Humanitarian Relief Foundation Partner Workspace
           </h1>
           <p className="text-xs text-slate-600 leading-relaxed mt-1">
-            Inspect verified project baseline compliance documents, audit clearance reports, and field verification packages for your assigned development initiatives in Bangladesh.
+            Access verified project baseline compliance packages, Form-7 audit completion reports, and direct field clarification channels for your assigned initiatives in Bangladesh.
           </p>
         </div>
       </div>
 
-      {/* 2. TAB SELECTION & PROJECT LIST */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+      {/* 2. EXECUTIVE KPI OVERVIEW BAR */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm space-y-1">
+          <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+            <span>Total Grants Portfolio</span>
+            <Briefcase className="w-4 h-4 text-blue-600" />
+          </div>
+          <p className="text-2xl font-extrabold text-slate-900">3 Projects</p>
+          <p className="text-[11px] text-blue-600 font-semibold">IHH Turkey Dedicated Vault</p>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm space-y-1">
+          <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+            <span>Total Funding Allocated</span>
+            <DollarSign className="w-4 h-4 text-emerald-600" />
+          </div>
+          <p className="text-2xl font-extrabold text-slate-900">TRY 1.85M+</p>
+          <p className="text-[11px] text-emerald-600 font-semibold">100% Tracked & Disbursed</p>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm space-y-1">
+          <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+            <span>Baseline Compliance</span>
+            <FileCheck2 className="w-4 h-4 text-purple-600" />
+          </div>
+          <p className="text-2xl font-extrabold text-purple-900">21 / 21 Files</p>
+          <p className="text-[11px] text-purple-700 font-semibold">7/7 Primary Files Per Project</p>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm space-y-1">
+          <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+            <span>Audit Verification</span>
+            <ShieldCheck className="w-4 h-4 text-amber-600" />
+          </div>
+          <p className="text-2xl font-extrabold text-slate-900">100% Verified</p>
+          <p className="text-[11px] text-amber-700 font-semibold">1 Guardian Clarification Logged</p>
+        </div>
+      </div>
+
+      {/* 3. LOGICAL TAB FILTER & SEARCH BAR */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div className="flex flex-wrap gap-2">
             <button
@@ -377,7 +386,7 @@ export default function DonorDashboardPage() {
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
-              All IHH Projects ({tenantFilteredProjects.length})
+              All IHH Grants ({tenantFilteredProjects.length})
             </button>
 
             <button
@@ -426,7 +435,7 @@ export default function DonorDashboardPage() {
           </div>
         </div>
 
-        {/* Project Cards */}
+        {/* 4. CLEAN PROJECT CARDS GRID */}
         <div className="grid grid-cols-1 gap-5">
           {filteredProjects.length > 0 ? (
             filteredProjects.map((project) => {
@@ -439,14 +448,15 @@ export default function DonorDashboardPage() {
                   key={project.pid}
                   className={`bg-white p-6 rounded-2xl border transition-all space-y-4 ${
                     project.statusCategory === 'ATTENTION'
-                      ? 'border-amber-300 shadow-sm ring-1 ring-amber-300/50'
-                      : 'border-slate-200 shadow-sm hover:border-blue-400'
+                      ? 'border-amber-300 border-l-4 border-l-amber-500 shadow-sm'
+                      : 'border-slate-200 shadow-sm hover:border-blue-300'
                   }`}
                 >
+                  {/* Card Top Header */}
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                     <div className="flex items-center gap-2">
                       <span className="text-xl">{project.donorLogo}</span>
-                      <span className="font-mono text-xs font-extrabold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
+                      <span className="font-mono text-xs font-extrabold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
                         {project.pid}
                       </span>
                       <span className="text-xs font-bold text-slate-900">{project.partner}</span>
@@ -463,29 +473,34 @@ export default function DonorDashboardPage() {
                     </div>
                   </div>
 
+                  {/* Project Title & Meta */}
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">{project.title}</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">Location: 📍 {project.location}</p>
+                    <div className="flex flex-wrap gap-4 text-xs text-slate-500 mt-1">
+                      <span>📍 Location: <strong>{project.location}</strong></span>
+                      <span>👤 Assigned Lead: <strong>{project.assignedOfficer}</strong></span>
+                      <span>👥 Beneficiaries: <strong>{project.beneficiariesCount} Households</strong></span>
+                    </div>
                   </div>
 
                   {/* Document Status Overview Bar */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">
-                    <div className="flex items-center gap-2">
-                      <FileCheck2 className="w-4 h-4 text-blue-600" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/80 text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <FileCheck2 className="w-4 h-4 text-blue-600 shrink-0" />
                       <div>
                         <span className="text-[10px] text-slate-400 font-bold uppercase block">Baseline Compliance Documents</span>
                         <span className="font-bold text-slate-900">
-                          {submittedPrimaryCount} / 7 Submitted {submittedPrimaryCount === 7 ? '✓' : ''}
+                          {submittedPrimaryCount} / 7 Verified & Submitted {submittedPrimaryCount === 7 ? '✓' : ''}
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-purple-600" />
+                    <div className="flex items-center gap-2.5">
+                      <Layers className="w-4 h-4 text-purple-600 shrink-0" />
                       <div>
                         <span className="text-[10px] text-slate-400 font-bold uppercase block">Special Project Submissions</span>
                         <span className="font-bold text-purple-900">
-                          {hasSpecialDocs ? `${project.specialDocs.length} Files (e.g. Guardian Letter)` : 'None Required'}
+                          {hasSpecialDocs ? `${project.specialDocs.length} Special Files (e.g. Guardian Letter)` : 'Standard Submission'}
                         </span>
                       </div>
                     </div>
@@ -495,14 +510,14 @@ export default function DonorDashboardPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
                     <button
                       onClick={() => setInspectingProject(project)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
                     >
                       <Eye className="w-3.5 h-3.5" /> Inspect Compliance Vault ({project.primaryDocs.length + project.specialDocs.length})
                     </button>
                     
                     <button
                       onClick={() => handleOpenQueryModal(project)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
                     >
                       <MessageSquare className="w-3.5 h-3.5" /> Request Special Document / Clarification
                     </button>
@@ -510,7 +525,7 @@ export default function DonorDashboardPage() {
 
                   {/* Active Clarification Thread */}
                   {projectTickets.length > 0 && (
-                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-3">
+                    <div className="bg-slate-50 border border-slate-200/90 p-4 rounded-xl space-y-3">
                       <div className="flex items-center gap-2">
                         <MessageSquare className="w-4 h-4 text-blue-600" />
                         <h4 className="text-xs font-bold text-slate-900">Active Clarification Thread</h4>
@@ -578,9 +593,9 @@ export default function DonorDashboardPage() {
             </div>
 
             {/* Audit Zip Package Download & Approval Header */}
-            <div className="flex flex-wrap items-center justify-between gap-2 bg-emerald-50 border border-emerald-200 p-3 rounded-xl">
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl">
               <div className="flex items-center gap-2">
-                <FolderArchive className="w-4 h-4 text-emerald-700" />
+                <FolderArchive className="w-4 h-4 text-emerald-700 shrink-0" />
                 <span className="text-xs font-bold text-emerald-950">
                   Official Audit Package Vault ({inspectingProject.primaryDocs.length + inspectingProject.specialDocs.length} Documents)
                 </span>
@@ -593,14 +608,14 @@ export default function DonorDashboardPage() {
                 ) : (
                   <button
                     onClick={() => handleApprovePackage(inspectingProject.pid)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" /> Approve Compliance Package
                   </button>
                 )}
                 <button
                   onClick={() => handleDownloadAllZip(inspectingProject)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
                 >
                   <Download className="w-3.5 h-3.5" /> Download (.zip)
                 </button>
@@ -722,7 +737,7 @@ export default function DonorDashboardPage() {
                 onClick={() => setInspectingProject(null)}
                 className="py-2.5 px-5 bg-slate-900 text-white font-bold text-xs rounded-xl"
               >
-                Close Inspection Vault
+                Close Vault
               </button>
             </div>
           </div>

@@ -134,41 +134,10 @@ export default function RootPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             
-            {/* WORKSPACE 1: DONOR HUB */}
-            <Link
-              href="/donor-dashboard"
-              className="group p-6 rounded-2xl border border-amber-200 bg-white hover:bg-amber-50/40 hover:border-amber-400 shadow-sm hover:shadow-md transition-all space-y-4 flex flex-col justify-between"
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
-                    <Globe className="w-5 h-5" />
-                  </div>
-                  <span className="text-[10px] font-extrabold bg-amber-100 text-amber-900 px-2.5 py-1 rounded-full border border-amber-300">
-                    International Partner Hub
-                  </span>
-                </div>
-
-                <div>
-                  <h4 className="text-base font-extrabold text-slate-900 group-hover:text-amber-900 transition-colors">
-                    International Donor Intelligence Hub
-                  </h4>
-                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                    Designed for partner organizations (IHH Turkey, UNHCR, etc.). Inspect 9-file compliance packages, preview Form-7 PDF reports inline, download complete zip archives, and grant 1-click audit sign-offs.
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-amber-900 group-hover:translate-x-0.5 transition-transform">
-                <span>Enter Donor Portal</span>
-                <ArrowRight className="w-4 h-4 text-amber-700" />
-              </div>
-            </Link>
-
-            {/* WORKSPACE 2: STAFF OPERATIONS */}
+            {/* WORKSPACE 1: HQ COMMAND (ED, Super Admin, IT Officer) */}
             <Link
               href="/dashboard"
-              className="group p-6 rounded-2xl border border-slate-200 bg-white hover:bg-blue-50/40 hover:border-blue-400 shadow-sm hover:shadow-md transition-all space-y-4 flex flex-col justify-between"
+              className="group p-6 rounded-2xl border border-blue-200 bg-white hover:bg-blue-50/40 hover:border-blue-400 shadow-sm hover:shadow-md transition-all space-y-4 flex flex-col justify-between"
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -182,52 +151,21 @@ export default function RootPage() {
 
                 <div>
                   <h4 className="text-base font-extrabold text-slate-900 group-hover:text-blue-700 transition-colors">
-                    HQ Staff Operations & Command Center
+                    1. HQ Command (ED, Super Admin, IT Officer)
                   </h4>
                   <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                    Executive control panel for Directorate, Program Officers, Finance, and M&E. Manage donor objection ticket routing, 3-tier financial approvals, active project portfolios, and HQ community bulletin.
+                    Executive control panel for Directorate, Program Officers, Finance, and IT. Manage donor objection ticket routing, 3-tier financial approvals, active project portfolios, and HQ operations.
                   </p>
                 </div>
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-blue-700 group-hover:translate-x-0.5 transition-transform">
-                <span>Enter Staff Workspace</span>
+                <span>Enter HQ Command Workspace</span>
                 <ArrowRight className="w-4 h-4 text-blue-600" />
               </div>
             </Link>
 
-            {/* WORKSPACE 3: FIELD OFFICER MOBILE PWA */}
-            <Link
-              href="/field-dashboard"
-              className="group p-6 rounded-2xl border border-emerald-200 bg-white hover:bg-emerald-50/40 hover:border-emerald-400 shadow-sm hover:shadow-md transition-all space-y-4 flex flex-col justify-between"
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
-                    <Smartphone className="w-5 h-5" />
-                  </div>
-                  <span className="text-[10px] font-extrabold bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-full border border-emerald-200">
-                    Field Officers (Offline PWA)
-                  </span>
-                </div>
-
-                <div>
-                  <h4 className="text-base font-extrabold text-slate-900 group-hover:text-emerald-900 transition-colors">
-                    Field Officer Mobile PWA Workspace
-                  </h4>
-                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                    Mobile-optimized offline workspace for field officers in Cox&apos;s Bazar, Kurigram, and Bandarban. Features KoBo 8-field NID check forms, IndexedDB local queues, and 1-click cloud sync.
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-emerald-800 group-hover:translate-x-0.5 transition-transform">
-                <span>Open Mobile Field App</span>
-                <ArrowRight className="w-4 h-4 text-emerald-600" />
-              </div>
-            </Link>
-
-            {/* WORKSPACE 4: PROJECTS DIRECTORY & DOCUMENT VAULT */}
+            {/* WORKSPACE 2: PROJECTS DIRECTORY & DOCUMENT VAULT (Program, Finance, Law Office) */}
             <Link
               href="/projects"
               className="group p-6 rounded-2xl border border-purple-200 bg-white hover:bg-purple-50/40 hover:border-purple-400 shadow-sm hover:shadow-md transition-all space-y-4 flex flex-col justify-between"
@@ -244,10 +182,10 @@ export default function RootPage() {
 
                 <div>
                   <h4 className="text-base font-extrabold text-slate-900 group-hover:text-purple-900 transition-colors">
-                    Projects Directory & Document Vaults
+                    2. Projects Directory & Document Vault (Program, Finance, Law Office)
                   </h4>
                   <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                    Browse all SKB program portfolios with quick-action sub-tabs for Kanban lifecycle, logframe indicator targets, work plan tasks, beneficiary registers, and 1-click document submission vaults.
+                    Browse all SKB program portfolios with quick-action sub-tabs for Kanban lifecycle, logframe indicator targets, work plan tasks, beneficiary registers, legal docs, and document submission vaults.
                   </p>
                 </div>
               </div>
@@ -255,6 +193,68 @@ export default function RootPage() {
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-purple-800 group-hover:translate-x-0.5 transition-transform">
                 <span>Browse Projects Directory</span>
                 <ArrowRight className="w-4 h-4 text-purple-600" />
+              </div>
+            </Link>
+
+            {/* WORKSPACE 3: FIELD OFFICER WORKSPACE */}
+            <Link
+              href="/field-dashboard"
+              className="group p-6 rounded-2xl border border-emerald-200 bg-white hover:bg-emerald-50/40 hover:border-emerald-400 shadow-sm hover:shadow-md transition-all space-y-4 flex flex-col justify-between"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                    <Smartphone className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] font-extrabold bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-full border border-emerald-200">
+                    Field Officers (Offline PWA)
+                  </span>
+                </div>
+
+                <div>
+                  <h4 className="text-base font-extrabold text-slate-900 group-hover:text-emerald-900 transition-colors">
+                    3. Field Officer Workspace
+                  </h4>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                    Mobile-optimized offline workspace for field officers in Cox&apos;s Bazar, Kurigram, and Bandarban. Features KoBo 8-field NID check forms, IndexedDB local queues, and 1-click cloud sync.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-emerald-800 group-hover:translate-x-0.5 transition-transform">
+                <span>Open Field Officer App</span>
+                <ArrowRight className="w-4 h-4 text-emerald-600" />
+              </div>
+            </Link>
+
+            {/* WORKSPACE 4: INTERNATIONAL PARTNER HUB (POSITION #4 - LAST) */}
+            <Link
+              href="/donor-dashboard?partner=IHH"
+              className="group p-6 rounded-2xl border border-blue-200 bg-white hover:bg-blue-50/40 hover:border-blue-400 shadow-sm hover:shadow-md transition-all space-y-4 flex flex-col justify-between"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                    <Globe className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] font-extrabold bg-blue-50 text-blue-800 px-2.5 py-1 rounded-full border border-blue-200">
+                    International Partner Hub
+                  </span>
+                </div>
+
+                <div>
+                  <h4 className="text-base font-extrabold text-slate-900 group-hover:text-blue-800 transition-colors">
+                    4. International Partner Hub
+                  </h4>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                    Designed for partner organizations (IHH Turkey, UNHCR, etc.). Inspect compliance packages, preview Form-7 PDF reports inline, download complete zip archives, and grant 1-click audit sign-offs.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-blue-800 group-hover:translate-x-0.5 transition-transform">
+                <span>Enter Partner Portal</span>
+                <ArrowRight className="w-4 h-4 text-blue-600" />
               </div>
             </Link>
 

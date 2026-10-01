@@ -192,7 +192,7 @@ export default function StaffDashboardPage() {
       </div>
 
       {/* DONOR CORRECTION & SPECIAL DOCUMENT REQUESTS SECTION */}
-      <div className="bg-white rounded-2xl border border-amber-300 p-6 shadow-sm space-y-4 ring-1 ring-amber-400/20">
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-amber-600" />

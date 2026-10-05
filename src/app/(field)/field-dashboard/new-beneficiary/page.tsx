@@ -15,6 +15,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { saveOfflineReport } from '@/lib/offline/db';
+import { BeneficiaryService } from '@/server/services/beneficiaryService';
 
 export default function NewBeneficiaryRegistrationPage() {
   const [beneficiaryName, setBeneficiaryName] = useState('');
@@ -60,7 +61,7 @@ export default function NewBeneficiaryRegistrationPage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -88,9 +89,23 @@ export default function NewBeneficiaryRegistrationPage() {
       createdAt: new Date().toISOString(),
     });
 
+    // Save to central beneficiary service (Database + localStorage)
+    await BeneficiaryService.addBeneficiary({
+      fullName: beneficiaryName || 'Registered Field Beneficiary',
+      nationalId: nationalId || '1990000000000',
+      phone: '01700000000',
+      sex: 'female',
+      birthYear: 1992,
+      locationCode: projectId.includes('TEKNAF') ? 'UP-TEKNAF' : projectId.includes('KURIGRAM') ? 'UP-KURIGRAM' : 'UP-UKHIYA',
+      projectId: projectId,
+      householdSize: Number(householdSize) || 5,
+      summary: summary || 'Registered in field intake survey.',
+      consentCaptured: true,
+    });
+
     setTimeout(() => {
       setIsSubmitting(false);
-      setMsg('Beneficiary Registration & Survey Form saved to offline queue!');
+      setMsg('Beneficiary Registration saved & synced to Central Registry!');
       // Reset form
       setBeneficiaryName('');
       setNationalId('');

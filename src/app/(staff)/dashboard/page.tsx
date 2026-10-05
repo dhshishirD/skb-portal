@@ -129,7 +129,7 @@ export default function StaffDashboardPage() {
             </span>
           </div>
           <p className="text-xs text-blue-100 leading-relaxed max-w-2xl">
-            Welcome to Small Kindness Bangladesh. External stakeholders and executive management can preview live operational progress, field telemetry, and compliance repository submissions in real-time.
+            Welcome to Small Kindness Bangladesh. External stakeholders and executive management can preview live operational progress, field telemetry, and Programs & Compliance submissions in real-time.
           </p>
         </div>
         <Link
@@ -432,7 +432,7 @@ export default function StaffDashboardPage() {
                 New 2026 Donor Intelligence Portal Deployed
               </p>
               <p className="text-[11px] text-slate-500 line-clamp-2">
-                Multi-currency grant tracking engine and 9-file compliance package repository now active...
+                Multi-currency grant tracking engine and File Repositories now active...
               </p>
             </div>
           </div>

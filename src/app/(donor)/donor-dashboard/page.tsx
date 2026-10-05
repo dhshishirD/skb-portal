@@ -527,7 +527,7 @@ export default function DonorDashboardPage() {
                       onClick={() => setInspectingProject(project)}
                       className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
                     >
-                      <Eye className="w-3.5 h-3.5" /> Inspect Compliance Package ({project.primaryDocs.length + project.specialDocs.length})
+                      <Eye className="w-3.5 h-3.5" /> Document Inspection ({project.primaryDocs.length + project.specialDocs.length})
                     </button>
 
                     <button
@@ -556,7 +556,7 @@ export default function DonorDashboardPage() {
           <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 max-h-[85vh] overflow-y-auto animate-in fade-in duration-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-base font-extrabold text-slate-900">Document Inspection Directory</h3>
+                <h3 className="text-base font-extrabold text-slate-900">Document Inspection</h3>
                 <p className="text-xs text-slate-500 font-mono">{inspectingProject.pid} • {inspectingProject.partner}</p>
               </div>
               <button 
@@ -572,7 +572,7 @@ export default function DonorDashboardPage() {
               <div className="flex items-center gap-2">
                 <FolderArchive className="w-4 h-4 text-emerald-700 shrink-0" />
                 <span className="text-xs font-bold text-emerald-950">
-                  Official Audit Package Directory ({inspectingProject.primaryDocs.length + inspectingProject.specialDocs.length} Documents)
+                  Official Audit Package ({inspectingProject.primaryDocs.length + inspectingProject.specialDocs.length} Documents)
                 </span>
               </div>
               <div className="flex items-center gap-2">

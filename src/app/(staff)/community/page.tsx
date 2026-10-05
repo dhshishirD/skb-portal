@@ -23,11 +23,11 @@ import {
   Sprout,
   Lightbulb,
   Download,
-  Eye,
   X,
   FileText,
   Image as ImageIcon
 } from 'lucide-react';
+import { CommunityRealtimeService } from '@/server/services/communityRealtimeService';
 
 export interface AttachmentFile {
   name: string;
@@ -297,17 +297,26 @@ export default function StaffCommunityPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Load community posts
-    const storedPosts = localStorage.getItem('skb_hq_community_posts');
-    if (storedPosts) {
-      try {
-        setPosts(JSON.parse(storedPosts));
-      } catch (e) {
-        setPosts(INITIAL_COMMUNITY_POSTS);
+    // Load community posts from Supabase DB with localStorage fallback
+    const loadData = async () => {
+      const dbPosts = await CommunityRealtimeService.fetchPosts();
+      if (dbPosts && dbPosts.length > 0) {
+        setPosts(dbPosts);
+      } else {
+        const storedPosts = localStorage.getItem('skb_hq_community_posts');
+        if (storedPosts) {
+          try {
+            setPosts(JSON.parse(storedPosts));
+          } catch (e) {
+            setPosts(INITIAL_COMMUNITY_POSTS);
+          }
+        } else {
+          setPosts(INITIAL_COMMUNITY_POSTS);
+        }
       }
-    } else {
-      setPosts(INITIAL_COMMUNITY_POSTS);
-    }
+    };
+
+    loadData();
 
     // Load direct messages
     const storedDms = localStorage.getItem('skb_hq_direct_messages');
@@ -320,7 +329,46 @@ export default function StaffCommunityPage() {
     } else {
       setDirectMessages(INITIAL_DIRECT_MESSAGES);
     }
-  }, []);
+
+    // Subscribe to Realtime DMs
+    const channel = CommunityRealtimeService.subscribeRealtimeDms((newDbDm) => {
+      if (!newDbDm) return;
+      const isMine = newDbDm.sender_name === currentAuthor;
+      const otherParty = isMine ? newDbDm.recipient_name : newDbDm.sender_name;
+      const incomingDm: DirectMessage = {
+        id: newDbDm.id,
+        senderName: newDbDm.sender_name,
+        senderRole: newDbDm.sender_role,
+        recipientName: newDbDm.recipient_name,
+        text: newDbDm.text,
+        attachment: newDbDm.attachment_name
+          ? {
+              name: newDbDm.attachment_name,
+              size: newDbDm.attachment_size,
+              type: newDbDm.attachment_type,
+              dataUrl: newDbDm.attachment_url,
+            }
+          : undefined,
+        timestamp: new Date(newDbDm.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isMine: isMine,
+      };
+
+      setDirectMessages((prevMap) => {
+        const thread = prevMap[otherParty] || [];
+        if (thread.some((m) => m.id === incomingDm.id)) return prevMap;
+        const updatedThread = [...thread, incomingDm];
+        const updatedMap = { ...prevMap, [otherParty]: updatedThread };
+        localStorage.setItem('skb_hq_direct_messages', JSON.stringify(updatedMap));
+        return updatedMap;
+      });
+    });
+
+    return () => {
+      if (channel && typeof (channel as any).unsubscribe === 'function') {
+        (channel as any).unsubscribe();
+      }
+    };
+  }, [currentAuthor]);
 
   useEffect(() => {
     if (activeTab === 'PERSONAL_CHAT') {
@@ -412,6 +460,7 @@ export default function StaffCommunityPage() {
 
     const updated = [post, ...posts];
     savePosts(updated);
+    CommunityRealtimeService.insertPost(post);
     setNewTitle('');
     setNewContent('');
     setPostAttachment(null);
@@ -453,6 +502,7 @@ export default function StaffCommunityPage() {
 
     setStaffContacts(updatedContacts);
     saveDirectMessages(updatedMap);
+    CommunityRealtimeService.insertDirectMessage(newDm);
     setDmInputText('');
     setDmAttachment(null);
   };
@@ -552,6 +602,12 @@ SKB Operations Portal - https://skbportal.online
     });
 
     savePosts(updated);
+    CommunityRealtimeService.insertComment(postId, {
+      authorName: currentAuthor,
+      authorRole: currentRole,
+      text: text.trim(),
+    });
+
     setCommentInputs({ ...commentInputs, [postId]: '' });
     showToast('Comment published!');
   };

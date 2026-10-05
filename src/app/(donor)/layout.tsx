@@ -65,7 +65,7 @@ export default function DonorLayout({
               />
               <span className="hidden sm:inline tracking-tight font-extrabold text-slate-100">SKB Works Portal</span>
               <span className="text-[10px] bg-blue-500/20 text-blue-300 font-bold px-2.5 py-0.5 rounded-full border border-blue-400/30 flex items-center gap-1">
-                <span>🇹🇷</span> IHH Partner Hub
+                <span>🇹🇷</span> IHH Partner Workspace
               </span>
             </Link>
           </div>

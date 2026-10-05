@@ -180,26 +180,6 @@ export default function StaffLayout({
                         <p className="text-[10px] text-blue-400">Program Officer (IGP)</p>
                       </div>
                     </button>
-                    <button
-                      onClick={() => handleSelectOfficerProfile('MD. Emran', 'Program Officer (Rohingya Relief)')}
-                      className="w-full text-left p-2 hover:bg-slate-800 rounded-xl flex items-center gap-2 text-slate-200"
-                    >
-                      <div className="w-6 h-6 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center">E</div>
-                      <div>
-                        <p className="font-bold text-slate-100 text-xs">MD. Emran</p>
-                        <p className="text-[10px] text-emerald-400">Program Officer (Relief)</p>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => handleSelectOfficerProfile('Muktadir Rahaman', 'HQ Admin & IT Manager')}
-                      className="w-full text-left p-2 hover:bg-slate-800 rounded-xl flex items-center gap-2 text-slate-200"
-                    >
-                      <div className="w-6 h-6 rounded-full bg-purple-600 text-white text-[10px] font-bold flex items-center justify-center">M</div>
-                      <div>
-                        <p className="font-bold text-slate-100 text-xs">Muktadir Rahaman</p>
-                        <p className="text-[10px] text-purple-400">Admin & IT Manager</p>
-                      </div>
-                    </button>
                   </div>
                 )}
               </div>

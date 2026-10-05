@@ -82,7 +82,7 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
           </div>
           <h1 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
             <FileText className="w-5 h-5 text-blue-600" />
-            Program Officer Document Submission & Donor Sync Hub
+            Program Officer Document Submission & Donor Sync Workspace
           </h1>
           <p className="text-xs text-slate-500 mt-1">
             Upload, auto-generate, and manage project compliance documents. Submitted files immediately synchronize with **skbportal.online/donor-dashboard** for donor review & approval.
@@ -155,7 +155,7 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
           href="/donor-dashboard"
           className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1"
         >
-          View Live Donor Inspection Hub &rsaquo;
+          View Live Partner Inspection Portal &rsaquo;
         </Link>
       </div>
 
@@ -198,7 +198,7 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
 
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">
-                    ✓ Submitted to Donor Hub
+                    ✓ Submitted to Partner Workspace
                   </span>
 
                   <Link
@@ -345,7 +345,7 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
 
               <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl text-[11px] text-emerald-900 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Will be automatically published to the live Donor Hub repository.</span>
+                <span>Will be automatically published to the live Partner Workspace repository.</span>
               </div>
 
               <div className="flex gap-2 pt-2">
@@ -360,7 +360,7 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
                   type="submit"
                   className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md flex items-center justify-center gap-1.5"
                 >
-                  <Upload className="w-4 h-4" /> Upload & Sync to Donor Hub
+                  <Upload className="w-4 h-4" /> Upload & Sync to Partner Workspace
                 </button>
               </div>
             </form>

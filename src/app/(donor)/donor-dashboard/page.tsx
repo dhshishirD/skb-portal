@@ -312,7 +312,7 @@ export default function DonorDashboardPage() {
               <span>🇹🇷</span> IHH Humanitarian Relief Foundation
             </span>
             <span className="text-xs bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" /> Verified Partner Audit Hub
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" /> Verified Partner Audit Workspace
             </span>
           </div>
 

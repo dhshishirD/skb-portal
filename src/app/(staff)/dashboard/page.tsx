@@ -226,66 +226,76 @@ export default function StaffDashboardPage() {
         )}
 
         {/* Ticket List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {donorTickets.map((ticket) => (
-            <div 
-              key={ticket.id}
-              className={`p-4 rounded-xl border space-y-3 transition-all ${
-                ticket.status === 'Pending Officer Review'
-                  ? 'bg-amber-50/50 border-amber-300 shadow-sm'
-                  : 'bg-slate-50 border-slate-200'
-              }`}
-            >
-              <div className="flex justify-between items-center border-b border-slate-200/60 pb-2 text-xs">
-                <span className="font-mono font-extrabold text-blue-700">{ticket.id} • {ticket.pid}</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  ticket.status === 'Officer Clarification Posted' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
-                }`}>
-                  {ticket.status}
-                </span>
-              </div>
-
-              <div>
-                <p className="text-xs font-bold text-slate-900">{ticket.queryType}</p>
-                <p className="text-[11px] text-slate-500">From: {ticket.donorName} ({ticket.donorEmail})</p>
-              </div>
-
-              <p className="text-xs text-slate-700 italic bg-white p-2.5 rounded-lg border border-slate-200/80">
-                &ldquo;{ticket.message}&rdquo;
-              </p>
-
-              <div className="flex justify-between items-center text-[11px] text-slate-500 pt-1">
-                <span>Assigned: <strong>{ticket.assignedOfficerName}</strong></span>
-                <span>{ticket.createdAt}</span>
-              </div>
-
-              {ticket.officerResponse ? (
-                <div className="bg-blue-50/80 p-3 rounded-lg border border-blue-200 text-xs space-y-1">
-                  <p className="font-bold text-blue-900 text-[11px]">
-                    Posted Response ({ticket.officerResponse.responderName}):
-                  </p>
-                  <p className="text-blue-800 text-[11px]">{ticket.officerResponse.responseText}</p>
-                  {ticket.officerResponse.attachmentName && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded mt-1">
-                      <Paperclip className="w-3 h-3" /> {ticket.officerResponse.attachmentName}
-                    </span>
-                  )}
+        {donorTickets.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {donorTickets.map((ticket) => (
+              <div 
+                key={ticket.id}
+                className={`p-4 rounded-xl border space-y-3 transition-all ${
+                  ticket.status === 'Pending Officer Review'
+                    ? 'bg-amber-50/50 border-amber-300 shadow-sm'
+                    : 'bg-slate-50 border-slate-200'
+                }`}
+              >
+                <div className="flex justify-between items-center border-b border-slate-200/60 pb-2 text-xs">
+                  <span className="font-mono font-extrabold text-blue-700">{ticket.id} • {ticket.pid}</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    ticket.status === 'Officer Clarification Posted' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
+                  }`}>
+                    {ticket.status}
+                  </span>
                 </div>
-              ) : (
-                <button
-                  onClick={() => {
-                    setActiveResponseTicket(ticket);
-                    setResponseText('');
-                    setAttachmentName('');
-                  }}
-                  className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center justify-center gap-1.5"
-                >
-                  <Send className="w-3.5 h-3.5" /> Post Officer Clarification Response
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
+
+                <div>
+                  <p className="text-xs font-bold text-slate-900">{ticket.queryType}</p>
+                  <p className="text-[11px] text-slate-500">From: {ticket.donorName} ({ticket.donorEmail})</p>
+                </div>
+
+                <p className="text-xs text-slate-700 italic bg-white p-2.5 rounded-lg border border-slate-200/80">
+                  &ldquo;{ticket.message}&rdquo;
+                </p>
+
+                <div className="flex justify-between items-center text-[11px] text-slate-500 pt-1">
+                  <span>Assigned: <strong>{ticket.assignedOfficerName}</strong></span>
+                  <span>{ticket.createdAt}</span>
+                </div>
+
+                {ticket.officerResponse ? (
+                  <div className="bg-blue-50/80 p-3 rounded-lg border border-blue-200 text-xs space-y-1">
+                    <p className="font-bold text-blue-900 text-[11px]">
+                      Posted Response ({ticket.officerResponse.responderName}):
+                    </p>
+                    <p className="text-blue-800 text-[11px]">{ticket.officerResponse.responseText}</p>
+                    {ticket.officerResponse.attachmentName && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded mt-1">
+                        <Paperclip className="w-3 h-3" /> {ticket.officerResponse.attachmentName}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setActiveResponseTicket(ticket);
+                      setResponseText('');
+                      setAttachmentName('');
+                    }}
+                    className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg shadow-sm transition flex items-center justify-center gap-1.5"
+                  >
+                    <Send className="w-3.5 h-3.5" /> Post Officer Clarification Response
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center space-y-2">
+            <MessageSquare className="w-8 h-8 text-slate-300 mx-auto" />
+            <p className="text-xs font-bold text-slate-700">No Pending Donor Audit Clarification Queries</p>
+            <p className="text-[11px] text-slate-400">
+              Clarification requests sent by donors in the Partner Command Portal will appear here in real-time.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Operational Module Shortcuts */}

@@ -132,7 +132,7 @@ export default function BeneficiariesPage() {
                 <th className="px-4 py-3">Phone</th>
                 <th className="px-4 py-3">Gender / Birth Year</th>
                 <th className="px-4 py-3">Location & Project</th>
-                <th className="px-4 py-3">Consent & Vault Status</th>
+                <th className="px-4 py-3">Consent & File Repository Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

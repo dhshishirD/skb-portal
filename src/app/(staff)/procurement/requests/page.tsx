@@ -13,10 +13,7 @@ interface RequestItem {
   status: string;
 }
 
-const MOCK_REQUESTS: RequestItem[] = [
-  { id: 'PR-2026-01', projectName: 'P1-CLIMATE', description: '10,000 Mangrove Saplings & Fertilizer', estimatedAmount: '75,000.00 BDT', quotationsCount: 3, status: 'quotations_attached' },
-  { id: 'PR-2026-02', projectName: 'P2-HEALTH', description: 'Community Water Filter Units', estimatedAmount: '120,000.00 BDT', quotationsCount: 2, status: 'submitted' },
-];
+const MOCK_REQUESTS: RequestItem[] = [];
 
 export default function PurchaseRequestsPage() {
   const [requests] = useState<RequestItem[]>(MOCK_REQUESTS);
@@ -42,37 +39,47 @@ export default function PurchaseRequestsPage() {
         </button>
       </div>
 
-      <div className="space-y-4">
-        {requests.map((req) => (
-          <div key={req.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="font-mono font-bold text-xs text-blue-600">{req.id}</span>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 uppercase">
-                {req.status}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900">{req.description}</h3>
-              <span className="font-mono font-bold text-sm text-slate-900">{req.estimatedAmount}</span>
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
-              <span className="text-slate-500">{req.projectName}</span>
-
-              {req.quotationsCount >= 3 ? (
-                <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-emerald-200">
-                  <ShieldCheck className="w-3.5 h-3.5" /> 3 Quotes Verified (PO Eligible)
+      {requests.length > 0 ? (
+        <div className="space-y-4">
+          {requests.map((req) => (
+            <div key={req.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-mono font-bold text-xs text-blue-600">{req.id}</span>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 uppercase">
+                  {req.status}
                 </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-amber-200">
-                  <AlertTriangle className="w-3.5 h-3.5" /> Need {3 - req.quotationsCount} More Quote(s)
-                </span>
-              )}
+              </div>
+
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900">{req.description}</h3>
+                <span className="font-mono font-bold text-sm text-slate-900">{req.estimatedAmount}</span>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                <span className="text-slate-500">{req.projectName}</span>
+
+                {req.quotationsCount >= 3 ? (
+                  <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-emerald-200">
+                    <ShieldCheck className="w-3.5 h-3.5" /> 3 Quotes Verified (PO Eligible)
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-amber-200">
+                    <AlertTriangle className="w-3.5 h-3.5" /> Need {3 - req.quotationsCount} More Quote(s)
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm space-y-3">
+          <ShoppingCart className="w-10 h-10 text-slate-300 mx-auto" />
+          <h3 className="text-base font-bold text-slate-900">No Active Purchase Requests</h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            Click &ldquo;New Purchase Request&rdquo; to create a procurement request and attach 3 competitive vendor quotes.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

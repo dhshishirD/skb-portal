@@ -18,39 +18,7 @@ export interface DonorQueryTicket {
   };
 }
 
-export const INITIAL_DONOR_QUERIES: DonorQueryTicket[] = [
-  {
-    id: 'TICKET-2026-001',
-    pid: 'PID 22567',
-    donorName: 'IHH Humanitarian Relief Foundation',
-    donorEmail: 'audit@ihh.org.tr',
-    queryType: 'Underage Beneficiary Query',
-    message: 'Regarding Beneficiary Serial #14 in PID 22567 (Livestock Distribution): The beneficiary listed appears under 18 years. Please provide official guardian clarification.',
-    status: 'Officer Clarification Posted',
-    assignedOfficerName: 'Mizbah Uddin',
-    assignedOfficerEmail: 'uddinmizbah902@gmail.com',
-    createdAt: '2026-09-20 10:30 AM',
-    officerResponse: {
-      responderName: 'Mizbah Uddin',
-      responderRole: 'Program Officer (Assigned)',
-      responseText: 'Clarification Provided: Beneficiary Serial #14 is an orphan child represented by his legal guardian/mother (Fatema Begum, NID 1985269123456). Livestock is assigned for household income generation. Formal Clarification Letter attached.',
-      attachmentName: 'Clarification_Letter_Underage_Beneficiaries_PID_22567.pdf',
-      respondedAt: '2026-09-21 02:15 PM',
-    },
-  },
-  {
-    id: 'TICKET-2026-002',
-    pid: 'PID 23431',
-    donorName: 'UNHCR Audit Team',
-    donorEmail: 'refugee-audit@unhcr.org',
-    queryType: 'Photo Request',
-    message: 'Please provide additional high-resolution distribution photos with official UNHCR banner for Rohingya Camp 11 distribution.',
-    status: 'Pending Officer Review',
-    assignedOfficerName: 'MD. Emran',
-    assignedOfficerEmail: 'emran@skb.org.bd',
-    createdAt: '2026-09-28 04:45 PM',
-  },
-];
+export const INITIAL_DONOR_QUERIES: DonorQueryTicket[] = [];
 
 export function createDonorQuery(
   pid: string,

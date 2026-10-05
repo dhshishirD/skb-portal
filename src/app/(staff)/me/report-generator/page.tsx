@@ -30,7 +30,7 @@ interface VendorQuote {
 }
 
 export default function ReportGeneratorPage() {
-  const [activeTab, setActiveTab] = useState<'form7' | 'budget3' | 'vault'>('form7');
+  const [activeTab, setActiveTab] = useState<'form7' | 'budget3' | 'repositories'>('form7');
   
   // Form-7 State
   const [pidNumber, setPidNumber] = useState('PID 22211');
@@ -99,9 +99,9 @@ export default function ReportGeneratorPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('vault')}
+          onClick={() => setActiveTab('repositories')}
           className={`flex-1 py-2.5 px-4 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'vault' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+            activeTab === 'repositories' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
           }`}
         >
           <Layers className="w-4 h-4" /> 3. File Repositories
@@ -299,7 +299,7 @@ export default function ReportGeneratorPage() {
       )}
 
       {/* TAB 3: FILE REPOSITORIES */}
-      {activeTab === 'vault' && (
+      {activeTab === 'repositories' && (
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>

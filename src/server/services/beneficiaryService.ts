@@ -15,50 +15,7 @@ export interface BeneficiaryRecord {
   registeredAt: string;
 }
 
-export const INITIAL_BENEFICIARIES: BeneficiaryRecord[] = [
-  {
-    id: 'BEN-001',
-    fullName: 'Fatema Begum',
-    nationalId: '1985269123456',
-    phone: '01711223344',
-    sex: 'female',
-    birthYear: 1985,
-    locationCode: 'UP-TEKNAF',
-    projectId: 'PID 22567',
-    householdSize: 6,
-    summary: 'Guardian of orphan beneficiary #14 in Sylhet livestock distribution.',
-    consentCaptured: true,
-    registeredAt: '2026-09-21 02:30 PM',
-  },
-  {
-    id: 'BEN-002',
-    fullName: 'Abdul Karim',
-    nationalId: '1990269987654',
-    phone: '01819887766',
-    sex: 'male',
-    birthYear: 1990,
-    locationCode: 'UP-UKHIYA',
-    projectId: 'PID 22211',
-    householdSize: 5,
-    summary: 'Camp 11 emergency WASH kit recipient.',
-    consentCaptured: true,
-    registeredAt: '2026-09-28 11:15 AM',
-  },
-  {
-    id: 'BEN-003',
-    fullName: 'Rashida Khatun',
-    nationalId: '1994269554433',
-    phone: '01912345678',
-    sex: 'female',
-    birthYear: 1994,
-    locationCode: 'UP-KURIGRAM',
-    projectId: 'PID 23431',
-    householdSize: 4,
-    summary: 'Flood embankment afforestation worker.',
-    consentCaptured: true,
-    registeredAt: '2026-09-29 04:00 PM',
-  },
-];
+export const INITIAL_BENEFICIARIES: BeneficiaryRecord[] = [];
 
 const LOCAL_STORAGE_KEY = 'skb_portal_beneficiaries';
 
@@ -134,7 +91,7 @@ export class BeneficiaryService {
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-        let currentList: BeneficiaryRecord[] = INITIAL_BENEFICIARIES;
+        let currentList: BeneficiaryRecord[] = [];
         if (stored) {
           try { currentList = JSON.parse(stored); } catch {}
         }

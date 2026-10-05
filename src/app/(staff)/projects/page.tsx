@@ -83,7 +83,7 @@ const INITIAL_PROJECTS: ProjectItem[] = [
   }
 ];
 
-export default function ProjectsHubPage() {
+export default function ProjectsDirectoryPage() {
   const [projects, setProjects] = useState<ProjectItem[]>(INITIAL_PROJECTS);
   const [userRole, setUserRole] = useState<string>('');
   const [userName, setUserName] = useState<string>('');

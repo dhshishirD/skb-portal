@@ -227,7 +227,7 @@ export default function RootPage() {
               </div>
             </Link>
 
-            {/* WORKSPACE 4: INTERNATIONAL PARTNER HUB (POSITION #4 - LAST) */}
+            {/* WORKSPACE 4: INTERNATIONAL PARTNER WORKSPACE (POSITION #4 - LAST) */}
             <Link
               href="/donor-dashboard?partner=IHH"
               className="group p-6 rounded-2xl border border-blue-200 bg-white hover:bg-blue-50/40 hover:border-blue-400 shadow-sm hover:shadow-md transition-all space-y-4 flex flex-col justify-between"
@@ -238,13 +238,13 @@ export default function RootPage() {
                     <Globe className="w-5 h-5" />
                   </div>
                   <span className="text-[10px] font-extrabold bg-blue-50 text-blue-800 px-2.5 py-1 rounded-full border border-blue-200">
-                    International Partner Hub
+                    International Partner Workspace
                   </span>
                 </div>
 
                 <div>
                   <h4 className="text-base font-extrabold text-slate-900 group-hover:text-blue-800 transition-colors">
-                    4. International Partner Hub
+                    4. International Partner Workspace
                   </h4>
                   <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                     Designed for partner organizations (IHH Turkey, UNHCR, etc.). Inspect compliance packages, preview Form-7 PDF reports inline, download complete zip archives, and grant 1-click audit sign-offs.

@@ -34,7 +34,7 @@ export default function FieldLayout({
           </div>
           <div>
             <h1 className="text-xs font-bold text-white flex items-center gap-1.5">
-              Field Operations Hub
+              Field Operations Workspace
               <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded border border-emerald-400/30">PWA</span>
             </h1>
             <p className="text-[10px] text-emerald-400 font-mono">Mobile Offline Workspace</p>

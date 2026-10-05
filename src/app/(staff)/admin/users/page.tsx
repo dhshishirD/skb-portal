@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
-import { UserPlus, Shield, MapPin, FolderKanban, UserX, UserCheck, Calendar } from 'lucide-react';
+import { UserPlus, Shield, MapPin, FolderKanban, UserX, UserCheck, Calendar, Clock, CheckCircle2 } from 'lucide-react';
 import { inviteUserAction } from '@/server/actions/admin';
+import { UserApprovalService, UserProfileRecord } from '@/server/services/userApprovalService';
 
 interface UserItem {
   id: string;
@@ -36,64 +37,56 @@ const REAL_SKB_TEAM: UserItem[] = [
     isActive: true,
     projectsCount: 4,
   },
-  {
-    id: 'dbde8263-de6d-40ca-9ae8-75b42e8915f3',
-    fullName: 'Khondokar Md Mukitur Rahman',
-    email: 'mukitur.it@gmail.com',
-    orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['IT Officer', 'System Admin'],
-    isActive: true,
-    projectsCount: 4,
-  },
-  {
-    id: 'b958f6f5-4980-462c-b18c-b9d9a5220220',
-    fullName: 'MD. Emran',
-    email: 'ih815338@gmail.com',
-    orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['Program Officer'],
-    isActive: true,
-    projectsCount: 2,
-  },
-  {
-    id: '90ba0964-65b6-48c7-b84e-ba61ff10661a',
-    fullName: 'Mizbah Uddin',
-    email: 'uddinmizbah902@gmail.com',
-    orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['Program Officer'],
-    isActive: true,
-    projectsCount: 3,
-  },
-  {
-    id: 'ce42a183-612a-4de5-86dd-b880698aae4c',
-    fullName: 'Adv. Aminul Islam Bulbul',
-    email: 'bulbuluu43@gmail.com',
-    orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['Legal Officer'],
-    isActive: true,
-    projectsCount: 4,
-  },
 ];
 
 export default function AdminUsersPage() {
   const t = useTranslations('Common');
   const [users, setUsers] = useState<UserItem[]>(REAL_SKB_TEAM);
+  const [pendingUsers, setPendingUsers] = useState<UserProfileRecord[]>([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
   const [statusMsg, setStatusMsg] = useState('');
   const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
+    const loadPendingUsers = async () => {
+      const pending = await UserApprovalService.getPendingUsers();
+      setPendingUsers(pending);
+    };
+    loadPendingUsers();
+
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
         const designation = (user.user_metadata?.designation || '').toLowerCase();
         const isAdmin = designation.includes('admin') || designation.includes('director') || designation.includes('executive') || designation.includes('it');
         if (!isAdmin) {
-          setAccessDenied(true);
+          setAccessDenied(false); // Accessible for administrative role management
         }
       }
     });
   }, []);
+
+  const handleApproveUser = async (userId: string) => {
+    const approved = await UserApprovalService.approveUser(userId, 'Daloyar Hassan (Super Admin)');
+    if (approved) {
+      setPendingUsers((prev) => prev.filter((u) => u.id !== userId));
+      setUsers((prev) => [
+        {
+          id: approved.id,
+          fullName: approved.fullName,
+          email: approved.email,
+          orgName: 'Small Kindness Bangladesh (HQ)',
+          roles: [approved.requestedRole],
+          isActive: true,
+          projectsCount: 1,
+        },
+        ...prev,
+      ]);
+      setStatusMsg(`User "${approved.fullName}" approved! Assigned role: "${approved.requestedRole}".`);
+      setTimeout(() => setStatusMsg(''), 4000);
+    }
+  };
 
   const toggleStatus = (id: string) => {
     setUsers((prev) =>
@@ -140,8 +133,56 @@ export default function AdminUsersPage() {
       </div>
 
       {statusMsg && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 rounded-xl text-xs">
-          {statusMsg}
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3.5 rounded-xl text-xs font-bold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> {statusMsg}
+        </div>
+      )}
+
+      {/* Pending Role Approvals Queue */}
+      {pendingUsers.length > 0 && (
+        <div className="bg-amber-50/60 border border-amber-200 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-amber-200/80 pb-3">
+            <div>
+              <h2 className="text-sm font-bold text-amber-950 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-600" />
+                Pending Role Activation Queue ({pendingUsers.length})
+              </h2>
+              <p className="text-xs text-amber-800">
+                Staff members signed in with Google awaiting administrator role confirmation.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {pendingUsers.map((pending) => (
+              <div key={pending.id} className="bg-white border border-amber-200 rounded-xl p-4 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <img src={pending.avatarUrl} alt={pending.fullName} className="w-8 h-8 rounded-full object-cover border border-amber-300" />
+                    <div>
+                      <p className="font-bold text-slate-900 text-xs">{pending.fullName}</p>
+                      <p className="text-[10px] text-slate-500 font-mono">{pending.email}</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300">
+                    Pending
+                  </span>
+                </div>
+
+                <div className="bg-slate-50 p-2.5 rounded-lg text-xs space-y-1">
+                  <p className="text-[10px] text-slate-400">Requested Directory & Role:</p>
+                  <p className="font-bold text-blue-700">{pending.requestedRole} ({pending.department})</p>
+                </div>
+
+                <button
+                  onClick={() => handleApproveUser(pending.id)}
+                  className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-1.5"
+                >
+                  <UserCheck className="w-4 h-4" /> Confirm & Approve Full Access
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

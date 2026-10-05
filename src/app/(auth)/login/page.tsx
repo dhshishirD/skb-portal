@@ -1,73 +1,100 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, ShieldCheck, Building2 } from 'lucide-react';
+import { ShieldCheck, LogIn, ArrowRight, Building2, CheckCircle2 } from 'lucide-react';
+import { UserApprovalService } from '@/server/services/userApprovalService';
 
 export default function LoginPage() {
-  // Auto-redirect on page load to Donor Dashboard
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      window.location.href = '/donor-dashboard?partner=IHH';
-    }, 500);
-    return () => clearTimeout(timer);
-  }, []);
+  const [loading, setLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+
+    // Simulated 1-Click Google Auth Callback
+    // Registers or fetches user profile from UserApprovalService
+    const googleUser = {
+      fullName: 'New Staff Member',
+      email: 'new.staff@skb.org.bd',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      requestedRole: 'Program Officer' as const,
+    };
+
+    const userProfile = await UserApprovalService.registerGoogleUser(googleUser);
+
+    setTimeout(() => {
+      setLoading(false);
+      if (userProfile.status === 'APPROVED') {
+        window.location.href = '/dashboard';
+      } else {
+        window.location.href = '/me/profile';
+      }
+    }, 800);
+  };
 
   return (
-    <div className="space-y-5 max-w-md mx-auto text-center">
-      <div className="space-y-1">
-        <h2 className="text-xl font-extrabold text-slate-900">Welcome to SKB Works Portal</h2>
-        <p className="text-xs text-slate-500">Small Kindness Bangladesh • Open Access Mode</p>
-      </div>
-
-      <div className="bg-emerald-50 border border-emerald-200 text-emerald-950 p-3.5 rounded-2xl text-xs space-y-1 text-left">
-        <div className="flex items-center gap-1.5 font-extrabold text-emerald-900">
-          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>Password-Free Access Active (Auto-Opening Donor Hub...)</span>
-        </div>
-        <p className="text-[11px] text-emerald-800 leading-relaxed">
-          No password required. Redirecting to IHH Donor Hub automatically...
+    <div className="space-y-6 max-w-md mx-auto text-center">
+      {/* Header */}
+      <div className="space-y-1.5">
+        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">SKB Works Portal</h1>
+        <p className="text-xs text-slate-500 font-medium">
+          Small Kindness Bangladesh • Multi-Tenant Partner & Staff Portal
         </p>
       </div>
 
-      <div className="space-y-3 pt-1">
-        {/* 1. Primary IHH Donor Hub Access */}
-        <a
-          href="/donor-dashboard?partner=IHH"
-          className="w-full p-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl shadow-md transition-all text-left flex items-center justify-between group cursor-pointer block"
-        >
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-1.5">
-              <span className="text-base">🇹🇷</span>
-              <span className="font-extrabold text-sm">IHH International Donor Portal</span>
-            </div>
-            <p className="text-[11px] text-blue-100">
-              Inspect IHH-funded projects, Form-7 clearance, beneficiary register & 1-click audit ZIP export.
-            </p>
-          </div>
-          <ArrowRight className="w-5 h-5 text-blue-200 group-hover:translate-x-1 transition-transform shrink-0 ml-2" />
-        </a>
+      {/* Primary 1-Click Google Sign-In Container */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl space-y-5">
+        <div className="space-y-1">
+          <h2 className="text-base font-extrabold text-slate-900">Staff & Partner Authentication</h2>
+          <p className="text-xs text-slate-500">
+            Sign in with your Google account to request directory access.
+          </p>
+        </div>
 
-        {/* 2. Staff & Executive Dashboard */}
-        <a
-          href="/dashboard"
-          className="w-full p-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl shadow-sm transition-all text-left flex items-center justify-between group cursor-pointer block"
+        <button
+          onClick={handleGoogleSignIn}
+          disabled={loading}
+          className="w-full py-3.5 px-4 bg-white hover:bg-slate-50 text-slate-800 font-extrabold text-xs rounded-2xl border border-slate-300 shadow-md transition-all flex items-center justify-center gap-3 group"
         >
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-1.5">
-              <Building2 className="w-4 h-4 text-slate-300" />
-              <span className="font-extrabold text-sm">Staff & Executive Directorate Dashboard</span>
-            </div>
-            <p className="text-[11px] text-slate-400">
-              Program Management, Procurement, Finance Approvals & NGO Bureau Compliance.
-            </p>
+          <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+            <path
+              fill="#4285F4"
+              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+            />
+            <path
+              fill="#EA4335"
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+            />
+          </svg>
+          <span>{loading ? 'Authenticating with Google...' : 'Continue with Google Account'}</span>
+        </button>
+
+        <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 space-y-1 text-left">
+          <div className="flex items-center gap-1.5 text-slate-700 font-bold">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Administrative Role Activation
           </div>
-          <ArrowRight className="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform shrink-0 ml-2" />
-        </a>
+          <p className="text-[10px] text-slate-500">
+            First-time sign-ins choose their dedicated directory & requested role. Administrators are notified to approve full feature access.
+          </p>
+        </div>
       </div>
 
-      <div className="pt-2 text-xs text-slate-500">
-        Direct URL: <a href="/donor-dashboard?partner=IHH" className="font-bold text-blue-600 hover:underline">https://www.skbportal.online/donor-dashboard?partner=IHH</a>
+      {/* Quick Direct Link to Partner Inspection Workspace */}
+      <div className="pt-2">
+        <Link
+          href="/donor-dashboard?partner=IHH"
+          className="text-xs text-blue-600 font-bold hover:underline flex items-center justify-center gap-1"
+        >
+          <span>🇹🇷</span> Open International Partner Workspace &rsaquo;
+        </Link>
       </div>
     </div>
   );

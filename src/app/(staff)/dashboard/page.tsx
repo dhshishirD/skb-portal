@@ -74,7 +74,7 @@ export default function StaffDashboardPage() {
 
     const updatedList = donorTickets.map(t => t.id === updatedTicket.id ? updatedTicket : t);
     setDonorTickets(updatedList);
-    setSuccessToast(`Clarification posted for ${updatedTicket.id} (${updatedTicket.pid})! Synchronized with Donor Hub.`);
+    setSuccessToast(`Clarification posted for ${updatedTicket.id} (${updatedTicket.pid})! Synchronized with International Donor Workspace.`);
     setActiveResponseTicket(null);
     setResponseText('');
     setAttachmentName('');
@@ -136,7 +136,7 @@ export default function StaffDashboardPage() {
           href="/donor-dashboard"
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition shrink-0"
         >
-          Inspect Live Donor Hub &rsaquo;
+          Inspect Live Partner Workspace &rsaquo;
         </Link>
       </div>
 
@@ -214,7 +214,7 @@ export default function StaffDashboardPage() {
               href="/donor-dashboard" 
               className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
             >
-              View Donor Hub &rsaquo;
+              View Partner Workspace &rsaquo;
             </Link>
           </div>
         </div>
@@ -325,7 +325,7 @@ export default function StaffDashboardPage() {
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-indigo-600" />
-                HQ Community Hub
+                HQ Community Workspace
               </span>
               <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 transition-transform group-hover:translate-x-0.5" />
             </div>

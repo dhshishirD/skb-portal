@@ -343,7 +343,7 @@ export default function DonorDashboardPage() {
             <Briefcase className="w-4 h-4 text-blue-600" />
           </div>
           <p className="text-2xl font-extrabold text-slate-900">3 Projects</p>
-          <p className="text-[11px] text-blue-600 font-semibold">IHH Turkey Dedicated Vault</p>
+          <p className="text-[11px] text-blue-600 font-semibold">IHH Turkey Dedicated Repository</p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm space-y-1">
@@ -527,7 +527,7 @@ export default function DonorDashboardPage() {
                       onClick={() => setInspectingProject(project)}
                       className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
                     >
-                      <Eye className="w-3.5 h-3.5" /> Inspect Compliance Vault ({project.primaryDocs.length + project.specialDocs.length})
+                      <Eye className="w-3.5 h-3.5" /> Inspect Compliance Package ({project.primaryDocs.length + project.specialDocs.length})
                     </button>
 
                     <button
@@ -556,7 +556,7 @@ export default function DonorDashboardPage() {
           <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 max-h-[85vh] overflow-y-auto animate-in fade-in duration-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-base font-extrabold text-slate-900">Document Inspection Vault</h3>
+                <h3 className="text-base font-extrabold text-slate-900">Document Inspection Directory</h3>
                 <p className="text-xs text-slate-500 font-mono">{inspectingProject.pid} • {inspectingProject.partner}</p>
               </div>
               <button 
@@ -572,7 +572,7 @@ export default function DonorDashboardPage() {
               <div className="flex items-center gap-2">
                 <FolderArchive className="w-4 h-4 text-emerald-700 shrink-0" />
                 <span className="text-xs font-bold text-emerald-950">
-                  Official Audit Package Vault ({inspectingProject.primaryDocs.length + inspectingProject.specialDocs.length} Documents)
+                  Official Audit Package Directory ({inspectingProject.primaryDocs.length + inspectingProject.specialDocs.length} Documents)
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -712,7 +712,7 @@ export default function DonorDashboardPage() {
                 onClick={() => setInspectingProject(null)}
                 className="py-2.5 px-5 bg-slate-900 text-white font-bold text-xs rounded-xl"
               >
-                Close Vault
+                Close Directory
               </button>
             </div>
           </div>
@@ -895,7 +895,7 @@ export default function DonorDashboardPage() {
                     <ImageIcon className="w-6 h-6" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900">High-Resolution Photo Album Vault</h4>
+                    <h4 className="text-sm font-bold text-slate-900">High-Resolution Photo Album Repository</h4>
                     <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
                       All high-definition beneficiary distribution photos, livestock handing-over ceremonies, and site banners are archived in SKB&apos;s cloud drive.
                     </p>

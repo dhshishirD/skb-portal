@@ -67,7 +67,7 @@ export default function ReportGeneratorPage() {
       <div>
         <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
           <Link href="/dashboard" className="hover:underline">HQ Staff Workspace</Link> &rsaquo;
-          <span className="font-semibold text-slate-800">Donor Reporting & Compliance Vault</span>
+          <span className="font-semibold text-slate-800">Donor Reporting & Compliance Repository</span>
         </div>
         <h1 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
           <FileText className="w-5 h-5 text-blue-600" />
@@ -104,7 +104,7 @@ export default function ReportGeneratorPage() {
             activeTab === 'vault' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          <Layers className="w-4 h-4" /> 3. Standard 9-File Compliance Vault
+          <Layers className="w-4 h-4" /> 3. Standard 9-File Compliance Repository
         </button>
       </div>
 
@@ -298,13 +298,13 @@ export default function ReportGeneratorPage() {
         </div>
       )}
 
-      {/* TAB 3: 9-FILE COMPLIANCE VAULT */}
+      {/* TAB 3: 9-FILE COMPLIANCE REPOSITORY */}
       {activeTab === 'vault' && (
         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
               <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Layers className="w-4 h-4 text-blue-600" /> SKB 9-File Donor Compliance Package Vault
+                <Layers className="w-4 h-4 text-blue-600" /> SKB 9-File Donor Compliance Package Repository
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
                 Complete submission package for {pidNumber} matching your official Google Drive audit folder.

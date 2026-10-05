@@ -34,7 +34,7 @@ export default function DonorLayout({
   const navItems = [
     { href: '/donor-dashboard', label: 'Partner Command Overview', icon: Globe },
     { href: '/donor-dashboard#portfolio', label: 'Grant Program Portfolio', icon: FolderKanban },
-    { href: '/donor-dashboard#vault', label: 'Form-7 Compliance Vault', icon: FileCheck2, badge: '7/7' },
+    { href: '/donor-dashboard#vault', label: 'Form-7 Compliance Repository', icon: FileCheck2, badge: '7/7' },
     { href: '/donor-dashboard#clarifications', label: 'Audit Clarification Threads', icon: MessageSquare, badge: 'Live' },
     { href: '/donor-dashboard#financials', label: 'Multi-Currency Disbursal', icon: DollarSign },
     { href: '/donor-dashboard#security', label: 'Partner Audit Verification', icon: ShieldCheck, badge: 'Verified' },
@@ -152,7 +152,7 @@ export default function DonorLayout({
                 <Building2 className="w-3.5 h-3.5 text-blue-600" /> Multi-Tenant Active
               </div>
               <p className="text-[10px] text-slate-500 leading-tight">
-                IHH Turkey Operations • Connected to Supabase Vault
+                IHH Turkey Operations • Connected to Supabase Storage
               </p>
             </div>
 

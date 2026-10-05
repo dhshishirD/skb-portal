@@ -95,7 +95,7 @@ def build_document():
             "items": [
                 ("Executive Donor Intelligence Overview", "Live portfolio dashboard tracking grants across 19 real SKB project PIDs from Google Drive ('Accumulated projects 2026')."),
                 ("Categorized Project Views", "Tabbed filtering for Running/On-Going, Needs Attention, and Completed & Audited projects."),
-                ("Document Inspection Vault", "Two-section inspection vault displaying 7 Primary Baseline Files (Form-7, Invoice Declaration, AC Audit Clearance, Verified Beneficiary List, Beneficiary NID Cards Archive, High-Res Picture Album link, Bank Certificate) plus Special Submissions (Underaged Guardian Replacement Letters, Orphan Legal Signature Certificates, Refugee WASH Reports)."),
+                ("Document Inspection Directory", "Two-section inspection directory displaying 7 Primary Baseline Files (Form-7, Invoice Declaration, AC Audit Clearance, Verified Beneficiary List, Beneficiary NID Cards Archive, High-Res Picture Album link, Bank Certificate) plus Special Submissions (Underaged Guardian Replacement Letters, Orphan Legal Signature Certificates, Refugee WASH Reports)."),
                 ("Live Interactive Document Previewer", "Inline high-fidelity document previews for Form-7 PDF reports, NID tables, CA audit statements, and direct Google Drive photo folder links."),
                 ("1-Click Individual Downloads & ZIP Exporter", "Download any single document file or click 'Download Full Package (.zip)' to download the complete 9-file compliance archive in 1 click."),
                 ("Donor Grant Sign-Off & Approval Engine", "Green '✓ Approve Compliance Package' button for official donor partner sign-off and audit clearance."),
@@ -103,12 +103,12 @@ def build_document():
             ]
         },
         {
-            "title": "Module 2: Projects Directory & Program Officer Document Vault (/projects & /projects/[id]/documents)",
+            "title": "Module 2: Projects Directory & Program Officer Document Directory (/projects & /projects/[id]/documents)",
             "color": "0D9488",
             "items": [
                 ("Projects & Program Directory (/projects)", "Master program overview featuring budget amount, milestone completion progress bar, target location, and assigned Program Officer."),
                 ("1-Click Sub-Tabs Bar on Project Cards", "Direct quick-action links on every project card: 📋 Kanban, 🎯 Logframe, 📝 Work Plan, 👥 Beneficiaries, and 📂 Documents."),
-                ("Program Officer Document Vault (/projects/[id]/documents)", "Dedicated officer workspace to upload, auto-generate Form-7 reports, and manage compliance files with live synchronization to /donor-dashboard."),
+                ("Program Officer Document Directory (/projects/[id]/documents)", "Dedicated officer workspace to upload, auto-generate Form-7 reports, and manage compliance files with live synchronization to /donor-dashboard."),
                 ("Kanban Project Lifecycle Board (/projects/[id]/kanban)", "Drag-and-drop project stage progression (Inception → Proposal Approved → Implementation → Audited & Closed)."),
                 ("Logframe Indicator Matrix (/projects/[id]/logframe)", "Logical Framework matrix tracking target vs. achieved indicators (e.g. # of deep tube-wells, # of livestock distributed)."),
                 ("Work Plan & Tasks (/projects/[id]/tasks)", "Task assignment, officer work plans, and milestone deadline tracking.")
@@ -120,7 +120,7 @@ def build_document():
             "items": [
                 ("1-Click Form-7 Completion Report Generator", "Auto-generates official NGO Affairs Bureau & IHH format Form-7 PDF project completion reports."),
                 ("3-Proposal Proposed Budget Tool", "3-quote vendor proposal comparison calculator with automated lowest-price winner selection and savings calculation vs. highest quote."),
-                ("Standard 9-File Compliance Package Vault", "View, verify, and export all 9 submission files matching official Google Drive audit folder structures."),
+                ("Standard 9-File Compliance Package Repository", "View, verify, and export all 9 submission files matching official Google Drive audit folder structures."),
                 ("AI Narrative Auto-Drafting (/api/ai/draft-narrative)", "Gemini-powered narrative generator for donor grant reporting.")
             ]
         },

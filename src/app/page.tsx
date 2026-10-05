@@ -120,7 +120,7 @@ export default function RootPage() {
 
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1">
               <span className="text-[10px] text-slate-400 font-bold uppercase block">Donor Compliance</span>
-              <span className="text-lg font-extrabold text-emerald-700">9-File Vault</span>
+              <span className="text-lg font-extrabold text-emerald-700">9-File Repository</span>
               <span className="text-[10px] text-emerald-600 font-bold block">✓ 1-Click ZIP Exporter</span>
             </div>
           </div>
@@ -165,7 +165,7 @@ export default function RootPage() {
               </div>
             </Link>
 
-            {/* WORKSPACE 2: PROJECTS DIRECTORY & DOCUMENT VAULT (Program, Finance, Law Office) */}
+            {/* WORKSPACE 2: PROJECTS DIRECTORY & DOCUMENT REPOSITORY (Program, Finance, Law Office) */}
             <Link
               href="/projects"
               className="group p-6 rounded-2xl border border-purple-200 bg-white hover:bg-purple-50/40 hover:border-purple-400 shadow-sm hover:shadow-md transition-all space-y-4 flex flex-col justify-between"
@@ -176,16 +176,16 @@ export default function RootPage() {
                     <FolderKanban className="w-5 h-5" />
                   </div>
                   <span className="text-[10px] font-extrabold bg-purple-50 text-purple-800 px-2.5 py-1 rounded-full border border-purple-200">
-                    Programs & Compliance Vault
+                    Programs & Compliance Repository
                   </span>
                 </div>
 
                 <div>
                   <h4 className="text-base font-extrabold text-slate-900 group-hover:text-purple-900 transition-colors">
-                    2. Projects Directory & Document Vault (Program, Finance, Law Office)
+                    2. Projects Directory & Document Repository (Program, Finance, Law Office)
                   </h4>
                   <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                    Browse all SKB program portfolios with quick-action sub-tabs for Kanban lifecycle, logframe indicator targets, work plan tasks, beneficiary registers, legal docs, and document submission vaults.
+                    Browse all SKB program portfolios with quick-action sub-tabs for Kanban lifecycle, logframe indicator targets, work plan tasks, beneficiary registers, legal docs, and document submission repositories.
                   </p>
                 </div>
               </div>

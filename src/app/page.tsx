@@ -102,13 +102,13 @@ export default function RootPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1">
               <span className="text-[10px] text-slate-400 font-bold uppercase block">Active Projects</span>
-              <span className="text-lg font-extrabold text-slate-900">19 Live PIDs</span>
+              <span className="text-lg font-extrabold text-slate-900">0 Live PIDs</span>
               <span className="text-[10px] text-emerald-600 font-bold block">✓ 100% Audit Tracked</span>
             </div>
 
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1">
               <span className="text-[10px] text-slate-400 font-bold uppercase block">Verified Beneficiaries</span>
-              <span className="text-lg font-extrabold text-slate-900">12,450 Records</span>
+              <span className="text-lg font-extrabold text-slate-900">0 Records</span>
               <span className="text-[10px] text-blue-600 font-bold block">✓ NID Deduplicated</span>
             </div>
 

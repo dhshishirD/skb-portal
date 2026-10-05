@@ -112,7 +112,7 @@ export default function StaffDashboardPage() {
             href="/finance/approvals" 
             className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition"
           >
-            Pending Approvals (3)
+            Pending Approvals (0)
           </Link>
         </div>
       </div>
@@ -149,9 +149,9 @@ export default function StaffDashboardPage() {
               <FolderKanban className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-3xl font-extrabold text-slate-900">4</p>
-          <p className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" /> 100% On-Track Milestones
+          <p className="text-3xl font-extrabold text-slate-900">0</p>
+          <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
+            <TrendingUp className="w-3 h-3 text-slate-400" /> 0 Active Milestones
           </p>
         </div>
 
@@ -162,8 +162,8 @@ export default function StaffDashboardPage() {
               <Receipt className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-3xl font-extrabold text-slate-900">3</p>
-          <p className="text-[11px] text-slate-500">৳45.2M Total Funding</p>
+          <p className="text-3xl font-extrabold text-slate-900">0</p>
+          <p className="text-[11px] text-slate-500">৳0.00 Total Funding</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
@@ -184,9 +184,9 @@ export default function StaffDashboardPage() {
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-3xl font-extrabold text-slate-900">12,450</p>
+          <p className="text-3xl font-extrabold text-slate-900">0</p>
           <p className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3" /> NID Verified Records
+            <CheckCircle2 className="w-3 h-3" /> 0 NID Verified Records
           </p>
         </div>
       </div>
@@ -374,37 +374,13 @@ export default function StaffDashboardPage() {
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-900">Active Program Portfolio</h2>
-            <span className="text-xs text-blue-600 font-medium">4 Projects Live</span>
+            <span className="text-xs text-slate-500 font-medium">0 Projects Live</span>
           </div>
 
-          <div className="space-y-3">
-            <div className="p-3.5 bg-slate-50 rounded-xl space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-900">Rohingya WASH Emergency Phase 2</span>
-                <span className="text-emerald-600 font-semibold">85% Complete</span>
-              </div>
-              <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-blue-600 h-1.5 rounded-full w-[85%]"></div>
-              </div>
-              <div className="flex justify-between text-[11px] text-slate-500">
-                <span>Cox&apos;s Bazar District</span>
-                <span>Budget: $150,000</span>
-              </div>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 rounded-xl space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-900">Flood Resilience & Livelihoods</span>
-                <span className="text-amber-600 font-semibold">60% Complete</span>
-              </div>
-              <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                <div className="bg-amber-500 h-1.5 rounded-full w-[60%]"></div>
-              </div>
-              <div className="flex justify-between text-[11px] text-slate-500">
-                <span>Kurigram District</span>
-                <span>Budget: $120,000</span>
-              </div>
-            </div>
+          <div className="p-8 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-1">
+            <FolderKanban className="w-6 h-6 text-slate-400 mx-auto" />
+            <p className="text-xs font-bold text-slate-700">No Active Projects Registered</p>
+            <p className="text-[11px] text-slate-400">Newly registered project logframes and grants will display here.</p>
           </div>
         </div>
 
@@ -419,32 +395,10 @@ export default function StaffDashboardPage() {
             </Link>
           </div>
 
-          <div className="space-y-3">
-            <div className="p-3.5 border border-slate-200 bg-slate-50/50 rounded-xl space-y-1">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="font-bold text-slate-900">Mizbah Uddin • Program Officer</span>
-                <span className="text-slate-400">2 hours ago</span>
-              </div>
-              <p className="text-xs font-semibold text-slate-800">
-                PID 22567 Beneficiary #14 Guardian Clarification Letter Submitted
-              </p>
-              <p className="text-[11px] text-slate-500 line-clamp-2">
-                Posted formal clarification letter for IHH Audit regarding orphan child beneficiary #14 in Sylhet...
-              </p>
-            </div>
-
-            <div className="p-3.5 border border-slate-200 bg-slate-50/50 rounded-xl space-y-1">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="font-bold text-slate-900">Md. Abu Huraira • Executive Director</span>
-                <span className="text-slate-400">Yesterday</span>
-              </div>
-              <p className="text-xs font-semibold text-slate-800">
-                New 2026 Donor Intelligence Portal Deployed
-              </p>
-              <p className="text-[11px] text-slate-500 line-clamp-2">
-                Multi-currency grant tracking engine and File Repositories now active...
-              </p>
-            </div>
+          <div className="p-8 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-1">
+            <MessageSquare className="w-6 h-6 text-slate-300 mx-auto" />
+            <p className="text-xs font-bold text-slate-700">No Community Feed Updates</p>
+            <p className="text-[11px] text-slate-400">Official staff updates and field announcements will appear here.</p>
           </div>
         </div>
       </div>

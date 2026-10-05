@@ -185,35 +185,13 @@ export default function FieldDashboardPage() {
       {/* 3. ASSIGNED ACTIVE PROJECTS CARDS */}
       <div className="space-y-2.5">
         <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-1">
-          My Active Assigned Projects (2)
+          My Active Assigned Projects (0)
         </p>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-[10px] font-bold text-blue-400 bg-blue-950 px-2 py-0.5 rounded border border-blue-800">
-              P-WASH-01
-            </span>
-            <span className="text-[10px] font-bold text-emerald-400">85% Complete</span>
-          </div>
-          <h3 className="text-xs font-bold text-white">Rohingya WASH Emergency Phase 2</h3>
-          <p className="text-[11px] text-slate-400">📍 Cox’s Bazar • 4,500 Registered Beneficiaries</p>
-          <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-            <div className="bg-emerald-500 h-1.5 rounded-full w-[85%]"></div>
-          </div>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-[10px] font-bold text-amber-400 bg-amber-950 px-2 py-0.5 rounded border border-amber-800">
-              P-FLD-02
-            </span>
-            <span className="text-[10px] font-bold text-amber-400">60% Complete</span>
-          </div>
-          <h3 className="text-xs font-bold text-white">Flood Resilience & Livelihoods Support</h3>
-          <p className="text-[11px] text-slate-400">📍 Kurigram District • 3,200 Registered Beneficiaries</p>
-          <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-            <div className="bg-amber-500 h-1.5 rounded-full w-[60%]"></div>
-          </div>
+        <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl text-center space-y-1">
+          <FolderKanban className="w-6 h-6 text-slate-500 mx-auto" />
+          <p className="text-xs font-bold text-slate-300">No Assigned Field Projects</p>
+          <p className="text-[11px] text-slate-500">Field tasks assigned by program officers will display here.</p>
         </div>
       </div>
 

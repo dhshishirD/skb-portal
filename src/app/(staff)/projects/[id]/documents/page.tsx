@@ -88,7 +88,7 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
         <div>
           <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
             <Link href="/projects" className="hover:underline">Projects</Link> &rsaquo;
-            <span className="font-semibold text-slate-800">Project #{projectId} Compliance Repository</span>
+            <span className="font-semibold text-slate-800">Project Compliance (#{projectId})</span>
           </div>
           <h1 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
             <FileText className="w-5 h-5 text-blue-600" />
@@ -156,7 +156,7 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
           <div>
             <p className="font-bold text-emerald-950">Live Multi-Tenant Sync Active with International Donor Portal</p>
             <p className="text-[11px] text-emerald-800">
-              All documents listed below automatically populate in the **Document Inspection Directory** on **skbportal.online/donor-dashboard** for partner audit & sign-off.
+              All documents listed below automatically populate in **Document Inspection** on **skbportal.online/donor-dashboard** for partner audit & sign-off.
             </p>
           </div>
         </div>

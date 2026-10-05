@@ -13,11 +13,7 @@ interface VendorItem {
   blacklistReason?: string;
 }
 
-const MOCK_VENDORS: VendorItem[] = [
-  { id: 'v1', name: 'Teknaf Nursery Supplies Ltd', contactPerson: 'Jamal Uddin', phone: '01711002233', isBlacklisted: false },
-  { id: 'v2', name: 'Coastal Agro Traders', contactPerson: 'Hassan Ali', phone: '01811445566', isBlacklisted: false },
-  { id: 'v3', name: 'Blacklisted Supplies Inc', contactPerson: 'Unknown', phone: '01911999999', isBlacklisted: true, blacklistReason: 'Fraudulent quotation prices' },
-];
+const MOCK_VENDORS: VendorItem[] = [];
 
 export default function VendorsPage() {
   const [vendors, setVendors] = useState<VendorItem[]>(MOCK_VENDORS);
@@ -61,36 +57,48 @@ export default function VendorsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {vendors.map((v) => (
-                <tr key={v.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-4 py-3 font-bold text-slate-900">{v.name}</td>
-                  <td className="px-4 py-3 text-slate-700">{v.contactPerson}</td>
-                  <td className="px-4 py-3 font-mono text-slate-500">{v.phone}</td>
-                  <td className="px-4 py-3">
-                    {v.isBlacklisted ? (
-                      <span className="inline-flex items-center gap-1 text-red-700 bg-red-50 px-2 py-0.5 rounded-full text-[10px] font-bold border border-red-200">
-                        <ShieldAlert className="w-3 h-3 text-red-600" /> Blacklisted ({v.blacklistReason})
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[10px] font-medium border border-emerald-200">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Approved Vendor
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => toggleBlacklist(v.id)}
-                      className={`px-3 py-1 text-[11px] rounded-lg font-medium transition-colors ${
-                        v.isBlacklisted
-                          ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
-                          : 'bg-red-50 hover:bg-red-100 text-red-700'
-                      }`}
-                    >
-                      {v.isBlacklisted ? 'Remove Blacklist' : 'Blacklist Vendor'}
-                    </button>
+              {vendors.length > 0 ? (
+                vendors.map((v) => (
+                  <tr key={v.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-3 font-bold text-slate-900">{v.name}</td>
+                    <td className="px-4 py-3 text-slate-700">{v.contactPerson}</td>
+                    <td className="px-4 py-3 font-mono text-slate-500">{v.phone}</td>
+                    <td className="px-4 py-3">
+                      {v.isBlacklisted ? (
+                        <span className="inline-flex items-center gap-1 text-red-700 bg-red-50 px-2 py-0.5 rounded-full text-[10px] font-bold border border-red-200">
+                          <ShieldAlert className="w-3 h-3 text-red-600" /> Blacklisted ({v.blacklistReason})
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[10px] font-medium border border-emerald-200">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Approved Vendor
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => toggleBlacklist(v.id)}
+                        className={`px-3 py-1 text-[11px] rounded-lg font-medium transition-colors ${
+                          v.isBlacklisted
+                            ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
+                            : 'bg-red-50 hover:bg-red-100 text-red-700'
+                        }`}
+                      >
+                        {v.isBlacklisted ? 'Remove Blacklist' : 'Blacklist Vendor'}
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-4 py-12 text-center text-slate-500">
+                    <Store className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <p className="font-bold text-slate-700">No Vendors Registered</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      New vendor profiles will register here upon procurement onboarding.
+                    </p>
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

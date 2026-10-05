@@ -14,26 +14,7 @@ interface PendingClaim {
   requiredRole: string;
 }
 
-const MOCK_PENDING_CLAIMS: PendingClaim[] = [
-  {
-    id: 'EXP-101',
-    claimantName: 'Karim Field Officer',
-    projectName: 'P1-CLIMATE',
-    amount: '12,500.00 BDT',
-    date: '2026-09-22',
-    description: 'Mangrove saplings transport & labor charges in Teknaf',
-    requiredRole: 'programme_manager',
-  },
-  {
-    id: 'EXP-102',
-    claimantName: 'Tariq Project Officer',
-    projectName: 'P2-HEALTH',
-    amount: '45,000.00 BDT',
-    date: '2026-09-23',
-    description: 'WASH sanitation supplies procurement in Ukhiya',
-    requiredRole: 'finance',
-  },
-];
+const MOCK_PENDING_CLAIMS: PendingClaim[] = [];
 
 export default function ApprovalsQueuePage() {
   const [claims, setClaims] = useState<PendingClaim[]>(MOCK_PENDING_CLAIMS);
@@ -76,41 +57,49 @@ export default function ApprovalsQueuePage() {
       </div>
 
       <div className="space-y-4">
-        {claims.map((claim) => (
-          <div key={claim.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="font-mono font-bold text-xs text-blue-600">{claim.id}</span>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                Pending: {claim.requiredRole}
-              </span>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between text-sm font-bold text-slate-900">
-                <span>{claim.claimantName}</span>
-                <span className="text-blue-700 font-mono">{claim.amount}</span>
+        {claims.length > 0 ? (
+          claims.map((claim) => (
+            <div key={claim.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="font-mono font-bold text-xs text-blue-600">{claim.id}</span>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                  Pending: {claim.requiredRole}
+                </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">{claim.projectName} • Submitted on {claim.date}</p>
-            </div>
 
-            <p className="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl">{claim.description}</p>
+              <div>
+                <div className="flex items-center justify-between text-sm font-bold text-slate-900">
+                  <span>{claim.claimantName}</span>
+                  <span className="text-blue-700 font-mono">{claim.amount}</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">{claim.projectName} • Submitted on {claim.date}</p>
+              </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                onClick={() => setClaims((prev) => prev.filter((c) => c.id !== claim.id))}
-                className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-1"
-              >
-                <X className="w-3.5 h-3.5" /> Reject
-              </button>
-              <button
-                onClick={() => handleApprove(claim.id)}
-                className="px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-colors flex items-center gap-1"
-              >
-                <Check className="w-3.5 h-3.5" /> Approve Step
-              </button>
+              <p className="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl">{claim.description}</p>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => setClaims((prev) => prev.filter((c) => c.id !== claim.id))}
+                  className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-1"
+                >
+                  <X className="w-3.5 h-3.5" /> Reject
+                </button>
+                <button
+                  onClick={() => handleApprove(claim.id)}
+                  className="px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-colors flex items-center gap-1"
+                >
+                  <Check className="w-3.5 h-3.5" /> Approve Step
+                </button>
+              </div>
             </div>
+          ))
+        ) : (
+          <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center space-y-2 text-xs">
+            <ShieldCheck className="w-8 h-8 text-slate-400 mx-auto" />
+            <p className="font-bold text-slate-800">No Pending Financial Claims</p>
+            <p className="text-slate-500">Newly submitted expense claims and requisitions will appear here for multi-step approval.</p>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

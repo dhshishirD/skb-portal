@@ -11,11 +11,7 @@ interface DistrictMetric {
   indicatorsAchievedPct: number;
 }
 
-const MOCK_DISTRICTS: DistrictMetric[] = [
-  { district: "Cox's Bazar", division: 'Chattogram', activeProjects: 2, indicatorsAchievedPct: 85 },
-  { district: 'Kurigram', division: 'Rangpur/Dhaka', activeProjects: 1, indicatorsAchievedPct: 70 },
-  { district: 'Bandarban', division: 'Chattogram', activeProjects: 1, indicatorsAchievedPct: 62 },
-];
+const MOCK_DISTRICTS: DistrictMetric[] = [];
 
 export default function MeDashboardPage() {
   const [districts] = useState<DistrictMetric[]>(MOCK_DISTRICTS);
@@ -41,20 +37,20 @@ export default function MeDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
           <p className="text-xs text-slate-500 font-medium">Total Validated Indicators</p>
-          <p className="text-2xl font-bold text-slate-900">24 / 30</p>
-          <p className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" /> 80% Overall Target Achieved
+          <p className="text-2xl font-bold text-slate-900">0 / 0</p>
+          <p className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+            <TrendingUp className="w-3 h-3" /> Awaiting live project verification
           </p>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
           <p className="text-xs text-slate-500 font-medium">Districts Reached</p>
-          <p className="text-2xl font-bold text-blue-600">4 Districts</p>
-          <p className="text-[11px] text-slate-400">Cox&apos;s Bazar, Bandarban, Kurigram, Dhaka</p>
+          <p className="text-2xl font-bold text-blue-600">{districts.length} Districts</p>
+          <p className="text-[11px] text-slate-400">Live operational coverage</p>
         </div>
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
           <p className="text-xs text-slate-500 font-medium">Field Reports Validated</p>
-          <p className="text-2xl font-bold text-purple-600">18 Reports</p>
-          <p className="text-[11px] text-emerald-600 font-medium">100% M&E Quality Verified</p>
+          <p className="text-2xl font-bold text-purple-600">0 Reports</p>
+          <p className="text-[11px] text-slate-400 font-medium">M&E Quality Verification Ready</p>
         </div>
       </div>
 
@@ -64,26 +60,36 @@ export default function MeDashboardPage() {
           <MapPin className="w-4 h-4 text-red-500" /> District Coverage & Target Progress
         </h2>
 
-        <div className="divide-y divide-slate-100">
-          {districts.map((d) => (
-            <div key={d.district} className="py-3 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-slate-900">{d.district} District</p>
-                <p className="text-[11px] text-slate-400">{d.division} Division • {d.activeProjects} Active Project(s)</p>
-              </div>
+        {districts.length > 0 ? (
+          <div className="divide-y divide-slate-100">
+            {districts.map((d) => (
+              <div key={d.district} className="py-3 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-slate-900">{d.district} District</p>
+                  <p className="text-[11px] text-slate-400">{d.division} Division • {d.activeProjects} Active Project(s)</p>
+                </div>
 
-              <div className="w-48 space-y-1 text-right">
-                <span className="text-xs font-bold text-slate-800">{d.indicatorsAchievedPct}% Achieved</span>
-                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full"
-                    style={{ width: `${d.indicatorsAchievedPct}%` }}
-                  ></div>
+                <div className="w-48 space-y-1 text-right">
+                  <span className="text-xs font-bold text-slate-800">{d.indicatorsAchievedPct}% Achieved</span>
+                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full"
+                      style={{ width: `${d.indicatorsAchievedPct}%` }}
+                    ></div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-8 text-center text-slate-500 space-y-2">
+            <MapPin className="w-8 h-8 text-slate-300 mx-auto" />
+            <p className="text-xs font-bold text-slate-700">No District Coverage Data</p>
+            <p className="text-[11px] text-slate-400">
+              District indicator logs will display here as field reports are submitted and validated.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

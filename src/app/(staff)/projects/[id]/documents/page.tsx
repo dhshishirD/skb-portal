@@ -31,17 +31,7 @@ interface ProjectComplianceDoc {
   uploadedAt: string;
 }
 
-const INITIAL_PROJECT_DOCS: ProjectComplianceDoc[] = [
-  { id: '1', name: '1. Form-7 Project Completion Report.pdf', category: 'MANDATORY_PRIMARY', fileSize: '3.2 MB', status: 'Submitted', uploadedBy: 'Mizbah Uddin (Program Officer)', uploadedAt: '2026-09-20 10:15 AM' },
-  { id: '2', name: '2. Invoice Declaration.pdf', category: 'MANDATORY_PRIMARY', fileSize: '1.3 MB', status: 'Submitted', uploadedBy: 'Fatema (Finance Manager)', uploadedAt: '2026-09-21 11:30 AM' },
-  { id: '3', name: '3. AC Audit Clearance Certificate.pdf', category: 'MANDATORY_PRIMARY', fileSize: '287 KB', status: 'Submitted', uploadedBy: 'External Chartered Auditor', uploadedAt: '2026-09-22 02:45 PM' },
-  { id: '4', name: '4. Verified Beneficiary Master List.pdf', category: 'MANDATORY_PRIMARY', fileSize: '438 KB', status: 'Submitted', uploadedBy: 'Auto-Synced from NID Register', uploadedAt: '2026-09-23 09:00 AM' },
-  { id: '5', name: '5. Beneficiary NID Cards Archive.pdf', category: 'MANDATORY_PRIMARY', fileSize: '18.6 MB', status: 'Submitted', uploadedBy: 'MD. Emran (Program Officer)', uploadedAt: '2026-09-24 04:10 PM' },
-  { id: '6', name: '6. High-Res Picture Documentation Album.docx', category: 'MANDATORY_PRIMARY', fileSize: '15 KB', status: 'Submitted', uploadedBy: 'Mizbah Uddin (Drive Album)', uploadedAt: '2026-09-25 01:20 PM' },
-  { id: '7', name: '7. Bank Fund Receival Certificate.pdf', category: 'MANDATORY_PRIMARY', fileSize: '217 KB', status: 'Submitted', uploadedBy: 'Finance Department', uploadedAt: '2026-09-26 11:00 AM' },
-  { id: 's1', name: 'Special: Underaged Beneficiary Replacement & Guardian Letter.pdf', category: 'SPECIAL_AD_HOC', fileSize: '2.1 MB', status: 'Submitted', specialReason: 'Beneficiary #14 is an orphan child represented by legal guardian/mother Fatema Begum.', uploadedBy: 'Mizbah Uddin & Legal Officer', uploadedAt: '2026-09-27 03:15 PM' },
-  { id: 's2', name: 'Special: Orphan Legal Signature Explanation Certificate.pdf', category: 'SPECIAL_AD_HOC', fileSize: '687 KB', status: 'Submitted', specialReason: 'Requested by donor audit for thumbprint sign-off verification.', uploadedBy: 'Adv. Aminul Islam Bulbul', uploadedAt: '2026-09-28 10:00 AM' },
-];
+const INITIAL_PROJECT_DOCS: ProjectComplianceDoc[] = [];
 
 export default function DocumentLibraryPage({ params }: { params: { id: string } }) {
   const projectId = params.id || '1';
@@ -193,32 +183,42 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
         </div>
 
         <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden text-xs">
-          {primaryDocs.map((doc) => (
-            <div key={doc.id} className="p-3.5 flex flex-wrap items-center justify-between gap-3 hover:bg-slate-50 transition">
-              <div className="flex items-center gap-3 min-w-0">
-                <Paperclip className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="font-bold text-slate-900 truncate">{doc.name}</p>
-                  <p className="text-[10px] text-slate-400">
-                    {doc.fileSize} • Uploaded by {doc.uploadedBy} on {doc.uploadedAt}
-                  </p>
+          {primaryDocs.length > 0 ? (
+            primaryDocs.map((doc) => (
+              <div key={doc.id} className="p-3.5 flex flex-wrap items-center justify-between gap-3 hover:bg-slate-50 transition">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Paperclip className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="font-bold text-slate-900 truncate">{doc.name}</p>
+                    <p className="text-[10px] text-slate-400">
+                      {doc.fileSize} • Uploaded by {doc.uploadedBy} on {doc.uploadedAt}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">
+                    ✓ Submitted to Donor Hub
+                  </span>
+
+                  <Link
+                    href="/donor-dashboard"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-lg border border-slate-200 transition"
+                  >
+                    <Eye className="w-3 h-3" /> Preview
+                  </Link>
                 </div>
               </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">
-                  ✓ Submitted to Donor Hub
-                </span>
-
-                <Link
-                  href="/donor-dashboard"
-                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-lg border border-slate-200 transition"
-                >
-                  <Eye className="w-3 h-3" /> Preview
-                </Link>
-              </div>
+            ))
+          ) : (
+            <div className="p-8 text-center text-slate-500">
+              <FolderArchive className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              <p className="font-bold text-slate-700">No Baseline Primary Compliance Documents Uploaded</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Click &ldquo;Upload New Compliance Document&rdquo; above to attach Form-7, Invoice Declarations, or Audit certificates.
+              </p>
             </div>
-          ))}
+          )}
         </div>
       </div>
 
@@ -240,31 +240,40 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
         </div>
 
         <div className="divide-y divide-purple-100 border border-purple-200 bg-purple-50/20 rounded-xl overflow-hidden text-xs">
-          {specialDocs.map((doc) => (
-            <div key={doc.id} className="p-3.5 space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <Paperclip className="w-4 h-4 text-purple-600 flex-shrink-0" />
-                  <div>
-                    <p className="font-bold text-slate-900">{doc.name}</p>
-                    <p className="text-[10px] text-slate-400">
-                      {doc.fileSize} • Uploaded by {doc.uploadedBy}
-                    </p>
+          {specialDocs.length > 0 ? (
+            specialDocs.map((doc) => (
+              <div key={doc.id} className="p-3.5 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Paperclip className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                    <div>
+                      <p className="font-bold text-slate-900">{doc.name}</p>
+                      <p className="text-[10px] text-slate-400">
+                        {doc.fileSize} • Uploaded by {doc.uploadedBy}
+                      </p>
+                    </div>
                   </div>
+
+                  <span className="text-[10px] bg-purple-100 text-purple-900 font-bold px-2.5 py-0.5 rounded-full border border-purple-300">
+                    ✓ Special Submission Verified
+                  </span>
                 </div>
 
-                <span className="text-[10px] bg-purple-100 text-purple-900 font-bold px-2.5 py-0.5 rounded-full border border-purple-300">
-                  ✓ Special Submission Verified
-                </span>
+                {doc.specialReason && (
+                  <p className="text-[11px] text-purple-950 bg-purple-100/80 p-2.5 rounded-lg italic">
+                    Special Reason: &ldquo;{doc.specialReason}&rdquo;
+                  </p>
+                )}
               </div>
-
-              {doc.specialReason && (
-                <p className="text-[11px] text-purple-950 bg-purple-100/80 p-2.5 rounded-lg italic">
-                  Special Reason: &ldquo;{doc.specialReason}&rdquo;
-                </p>
-              )}
+            ))
+          ) : (
+            <div className="p-8 text-center text-purple-700/70">
+              <p className="font-bold text-slate-700 text-xs">No Special Ad-Hoc Audit Documents</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Special audit letters (e.g. underaged orphan beneficiary explanations) will display here.
+              </p>
             </div>
-          ))}
+          )}
         </div>
       </div>
 

@@ -75,8 +75,8 @@ export interface StaffContact {
   role: string;
   avatar?: string;
   status: 'online' | 'away' | 'offline';
-  lastMessage: string;
-  lastMessageTime: string;
+  lastMessage?: string;
+  lastMessageTime?: string;
 }
 
 const INITIAL_STAFF_CONTACTS: StaffContact[] = [
@@ -86,8 +86,6 @@ const INITIAL_STAFF_CONTACTS: StaffContact[] = [
     role: 'Executive Director',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
     status: 'online',
-    lastMessage: 'Verified the IHH clarification package. Great work team.',
-    lastMessageTime: '03:15 PM',
   },
   {
     id: 'user-2',
@@ -95,8 +93,6 @@ const INITIAL_STAFF_CONTACTS: StaffContact[] = [
     role: 'Program Officer (Rohingya Relief)',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
     status: 'online',
-    lastMessage: 'You can generate Form-7 report with multi-currency export.',
-    lastMessageTime: '11:15 AM',
   },
   {
     id: 'user-3',
@@ -104,156 +100,24 @@ const INITIAL_STAFF_CONTACTS: StaffContact[] = [
     role: 'Admin & IT Manager',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80',
     status: 'online',
-    lastMessage: 'Supabase Storage sync is active for all officers.',
-    lastMessageTime: 'Yesterday',
   },
   {
     id: 'user-4',
     name: 'Tariq Ahmed',
     role: 'Field Operations Lead (Teknaf)',
     status: 'away',
-    lastMessage: 'GPS photos uploaded for embankment afforestation site.',
-    lastMessageTime: 'Sep 29',
   },
   {
     id: 'user-5',
     name: 'Sharmin Akter',
     role: 'Finance & Audit Officer',
     status: 'online',
-    lastMessage: 'Requisition batch PR-2026-02 approved for disbursement.',
-    lastMessageTime: 'Sep 28',
   },
 ];
 
-const INITIAL_DIRECT_MESSAGES: Record<string, DirectMessage[]> = {
-  'Md. Abu Huraira': [
-    {
-      id: 'dm-1',
-      senderName: 'Md. Abu Huraira',
-      senderRole: 'Executive Director',
-      recipientName: 'Mizbah Uddin',
-      text: 'Mizbah, please verify if the guardian NID clarification for PID 22567 beneficiary #14 was attached to the donor portal.',
-      timestamp: '02:15 PM',
-      isMine: false,
-    },
-    {
-      id: 'dm-2',
-      senderName: 'Mizbah Uddin',
-      senderRole: 'Program Officer (IGP)',
-      recipientName: 'Md. Abu Huraira',
-      text: 'Yes Sir! Legal mother Fatema Begum NID clarification letter (PDF) was signed and uploaded directly to the IHH Document Repository.',
-      attachment: {
-        name: 'Clarification_Letter_Underage_Beneficiaries_PID_22567.pdf',
-        size: '1.2 MB',
-        type: 'application/pdf',
-      },
-      timestamp: '02:30 PM',
-      isMine: true,
-    },
-    {
-      id: 'dm-3',
-      senderName: 'Md. Abu Huraira',
-      senderRole: 'Executive Director',
-      recipientName: 'Mizbah Uddin',
-      text: 'Verified the IHH clarification package. Great work team.',
-      timestamp: '03:15 PM',
-      isMine: false,
-    },
-  ],
-  'MD. Emran': [
-    {
-      id: 'dm-4',
-      senderName: 'MD. Emran',
-      senderRole: 'Program Officer',
-      recipientName: 'Mizbah Uddin',
-      text: 'Mizbah, do you have the Form-7 template for the Coxs Bazar WASH distribution?',
-      timestamp: '11:10 AM',
-      isMine: false,
-    },
-    {
-      id: 'dm-5',
-      senderName: 'Mizbah Uddin',
-      senderRole: 'Program Officer',
-      recipientName: 'MD. Emran',
-      text: 'You can generate it automatically at /me/report-generator with instant multi-currency export.',
-      timestamp: '11:15 AM',
-      isMine: true,
-    },
-  ],
-};
+const INITIAL_DIRECT_MESSAGES: Record<string, DirectMessage[]> = {};
 
-const INITIAL_COMMUNITY_POSTS: CommunityPost[] = [
-  {
-    id: 'POST-001',
-    authorName: 'Mizbah Uddin',
-    authorRole: 'Program Officer (IGP)',
-    authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-    category: 'Donor Objections & Corrections',
-    title: 'PID 22567 Beneficiary #14 Guardian Clarification Letter Submitted',
-    content: 'Posted formal clarification letter for IHH Audit regarding orphan child beneficiary #14 in Sylhet livestock distribution. Legal mother Fatema Begum (NID 1985269123456) signed as guardian. Inspection file attached in portal repository.',
-    attachment: {
-      name: 'Clarification_Letter_Underage_Beneficiaries_PID_22567.pdf',
-      size: '1.4 MB',
-      type: 'application/pdf',
-    },
-    likesCount: 12,
-    likedByMe: true,
-    createdAt: '2026-09-21 02:30 PM',
-    comments: [
-      {
-        id: 'c1',
-        authorName: 'Md. Abu Huraira',
-        authorRole: 'Executive Director',
-        text: 'Excellent work Mizbah! Prompt clarification maintains our 100% audit trust rating with IHH Turkey.',
-        createdAt: '2026-09-21 03:00 PM',
-      },
-      {
-        id: 'c2',
-        authorName: 'Muktadir Rahaman',
-        authorRole: 'Admin & IT Manager',
-        text: 'Verified file integrity in Supabase Storage. Donor hub link updated.',
-        createdAt: '2026-09-21 03:45 PM',
-      },
-    ],
-  },
-  {
-    id: 'POST-002',
-    authorName: 'Md. Abu Huraira',
-    authorRole: 'Executive Director',
-    category: 'HQ Announcements',
-    title: 'New 2026 International Donor Reporting Environment Live on SKB Portal',
-    content: 'We have officially deployed the multi-currency grant tracking engine and File Repositories at /donor-dashboard. All officers should ensure Form-7 reports and 3-proposal vendor quotes are generated via /me/report-generator.',
-    likesCount: 24,
-    likedByMe: false,
-    createdAt: '2026-09-27 10:15 AM',
-    comments: [
-      {
-        id: 'c3',
-        authorName: 'MD. Emran',
-        authorRole: 'Program Officer (Rohingya Relief)',
-        text: 'This will save us hours during UNHCR quarterly reporting! Auto Form-7 exporter is super smooth.',
-        createdAt: '2026-09-27 11:30 AM',
-      },
-    ],
-  },
-  {
-    id: 'POST-003',
-    authorName: 'MD. Emran',
-    authorRole: 'Program Officer (Rohingya Relief)',
-    category: 'Field Updates',
-    title: 'Rohingya Camp 11 Emergency Fire Relief Distribution Completed',
-    content: '1,800 affected families received shelter maintenance kits and clean water containers. GPS photo documentation album uploaded to Drive.',
-    attachment: {
-      name: 'Ukhiya_Camp11_Fire_Relief_Distribution.docx',
-      size: '2.8 MB',
-      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    },
-    likesCount: 18,
-    likedByMe: false,
-    createdAt: '2026-09-28 05:20 PM',
-    comments: [],
-  },
-];
+const INITIAL_COMMUNITY_POSTS: CommunityPost[] = [];
 
 export default function StaffCommunityPage() {
   const [activeTab, setActiveTab] = useState<'PUBLIC_FEED' | 'PERSONAL_CHAT'>('PUBLIC_FEED');
@@ -868,8 +732,9 @@ SKB Operations Portal - https://skbportal.online
 
           {/* Feed Posts */}
           <div className="space-y-4">
-            {filteredPosts.map((post) => (
-              <div key={post.id} id={post.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            {filteredPosts.length > 0 ? (
+              filteredPosts.map((post) => (
+                <div key={post.id} id={post.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                 {/* Author Header */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-3">
@@ -988,9 +853,18 @@ SKB Operations Portal - https://skbportal.online
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
+            ))
+          ) : (
+            <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm space-y-3">
+              <Megaphone className="w-10 h-10 text-slate-300 mx-auto" />
+              <h3 className="text-base font-bold text-slate-900">No Community Announcements Posted</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Use the post creation tool above to publish announcements, field updates, or donor clarification notes to the entire team.
+              </p>
+            </div>
+          )}
         </div>
+      </div>
       )}
 
       {/* ========================================================================= */}

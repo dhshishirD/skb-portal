@@ -32,56 +32,7 @@ interface ProjectItem {
   stage: string;
 }
 
-const INITIAL_PROJECTS: ProjectItem[] = [
-  {
-    id: '1',
-    code: 'P-WASH-01',
-    name: 'Rohingya WASH Emergency Phase 2',
-    assignedOfficer: 'Mizbah Uddin',
-    location: "Cox's Bazar District (Ukhiya & Teknaf)",
-    budget: '$150,000 USD',
-    status: 'Active',
-    progressPct: 85,
-    beneficiariesCount: 4500,
-    stage: 'Implementation'
-  },
-  {
-    id: '2',
-    code: 'P-FLD-02',
-    name: 'Flood Resilience & Livelihoods Support',
-    assignedOfficer: 'MD. Emran',
-    location: 'Kurigram District (Northern Region)',
-    budget: '$120,000 USD',
-    status: 'Active',
-    progressPct: 60,
-    beneficiariesCount: 3200,
-    stage: 'Implementation'
-  },
-  {
-    id: '3',
-    code: 'P-HEALTH-03',
-    name: 'Primary Healthcare & Maternal Support',
-    assignedOfficer: 'Mizbah Uddin',
-    location: 'Bandarban District (Hill Tracts)',
-    budget: '$85,000 USD',
-    status: 'Active',
-    progressPct: 40,
-    beneficiariesCount: 2100,
-    stage: 'Proposal Approved'
-  },
-  {
-    id: '4',
-    code: 'P-YOUTH-04',
-    name: 'Youth Vocational Skills & Empowerment',
-    assignedOfficer: 'MD. Emran',
-    location: 'Dhaka & Gazipur Districts',
-    budget: '$95,000 USD',
-    status: 'Active',
-    progressPct: 25,
-    beneficiariesCount: 1800,
-    stage: 'Inception'
-  }
-];
+const INITIAL_PROJECTS: ProjectItem[] = [];
 
 export default function ProjectsDirectoryPage() {
   const [projects, setProjects] = useState<ProjectItem[]>(INITIAL_PROJECTS);
@@ -185,88 +136,98 @@ export default function ProjectsDirectoryPage() {
       )}
 
       {/* Projects Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {projects.map((p) => (
-          <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4 hover:border-blue-300 transition">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
-                    {p.code}
-                  </span>
-                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                    {p.stage}
-                  </span>
+      {projects.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {projects.map((p) => (
+            <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4 hover:border-blue-300 transition">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                      {p.code}
+                    </span>
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      {p.stage}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900">{p.name}</h3>
                 </div>
-                <h3 className="text-base font-bold text-slate-900">{p.name}</h3>
               </div>
-            </div>
 
-            <div className="space-y-2 text-xs text-slate-600">
-              <div className="flex items-center gap-2">
-                <UserCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                <span>Assigned Officer: <strong className="text-slate-900">{p.assignedOfficer}</strong></span>
+              <div className="space-y-2 text-xs text-slate-600">
+                <div className="flex items-center gap-2">
+                  <UserCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span>Assigned Officer: <strong className="text-slate-900">{p.assignedOfficer}</strong></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                  <span>{p.location}</span>
+                </div>
+                <div className="flex items-center justify-between pt-1 text-[11px] font-medium text-slate-500">
+                  <span>Budget: <strong className="text-slate-900">{p.budget}</strong></span>
+                  <span>Beneficiaries: <strong className="text-slate-900">{p.beneficiariesCount} Registered</strong></span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                <span>{p.location}</span>
-              </div>
-              <div className="flex items-center justify-between pt-1 text-[11px] font-medium text-slate-500">
-                <span>Budget: <strong className="text-slate-900">{p.budget}</strong></span>
-                <span>Beneficiaries: <strong className="text-slate-900">{p.beneficiariesCount} Registered</strong></span>
-              </div>
-            </div>
 
-            {/* Progress Bar */}
-            <div className="space-y-1">
-              <div className="flex justify-between text-[11px]">
-                <span className="text-slate-500 font-medium">Milestone Progress</span>
-                <span className="font-bold text-blue-600">{p.progressPct}% Complete</span>
+              {/* Progress Bar */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-slate-500 font-medium">Milestone Progress</span>
+                  <span className="font-bold text-blue-600">{p.progressPct}% Complete</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${p.progressPct}%` }}
+                  />
+                </div>
               </div>
-              <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${p.progressPct}%` }}
-                />
-              </div>
-            </div>
 
-            {/* Project Quick Sub-Tabs Bar */}
-            <div className="pt-2 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-5 gap-1.5 text-center text-[11px] font-semibold">
-              <Link 
-                href={`/projects/${p.id}/kanban`} 
-                className="p-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-600 text-slate-700 transition"
-              >
-                📋 Kanban
-              </Link>
-              <Link 
-                href={`/projects/${p.id}/logframe`} 
-                className="p-1.5 rounded-lg bg-slate-50 hover:bg-purple-50 hover:text-purple-600 text-slate-700 transition"
-              >
-                🎯 Logframe
-              </Link>
-              <Link 
-                href={`/projects/[id]/tasks`.replace('[id]', p.id)} 
-                className="p-1.5 rounded-lg bg-slate-50 hover:bg-amber-50 hover:text-amber-600 text-slate-700 transition"
-              >
-                📝 Work Plan
-              </Link>
-              <Link 
-                href={`/projects/${p.id}/beneficiaries`} 
-                className="p-1.5 rounded-lg bg-slate-50 hover:bg-emerald-50 hover:text-emerald-600 text-slate-700 transition"
-              >
-                👥 Beneficiaries
-              </Link>
-              <Link 
-                href={`/projects/${p.id}/documents`} 
-                className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold transition flex items-center justify-center gap-1"
-              >
-                📂 Documents
-              </Link>
+              {/* Project Quick Sub-Tabs Bar */}
+              <div className="pt-2 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-5 gap-1.5 text-center text-[11px] font-semibold">
+                <Link 
+                  href={`/projects/${p.id}/kanban`} 
+                  className="p-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-600 text-slate-700 transition"
+                >
+                  📋 Kanban
+                </Link>
+                <Link 
+                  href={`/projects/${p.id}/logframe`} 
+                  className="p-1.5 rounded-lg bg-slate-50 hover:bg-purple-50 hover:text-purple-600 text-slate-700 transition"
+                >
+                  🎯 Logframe
+                </Link>
+                <Link 
+                  href={`/projects/[id]/tasks`.replace('[id]', p.id)} 
+                  className="p-1.5 rounded-lg bg-slate-50 hover:bg-amber-50 hover:text-amber-600 text-slate-700 transition"
+                >
+                  📝 Work Plan
+                </Link>
+                <Link 
+                  href={`/projects/${p.id}/beneficiaries`} 
+                  className="p-1.5 rounded-lg bg-slate-50 hover:bg-emerald-50 hover:text-emerald-600 text-slate-700 transition"
+                >
+                  👥 Beneficiaries
+                </Link>
+                <Link 
+                  href={`/projects/${p.id}/documents`} 
+                  className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold transition flex items-center justify-center gap-1"
+                >
+                  📂 Documents
+                </Link>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm space-y-3">
+          <FolderKanban className="w-10 h-10 text-slate-300 mx-auto" />
+          <h3 className="text-base font-bold text-slate-900">No Projects Registered</h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            Click &ldquo;Create &amp; Assign Project&rdquo; above to register new operational projects and assign them to Program Officers.
+          </p>
+        </div>
+      )}
 
       {/* Executive Create Project Modal */}
       {showCreateModal && (

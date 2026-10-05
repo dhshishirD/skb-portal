@@ -104,7 +104,7 @@ const INITIAL_STAFF_CONTACTS: StaffContact[] = [
     role: 'Admin & IT Manager',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80',
     status: 'online',
-    lastMessage: 'Supabase storage vault sync is active for all officers.',
+    lastMessage: 'Supabase storage repository sync is active for all officers.',
     lastMessageTime: 'Yesterday',
   },
   {
@@ -141,7 +141,7 @@ const INITIAL_DIRECT_MESSAGES: Record<string, DirectMessage[]> = {
       senderName: 'Mizbah Uddin',
       senderRole: 'Program Officer (IGP)',
       recipientName: 'Md. Abu Huraira',
-      text: 'Yes Sir! Legal mother Fatema Begum NID clarification letter (PDF) was signed and uploaded directly to the IHH Vault.',
+      text: 'Yes Sir! Legal mother Fatema Begum NID clarification letter (PDF) was signed and uploaded directly to the IHH Document Repository.',
       attachment: {
         name: 'Clarification_Letter_Underage_Beneficiaries_PID_22567.pdf',
         size: '1.2 MB',
@@ -190,7 +190,7 @@ const INITIAL_COMMUNITY_POSTS: CommunityPost[] = [
     authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
     category: 'Donor Objections & Corrections',
     title: 'PID 22567 Beneficiary #14 Guardian Clarification Letter Submitted',
-    content: 'Posted formal clarification letter for IHH Audit regarding orphan child beneficiary #14 in Sylhet livestock distribution. Legal mother Fatema Begum (NID 1985269123456) signed as guardian. Inspection file attached in portal vault.',
+    content: 'Posted formal clarification letter for IHH Audit regarding orphan child beneficiary #14 in Sylhet livestock distribution. Legal mother Fatema Begum (NID 1985269123456) signed as guardian. Inspection file attached in portal repository.',
     attachment: {
       name: 'Clarification_Letter_Underage_Beneficiaries_PID_22567.pdf',
       size: '1.4 MB',
@@ -211,7 +211,7 @@ const INITIAL_COMMUNITY_POSTS: CommunityPost[] = [
         id: 'c2',
         authorName: 'Muktadir Rahaman',
         authorRole: 'Admin & IT Manager',
-        text: 'Verified file integrity in Supabase vault. Donor hub link updated.',
+        text: 'Verified file integrity in Supabase storage repository. Donor hub link updated.',
         createdAt: '2026-09-21 03:45 PM',
       },
     ],
@@ -222,7 +222,7 @@ const INITIAL_COMMUNITY_POSTS: CommunityPost[] = [
     authorRole: 'Executive Director',
     category: 'HQ Announcements',
     title: 'New 2026 International Donor Reporting Environment Live on SKB Portal',
-    content: 'We have officially deployed the multi-currency grant tracking engine and standard 9-file compliance vault at /donor-dashboard. All officers should ensure Form-7 reports and 3-proposal vendor quotes are generated via /me/report-generator.',
+    content: 'We have officially deployed the multi-currency grant tracking engine and standard 9-file compliance repository at /donor-dashboard. All officers should ensure Form-7 reports and 3-proposal vendor quotes are generated via /me/report-generator.',
     likesCount: 24,
     likedByMe: false,
     createdAt: '2026-09-27 10:15 AM',
@@ -532,11 +532,11 @@ PROJECT REFERENCE: PID 22567 / PID 22211 / PID 23431
 VERIFICATION TIME: ${new Date().toUTCString()}
 
 OFFICIAL COMPLIANCE & AUDIT STATEMENT:
-This document is an authenticated digital record registered in the SKB Portal Vault.
+This document is an authenticated digital record registered in the SKB Portal Repository.
 Submitted by: ${currentAuthor} (${currentRole})
 Inspected by: Executive Management & External Audit Committee (IHH Turkey / UNHCR)
 
-VERIFICATION STATUS: 100% VALID & VERIFIED IN SUPABASE VAULT
+VERIFICATION STATUS: 100% VALID & VERIFIED IN SUPABASE STORAGE
 HASH SYNC: SHA-256: 7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069
 ================================================================================
 SKB Operations Portal - https://skbportal.online
@@ -1245,13 +1245,13 @@ SKB Operations Portal - https://skbportal.online
               <div className="space-y-2 font-sans">
                 <p className="font-extrabold text-slate-900 text-sm">{viewingDocument.name}</p>
                 <p className="text-slate-600 text-xs leading-relaxed">
-                  Official registered document record in the SKB Operations Vault. This file is verified and signed off for program implementation, financial disbursement, and external international audit compliance.
+                  Official registered document record in the SKB Operations Repository. This file is verified and signed off for program implementation, financial disbursement, and external international audit compliance.
                 </p>
               </div>
 
               <div className="bg-white p-3.5 rounded-lg border border-slate-200/80 space-y-2 text-[11px] font-sans">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Vault Location:</span>
+                  <span className="text-slate-400">Storage Location:</span>
                   <span className="font-bold text-slate-800">/supabase/storage/v1/object/public/documents</span>
                 </div>
                 <div className="flex justify-between">

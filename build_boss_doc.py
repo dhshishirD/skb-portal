@@ -86,10 +86,10 @@ def build_executive_boss_doc():
 
     link_data = [
         ("Portal Main Landing", "https://skbportal.online", "Main portal entrance & system authentication"),
-        ("International Donor Hub", "https://skbportal.online/donor-dashboard", "9-File Inspection Vault, Document Previews, Donor Sign-off & Zip Downloads"),
+        ("International Donor Hub", "https://skbportal.online/donor-dashboard", "9-File Inspection Directory, Document Previews, Donor Sign-off & Zip Downloads"),
         ("Staff Operations Center", "https://skbportal.online/dashboard", "Donor Objections Panel, Expense Approvals, and HQ Community Bulletin"),
         ("Projects & Program Directory", "https://skbportal.online/projects", "Master project list with 1-click '📂 Documents' links"),
-        ("Project Document Vault", "https://skbportal.online/projects/1/documents", "Program Officer document submission hub with live sync to Donor Hub"),
+        ("Project Document Directory", "https://skbportal.online/projects/1/documents", "Program Officer document submission hub with live sync to Donor Hub"),
         ("AI Donor Generator & Form-7", "https://skbportal.online/me/report-generator", "Auto-generate Form-7 PDF completion reports & 3-quote budget tools"),
         ("HQ Staff Community Hub", "https://skbportal.online/community", "Internal staff discussion feed, field notices, and officer profile switcher"),
         ("Field Officer Mobile PWA", "https://skbportal.online/field-dashboard", "Touch-friendly mobile PWA workspace with offline IndexedDB queue"),
@@ -140,12 +140,12 @@ def build_executive_boss_doc():
          "https://skbportal.online/donor-dashboard",
          "Show how donors (IHH Turkey, UNHCR) log in to inspect ongoing projects. Point out the Running, Attention Needed, and Audited tabs with multi-currency grant tracking (USD, EUR, TRY, BDT)."),
         
-        ("Step 2: Inspect 9-File Compliance Vault & Live PDF Previews", 
+        ("Step 2: Inspect 9-File Compliance Directory & Live PDF Previews", 
          "Click 'Inspect Primary & Special Documents' on PID 22567",
          "Demonstrate that donors no longer receive 20 MB email attachments. Click 'Preview' on Form-7 Report or NID List to view formatted PDF layouts inline. Click 'Download Full Package (.zip)' to download all compliance files in 1 click."),
 
         ("Step 3: Demonstrate 1-Click Donor Grant Clearance Sign-Off", 
-         "Click '✓ Approve Compliance Package' inside the Donor Vault",
+         "Click '✓ Approve Compliance Package' inside the Donor Directory",
          "Show how international audit teams formally sign off on SKB project packages with 1 click, instantly updating the status to '✓ Approved by Partner Audit'."),
 
         ("Step 4: Show Interconnected Donor Correction Alerts on Staff Dashboard", 

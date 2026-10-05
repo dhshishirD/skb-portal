@@ -75,95 +75,7 @@ interface SKBDonorGrantProject {
   specialDocs: ProjectDocument[];
 }
 
-const ALL_SKB_DONOR_PROJECTS: SKBDonorGrantProject[] = [
-  {
-    pid: 'PID 22567',
-    title: 'Income Generating Project (IGP): 20 Cows, 60 Goats & 40 Sewing Machines',
-    category: 'Income Generation (IGP)',
-    partner: 'IHH Humanitarian Relief Foundation',
-    partnerKey: 'IHH',
-    donorLogo: '🇹🇷',
-    currency: 'TRY',
-    budgetAmount: 1850000,
-    spentAmount: 1850000,
-    beneficiariesCount: 120,
-    statusCategory: 'ATTENTION',
-    statusLabel: 'Needs Attention (Guardian Clarification Letter Attached)',
-    location: 'Sylhet & Kurigram Rural Districts',
-    assignedOfficer: 'Mizbah Uddin',
-    assignedOfficerEmail: 'uddinmizbah902@gmail.com',
-    primaryDocs: [
-      { id: '1', name: '1. Form-7 Project Completion Report.pdf', category: 'MANDATORY_PRIMARY', fileSize: '3.2 MB', status: 'Submitted' },
-      { id: '2', name: '2. Invoice Declaration.pdf', category: 'MANDATORY_PRIMARY', fileSize: '1.3 MB', status: 'Submitted' },
-      { id: '3', name: '3. AC Audit Clearance Certificate.pdf', category: 'MANDATORY_PRIMARY', fileSize: '287 KB', status: 'Submitted' },
-      { id: '4', name: '4. Verified Beneficiary Master List.pdf', category: 'MANDATORY_PRIMARY', fileSize: '438 KB', status: 'Submitted' },
-      { id: '5', name: '5. Beneficiary NID Cards Archive.pdf', category: 'MANDATORY_PRIMARY', fileSize: '18.6 MB', status: 'Submitted' },
-      { id: '6', name: '6. High-Res Picture Documentation Album.docx', category: 'MANDATORY_PRIMARY', fileSize: '15 KB', status: 'Submitted' },
-      { id: '7', name: '7. Bank Fund Receival Certificate.pdf', category: 'MANDATORY_PRIMARY', fileSize: '217 KB', status: 'Submitted' },
-    ],
-    specialDocs: [
-      { id: 's1', name: 'Special: Underaged Beneficiary Replacement & Guardian Letter.pdf', category: 'SPECIAL_AD_HOC', fileSize: '2.1 MB', status: 'Special Request Pending', specialReason: 'Beneficiary #14 is an orphan child represented by legal guardian/mother Fatema Begum.' },
-      { id: 's2', name: 'Special: Orphan Legal Signature Explanation Certificate.pdf', category: 'SPECIAL_AD_HOC', fileSize: '687 KB', status: 'Submitted', specialReason: 'Requested by IHH Audit for thumbprint sign-off.' },
-    ],
-  },
-  {
-    pid: 'PID 22211',
-    title: 'Income Generating Project (IGP) in Bangladesh 2025',
-    category: 'Income Generation (IGP)',
-    partner: 'IHH Humanitarian Relief Foundation',
-    partnerKey: 'IHH',
-    donorLogo: '🇹🇷',
-    currency: 'EUR',
-    budgetAmount: 7085,
-    spentAmount: 7085,
-    beneficiariesCount: 85,
-    statusCategory: 'COMPLETED',
-    statusLabel: 'Completed (100% Audit Verified)',
-    location: 'Northern Bangladesh Districts',
-    assignedOfficer: 'Mizbah Uddin',
-    assignedOfficerEmail: 'uddinmizbah902@gmail.com',
-    primaryDocs: [
-      { id: '1', name: '1. Form-7 Project Completion Report (PID 22211).pdf', category: 'MANDATORY_PRIMARY', fileSize: '3.2 MB', status: 'Submitted' },
-      { id: '2', name: '2. Invoice Declaration (PID 22211).pdf', category: 'MANDATORY_PRIMARY', fileSize: '1.3 MB', status: 'Submitted' },
-      { id: '3', name: '3. AC Audit Clearance Certificate (PID 22211).pdf', category: 'MANDATORY_PRIMARY', fileSize: '287 KB', status: 'Submitted' },
-      { id: '4', name: '4. Verified Beneficiary Master List (PID 22211).pdf', category: 'MANDATORY_PRIMARY', fileSize: '438 KB', status: 'Submitted' },
-      { id: '5', name: '5. Beneficiary NID Cards Archive (PID 22211).pdf', category: 'MANDATORY_PRIMARY', fileSize: '18.6 MB', status: 'Submitted' },
-      { id: '6', name: '6. High-Res Picture Documentation Album (PID 22211).docx', category: 'MANDATORY_PRIMARY', fileSize: '15 KB', status: 'Submitted' },
-      { id: '7', name: '7. Fund Receival Certificate 7085 EURO.pdf', category: 'MANDATORY_PRIMARY', fileSize: '217 KB', status: 'Submitted' },
-    ],
-    specialDocs: [
-      { id: 's3', name: 'Special: Underaged Beneficiary Replacement (PID 22211).pdf', category: 'SPECIAL_AD_HOC', fileSize: '2.1 MB', status: 'Submitted', specialReason: 'Approved by donor for guardian representation.' },
-      { id: 's4', name: 'Special: Orphan Signature Explanation (PID 22211).pdf', category: 'SPECIAL_AD_HOC', fileSize: '687 KB', status: 'Submitted', specialReason: 'Verified by legal officer.' },
-    ],
-  },
-  {
-    pid: 'PID 23431',
-    title: 'Ramadan Support Program for Rohingya Refugees 2026',
-    category: 'Seasonal Relief',
-    partner: 'IHH Humanitarian Relief Foundation',
-    partnerKey: 'IHH',
-    donorLogo: '🇹🇷',
-    currency: 'USD',
-    budgetAmount: 150000,
-    spentAmount: 120000,
-    beneficiariesCount: 4500,
-    statusCategory: 'RUNNING',
-    statusLabel: 'Running (80% Disbursed)',
-    location: 'Rohingya Camps, Cox’s Bazar',
-    assignedOfficer: 'MD. Emran',
-    assignedOfficerEmail: 'emran.rohingya@skb.org.bd',
-    primaryDocs: [
-      { id: '1', name: '1. Form-7 Interim Distribution Report.pdf', category: 'MANDATORY_PRIMARY', fileSize: '2.4 MB', status: 'Submitted' },
-      { id: '2', name: '2. Vendor Quotations & Purchase Orders.pdf', category: 'MANDATORY_PRIMARY', fileSize: '4.1 MB', status: 'Submitted' },
-      { id: '3', name: '3. Camp RRRC Permission Certificate.pdf', category: 'MANDATORY_PRIMARY', fileSize: '512 KB', status: 'Submitted' },
-      { id: '4', name: '4. Camp 11 Food Ration Register.pdf', category: 'MANDATORY_PRIMARY', fileSize: '1.1 MB', status: 'Submitted' },
-      { id: '5', name: '5. Beneficiary Token Archive.pdf', category: 'MANDATORY_PRIMARY', fileSize: '12.4 MB', status: 'Submitted' },
-      { id: '6', name: '6. Distribution Site Album.docx', category: 'MANDATORY_PRIMARY', fileSize: '15 KB', status: 'Submitted' },
-      { id: '7', name: '7. Bank Grant Receipt 150K USD.pdf', category: 'MANDATORY_PRIMARY', fileSize: '340 KB', status: 'Submitted' },
-    ],
-    specialDocs: [],
-  }
-];
+const ALL_SKB_DONOR_PROJECTS: SKBDonorGrantProject[] = [];
 
 export default function DonorDashboardPage() {
   const [projects, setProjects] = useState<SKBDonorGrantProject[]>(ALL_SKB_DONOR_PROJECTS);
@@ -267,6 +179,36 @@ export default function DonorDashboardPage() {
     return matchesSearch && matchesTab;
   });
 
+  // Dynamic Executive KPI Calculations
+  const totalGrantsCount = tenantFilteredProjects.length;
+  const totalFundingAllocated = tenantFilteredProjects.reduce((acc, p) => acc + p.budgetAmount, 0);
+
+  const fundingText = totalGrantsCount === 0
+    ? 'TRY 0.00'
+    : tenantFilteredProjects.length === 1
+    ? formatCurrencyString(tenantFilteredProjects[0].budgetAmount, tenantFilteredProjects[0].currency)
+    : `${formatCurrencyString(totalFundingAllocated, tenantFilteredProjects[0]?.currency || 'TRY')}+`;
+
+  const totalSubmittedPrimary = tenantFilteredProjects.reduce(
+    (acc, p) => acc + p.primaryDocs.filter((d) => d.status === 'Submitted').length,
+    0
+  );
+  const totalExpectedPrimary = totalGrantsCount * 7;
+  const complianceText = totalGrantsCount === 0
+    ? '0 / 0 Files'
+    : `${totalSubmittedPrimary} / ${totalExpectedPrimary} Files`;
+
+  const auditVerifiedCount = tenantFilteredProjects.filter(p => p.statusCategory === 'COMPLETED').length;
+  const auditVerificationText = totalGrantsCount === 0
+    ? '0 Verified'
+    : auditVerifiedCount === totalGrantsCount
+    ? '100% Verified'
+    : `${Math.round((auditVerifiedCount / totalGrantsCount) * 100)}% Verified`;
+
+  const auditSubText = totalGrantsCount === 0
+    ? '0 Clarification Requests Pending'
+    : `${tickets.filter(t => tenantFilteredProjects.some(p => p.pid === t.pid)).length} Clarification Requests Logged`;
+
   const handleCopyShareLink = () => {
     const url = `${window.location.origin}/donor-dashboard?partner=${selectedPartnerView}`;
     navigator.clipboard.writeText(url);
@@ -342,8 +284,10 @@ export default function DonorDashboardPage() {
             <span>Total Grants Portfolio</span>
             <Briefcase className="w-4 h-4 text-blue-600" />
           </div>
-          <p className="text-2xl font-extrabold text-slate-900">3 Projects</p>
-          <p className="text-[11px] text-blue-600 font-semibold">IHH Turkey Dedicated Repository</p>
+          <p className="text-2xl font-extrabold text-slate-900">{totalGrantsCount} Projects</p>
+          <p className="text-[11px] text-blue-600 font-semibold">
+            {selectedPartnerView === 'ALL' ? 'All Partner Repositories' : `${selectedPartnerView} Dedicated Repository`}
+          </p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm space-y-1">
@@ -351,8 +295,10 @@ export default function DonorDashboardPage() {
             <span>Total Funding Allocated</span>
             <DollarSign className="w-4 h-4 text-emerald-600" />
           </div>
-          <p className="text-2xl font-extrabold text-slate-900">TRY 1.85M+</p>
-          <p className="text-[11px] text-emerald-600 font-semibold">100% Tracked & Disbursed</p>
+          <p className="text-2xl font-extrabold text-slate-900">{fundingText}</p>
+          <p className="text-[11px] text-emerald-600 font-semibold">
+            {totalGrantsCount === 0 ? '0% Disbursed' : '100% Tracked & Disbursed'}
+          </p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm space-y-1">
@@ -360,7 +306,7 @@ export default function DonorDashboardPage() {
             <span>Baseline Compliance</span>
             <FileCheck2 className="w-4 h-4 text-purple-600" />
           </div>
-          <p className="text-2xl font-extrabold text-purple-900">21 / 21 Files</p>
+          <p className="text-2xl font-extrabold text-purple-900">{complianceText}</p>
           <p className="text-[11px] text-purple-700 font-semibold">7/7 Primary Files Per Project</p>
         </div>
 
@@ -369,8 +315,8 @@ export default function DonorDashboardPage() {
             <span>Audit Verification</span>
             <ShieldCheck className="w-4 h-4 text-amber-600" />
           </div>
-          <p className="text-2xl font-extrabold text-slate-900">100% Verified</p>
-          <p className="text-[11px] text-amber-700 font-semibold">1 Guardian Clarification Logged</p>
+          <p className="text-2xl font-extrabold text-slate-900">{auditVerificationText}</p>
+          <p className="text-[11px] text-amber-700 font-semibold">{auditSubText}</p>
         </div>
       </div>
 
@@ -541,10 +487,18 @@ export default function DonorDashboardPage() {
               );
             })
           ) : (
-            <div className="bg-slate-50 border border-slate-200 p-8 rounded-2xl text-center space-y-2">
-              <Building className="w-8 h-8 text-slate-400 mx-auto" />
-              <p className="font-bold text-slate-800 text-sm">No Projects Match Selected Filter</p>
-              <p className="text-xs text-slate-500">Select another filter tab above.</p>
+            <div className="bg-slate-50 border border-slate-200/90 p-10 rounded-2xl text-center space-y-3">
+              <div className="w-12 h-12 bg-white rounded-2xl border border-slate-200 flex items-center justify-center mx-auto shadow-sm text-slate-400">
+                <Building className="w-6 h-6 text-slate-400" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-extrabold text-slate-900">
+                  No Active Projects in Partner Workspace
+                </h4>
+                <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                  No donor projects are currently registered under this partner filter. Official project compliance packages registered by SKB program officers will appear here automatically.
+                </p>
+              </div>
             </div>
           )}
         </div>

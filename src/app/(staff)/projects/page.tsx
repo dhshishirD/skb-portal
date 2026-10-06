@@ -123,6 +123,55 @@ export default function ProjectsDirectoryPage() {
     }
   };
 
+  const [editingProject, setEditingProject] = useState<ProjectItem | null>(null);
+
+  // Edit Form State
+  const [editName, setEditName] = useState('');
+  const [editCode, setEditCode] = useState('');
+  const [editOfficer, setEditOfficer] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editBudget, setEditBudget] = useState('');
+  const [editProgressPct, setEditProgressPct] = useState(15);
+
+  const handleOpenEditModal = (p: ProjectItem) => {
+    setEditingProject(p);
+    setEditName(p.name);
+    setEditCode(p.code);
+    setEditOfficer(p.assignedOfficer);
+    setEditLocation(p.location);
+    setEditBudget(p.budget);
+    setEditProgressPct(p.progressPct);
+  };
+
+  const handleSaveEditedProject = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProject || !editName.trim()) return;
+
+    const updatedProjects = projects.map(p => {
+      if (p.id === editingProject.id) {
+        return {
+          ...p,
+          name: editName.trim(),
+          code: editCode.trim() || p.code,
+          assignedOfficer: editOfficer,
+          location: editLocation.trim(),
+          budget: editBudget.trim(),
+          progressPct: Number(editProgressPct) || p.progressPct,
+        };
+      }
+      return p;
+    });
+
+    setProjects(updatedProjects);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('skb_portal_projects_v3', JSON.stringify(updatedProjects));
+    }
+
+    setEditingProject(null);
+    setStatusMsg(`Project "${editName}" updated successfully & saved to live directory!`);
+    setTimeout(() => setStatusMsg(''), 3500);
+  };
+
   return (
     <div className="space-y-6 font-sans">
       {/* Header */}
@@ -133,14 +182,14 @@ export default function ProjectsDirectoryPage() {
           </div>
           <h1 className="text-2xl font-bold text-slate-900">Projects & Program Directory</h1>
           <p className="text-xs text-slate-500 mt-1">
-            Create, configure, assign, and track SKB projects with permanent baseline persistence.
+            Create, configure, assign, edit, and track SKB projects with permanent live persistence.
           </p>
         </div>
 
         {/* Executive Project Creation Button */}
         <button
           onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition"
+          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4.5 py-2.5 rounded-xl shadow-sm transition-all"
         >
           <Plus className="w-4 h-4" />
           Create & Assign Project
@@ -158,7 +207,7 @@ export default function ProjectsDirectoryPage() {
       {projects.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {projects.map((p) => (
-            <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4 hover:border-blue-300 transition">
+            <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4 hover:border-blue-300 transition-all">
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -172,13 +221,22 @@ export default function ProjectsDirectoryPage() {
                   <h3 className="text-base font-bold text-slate-900">{p.name}</h3>
                 </div>
 
-                <button
-                  onClick={() => handleDeleteProject(p.id, p.name)}
-                  className="text-[10px] font-bold text-slate-400 hover:text-red-600 bg-slate-100 hover:bg-red-50 px-2 py-1 rounded-md transition"
-                  title="Delete Project"
-                >
-                  Delete
-                </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => handleOpenEditModal(p)}
+                    className="text-[10px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md border border-blue-200 transition"
+                    title="Edit Project Details"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteProject(p.id, p.name)}
+                    className="text-[10px] font-bold text-slate-400 hover:text-red-600 bg-slate-100 hover:bg-red-50 px-2 py-1 rounded-md border border-slate-200 transition"
+                    title="Delete Project"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-2 text-xs text-slate-600">
@@ -262,94 +320,203 @@ export default function ProjectsDirectoryPage() {
         </div>
       )}
 
-      {/* Executive Create Project Modal */}
+      {/* MODAL 1: CREATE PROJECT */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl border border-slate-200 p-6 space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl border border-slate-200 p-6 space-y-4 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <FolderKanban className="w-5 h-5 text-blue-600" />
-                Executive Project Assignment
+                Register New Operational Project
               </h3>
-              <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full">
-                Executive Director Only
+              <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2.5 py-1 rounded-full">
+                Executive Assignment
               </span>
             </div>
 
-            <form onSubmit={handleCreateProject} className="space-y-3">
+            <form onSubmit={handleCreateProject} className="space-y-3.5 text-xs">
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Project Code</label>
+                <label className="block font-bold text-slate-700 mb-1">Project Code / PID</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. P-WASH-05"
+                  placeholder="e.g. P-WASH-05 or PID 22567"
                   value={newProjectCode}
                   onChange={(e) => setNewProjectCode(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Project Title & Description</label>
+                <label className="block font-bold text-slate-700 mb-1">Full Project Title & Objective</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Solar Water Purification in Saltwater Belt"
+                  placeholder="e.g. Income Generating Project (IGP): 20 Cows & 60 Goats"
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Assign Program Officer</label>
+                <label className="block font-bold text-slate-700 mb-1">Assign Program Officer</label>
                 <select
                   value={newOfficer}
                   onChange={(e) => setNewOfficer(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
                 >
-                  <option value="Mizbah Uddin">Mizbah Uddin (Program Officer)</option>
-                  <option value="MD. Emran">MD. Emran (Program Officer)</option>
-                  <option value="Daloyar Hassan">Daloyar Hassan (Program Officer - Admin)</option>
-                  <option value="Adv. Aminul Islam Bulbul">Adv. Aminul Islam Bulbul (Legal Officer)</option>
+                  <option value="Mizbah Uddin">Mizbah Uddin (Executive Officer & Tech Operations)</option>
+                  <option value="Md. Abu Huraira">Md. Abu Huraira (Executive Director)</option>
+                  <option value="Daloyar Hassan">Daloyar Hassan (Senior Accounts Auditor)</option>
+                  <option value="Muktadir Rahaman">Muktadir Rahaman (IT & Media Manager)</option>
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Target Location (District/Upazila)</label>
-                <input
-                  type="text"
-                  required
-                  value={newLocation}
-                  onChange={(e) => setNewLocation(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Target District / Zone</label>
+                  <input
+                    type="text"
+                    required
+                    value={newLocation}
+                    onChange={(e) => setNewLocation(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Approved Grant Budget</label>
+                  <input
+                    type="text"
+                    required
+                    value={newBudget}
+                    onChange={(e) => setNewBudget(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Approved Grant Budget</label>
-                <input
-                  type="text"
-                  required
-                  value={newBudget}
-                  onChange={(e) => setNewBudget(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg"
+                  className="px-4 py-2.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
+                  className="px-4.5 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all"
                 >
-                  Confirm & Assign Project
+                  Confirm & Save Project
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: EDIT PROJECT */}
+      {editingProject && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl border border-slate-200 p-6 space-y-4 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <FolderKanban className="w-5 h-5 text-blue-600" />
+                Edit Operational Project Details
+              </h3>
+              <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2.5 py-1 rounded-full font-mono">
+                {editingProject.code}
+              </span>
+            </div>
+
+            <form onSubmit={handleSaveEditedProject} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Project Code / PID</label>
+                <input
+                  type="text"
+                  required
+                  value={editCode}
+                  onChange={(e) => setEditCode(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Project Title</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Assigned Program Officer</label>
+                <select
+                  value={editOfficer}
+                  onChange={(e) => setEditOfficer(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
+                >
+                  <option value="Mizbah Uddin">Mizbah Uddin (Executive Officer & Tech Operations)</option>
+                  <option value="Md. Abu Huraira">Md. Abu Huraira (Executive Director)</option>
+                  <option value="Daloyar Hassan">Daloyar Hassan (Senior Accounts Auditor)</option>
+                  <option value="Muktadir Rahaman">Muktadir Rahaman (IT & Media Manager)</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Target Location</label>
+                  <input
+                    type="text"
+                    required
+                    value={editLocation}
+                    onChange={(e) => setEditLocation(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Grant Budget</label>
+                  <input
+                    type="text"
+                    required
+                    value={editBudget}
+                    onChange={(e) => setEditBudget(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Milestone Progress ({editProgressPct}%)</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={editProgressPct}
+                  onChange={(e) => setEditProgressPct(Number(e.target.value))}
+                  className="w-full accent-blue-600 cursor-pointer"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingProject(null)}
+                  className="px-4 py-2.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4.5 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all"
+                >
+                  Save Project Changes
                 </button>
               </div>
             </form>

@@ -126,4 +126,65 @@ export class BeneficiaryService {
 
     return newRecord;
   }
+
+  /**
+   * Update an existing beneficiary record
+   */
+  static async updateBeneficiary(id: string, updatedFields: Partial<BeneficiaryRecord>): Promise<BeneficiaryRecord[]> {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+      let currentList: BeneficiaryRecord[] = [];
+      if (stored) {
+        try { currentList = JSON.parse(stored); } catch {}
+      }
+      const updatedList = currentList.map(b => b.id === id ? { ...b, ...updatedFields } : b);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
+
+      const supabase = this.getSupabaseClient();
+      if (supabase) {
+        try {
+          await (supabase as any).from('beneficiaries').update({
+            full_name: updatedFields.fullName,
+            national_id: updatedFields.nationalId,
+            phone: updatedFields.phone,
+            sex: updatedFields.sex,
+            birth_year: updatedFields.birthYear,
+            location_code: updatedFields.locationCode,
+          }).eq('id', id);
+        } catch (e) {
+          console.error('Failed to sync beneficiary update to Supabase:', e);
+        }
+      }
+
+      return updatedList;
+    }
+    return [];
+  }
+
+  /**
+   * Delete a beneficiary record permanently
+   */
+  static async deleteBeneficiary(id: string): Promise<BeneficiaryRecord[]> {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+      let currentList: BeneficiaryRecord[] = [];
+      if (stored) {
+        try { currentList = JSON.parse(stored); } catch {}
+      }
+      const updatedList = currentList.filter(b => b.id !== id);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
+
+      const supabase = this.getSupabaseClient();
+      if (supabase) {
+        try {
+          await (supabase as any).from('beneficiaries').delete().eq('id', id);
+        } catch (e) {
+          console.error('Failed to sync beneficiary deletion to Supabase:', e);
+        }
+      }
+
+      return updatedList;
+    }
+    return [];
+  }
 }

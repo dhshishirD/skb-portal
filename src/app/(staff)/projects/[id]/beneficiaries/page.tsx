@@ -77,13 +77,6 @@ export default function ProjectBeneficiariesPage({ params }: { params: { id: str
       {/* Breadcrumb & Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div>
-          <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
-            <Link href="/projects" className="hover:underline text-blue-600 font-semibold">Projects</Link>
-            <span>&rsaquo;</span>
-            <span>Project {params.id}</span>
-            <span>&rsaquo;</span>
-            <span className="font-bold text-slate-900">Beneficiaries</span>
-          </div>
           <h1 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
             <Users className="w-5 h-5 text-emerald-600" />
             Project Beneficiary Register & Consent Management
@@ -100,40 +93,6 @@ export default function ProjectBeneficiariesPage({ params }: { params: { id: str
           <UserPlus className="w-4 h-4" />
           Register New Beneficiary
         </button>
-      </div>
-
-      {/* Project Navigation Sub-Tabs Bar */}
-      <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-2 text-xs font-semibold">
-        <Link 
-          href={`/projects/${params.id}/kanban`}
-          className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 transition"
-        >
-          📋 Kanban Lifecycle
-        </Link>
-        <Link 
-          href={`/projects/${params.id}/logframe`}
-          className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 transition"
-        >
-          🎯 Logframe Targets
-        </Link>
-        <Link 
-          href={`/projects/${params.id}/tasks`}
-          className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 transition"
-        >
-          📝 Work Plan & Tasks
-        </Link>
-        <Link 
-          href={`/projects/${params.id}/beneficiaries`}
-          className="px-4 py-2 rounded-xl bg-emerald-600 text-white shadow-sm transition font-bold"
-        >
-          👥 Project Beneficiaries ({beneficiaries.length})
-        </Link>
-        <Link 
-          href={`/projects/${params.id}/documents`}
-          className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 transition"
-        >
-          📄 Documents
-        </Link>
       </div>
 
       {statusMsg && (

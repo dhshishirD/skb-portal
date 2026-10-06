@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   FileText, 
+  FolderKanban,
   Target, 
   CheckSquare, 
   Users, 
@@ -24,16 +25,17 @@ export default function ProjectDetailSubLayout({
 
   const navTabs = [
     { name: '1. Project Charter', href: `/projects/${pid}/charter`, icon: FileText, isNew: true },
-    { name: '2. Logframe Tree', href: `/projects/${pid}/logframe`, icon: Target, isNew: false },
-    { name: '3. Tasks & Workplan', href: `/projects/${pid}/tasks`, icon: CheckSquare, isNew: false },
-    { name: '4. Beneficiaries', href: `/projects/${pid}/beneficiaries`, icon: Users, isNew: false },
-    { name: '5. Compliance Docs', href: `/projects/${pid}/documents`, icon: FolderArchive, isNew: false },
-    { name: '6. Closing & Form-7 Audit', href: `/projects/${pid}/closing-report`, icon: ShieldCheck, isNew: true },
+    { name: '2. Stage Gates', href: `/projects/${pid}/kanban`, icon: FolderKanban, isNew: false },
+    { name: '3. Logframe Tree', href: `/projects/${pid}/logframe`, icon: Target, isNew: false },
+    { name: '4. Tasks & Workplan', href: `/projects/${pid}/tasks`, icon: CheckSquare, isNew: false },
+    { name: '5. Beneficiaries', href: `/projects/${pid}/beneficiaries`, icon: Users, isNew: false },
+    { name: '6. Compliance Docs', href: `/projects/${pid}/documents`, icon: FolderArchive, isNew: false },
+    { name: '7. Closing & Form-7 Audit', href: `/projects/${pid}/closing-report`, icon: ShieldCheck, isNew: true },
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Shared Project Top Breadcrumb & Header Bar */}
+    <div className="space-y-6 font-sans">
+      {/* Shared Project Top Breadcrumb & Unified Single Tab Bar */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3 text-xs">
           <div className="flex items-center gap-2 text-slate-500 font-medium">
@@ -53,8 +55,8 @@ export default function ProjectDetailSubLayout({
           </div>
         </div>
 
-        {/* Lifecycle Sub-Navigation Tabs */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
+        {/* Streamlined Single Lifecycle Tab Navigation Bar */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
           {navTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = pathname.startsWith(tab.href);
@@ -64,7 +66,7 @@ export default function ProjectDetailSubLayout({
                 href={tab.href}
                 className={`inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
                   isActive
-                    ? 'bg-slate-900 text-white shadow-sm'
+                    ? 'bg-slate-900 text-white shadow-md'
                     : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/70'
                 }`}
               >

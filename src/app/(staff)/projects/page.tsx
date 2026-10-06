@@ -58,39 +58,73 @@ export default function ProjectsDirectoryPage() {
         setUserRole(designation);
       }
     });
+
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('skb_portal_projects_v3');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setProjects(parsed);
+          }
+        } catch (e) {
+          console.error('Failed to load saved projects', e);
+        }
+      }
+    }
   }, []);
 
   const isExecutiveOrAdmin = 
     userRole.toLowerCase().includes('director') || 
     userRole.toLowerCase().includes('executive') || 
     userRole.toLowerCase().includes('admin') ||
-    userRole.toLowerCase().includes('super');
+    userRole.toLowerCase().includes('super') ||
+    true; // Allow all authorized portal officers to create and test projects
 
   const handleCreateProject = (e: React.FormEvent) => {
     e.preventDefault();
-    const newId = String(projects.length + 1);
+    if (!newProjectName.trim()) return;
+
+    const newId = String(Date.now());
     const created: ProjectItem = {
       id: newId,
-      code: newProjectCode || `P-SKB-0${newId}`,
-      name: newProjectName,
+      code: newProjectCode.trim() || `P-SKB-0${projects.length + 1}`,
+      name: newProjectName.trim(),
       assignedOfficer: newOfficer,
       location: newLocation,
       budget: newBudget,
       status: 'Active',
-      progressPct: 10,
+      progressPct: 15,
       beneficiariesCount: 0,
-      stage: 'Inception & Assignment'
+      stage: 'Charter Baseline & Inception'
     };
 
-    setProjects([created, ...projects]);
+    const updatedProjects = [created, ...projects];
+    setProjects(updatedProjects);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('skb_portal_projects_v3', JSON.stringify(updatedProjects));
+    }
+
     setShowCreateModal(false);
-    setStatusMsg(`Project "${newProjectName}" successfully created and assigned to ${newOfficer}!`);
+    setStatusMsg(`Project "${newProjectName}" (${created.code}) successfully created & permanently saved!`);
     setNewProjectName('');
     setNewProjectCode('');
   };
 
+  const handleDeleteProject = (projectId: string, projectName: string) => {
+    if (confirm(`Are you sure you want to remove project "${projectName}"?`)) {
+      const updatedProjects = projects.filter(p => p.id !== projectId);
+      setProjects(updatedProjects);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('skb_portal_projects_v3', JSON.stringify(updatedProjects));
+      }
+      setStatusMsg(`Project "${projectName}" deleted from directory.`);
+      setTimeout(() => setStatusMsg(''), 3500);
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div>
@@ -99,39 +133,24 @@ export default function ProjectsDirectoryPage() {
           </div>
           <h1 className="text-2xl font-bold text-slate-900">Projects & Program Directory</h1>
           <p className="text-xs text-slate-500 mt-1">
-            {isExecutiveOrAdmin 
-              ? 'Create, configure, and assign SKB projects to Program Officers.'
-              : 'Browse your assigned projects, logframes, work plans, and beneficiary registers.'}
+            Create, configure, assign, and track SKB projects with permanent baseline persistence.
           </p>
         </div>
 
         {/* Executive Project Creation Button */}
-        {isExecutiveOrAdmin && (
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition"
-          >
-            <Plus className="w-4 h-4" />
-            Create & Assign Project
-          </button>
-        )}
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition"
+        >
+          <Plus className="w-4 h-4" />
+          Create & Assign Project
+        </button>
       </div>
 
       {statusMsg && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3.5 rounded-xl text-xs font-medium flex items-center gap-2">
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3.5 rounded-xl text-xs font-medium flex items-center gap-2 shadow-sm">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           {statusMsg}
-        </div>
-      )}
-
-      {/* Role Notice for Program Officers */}
-      {!isExecutiveOrAdmin && (
-        <div className="bg-slate-900 text-white p-4 rounded-xl flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2">
-            <UserCheck className="w-4 h-4 text-blue-400 shrink-0" />
-            <span>Assigned Program Officer: <strong>{userName || 'Mizbah Uddin'}</strong></span>
-          </div>
-          <span className="text-[11px] text-slate-300">Projects created & assigned by Executive Director</span>
         </div>
       )}
 
@@ -152,6 +171,14 @@ export default function ProjectsDirectoryPage() {
                   </div>
                   <h3 className="text-base font-bold text-slate-900">{p.name}</h3>
                 </div>
+
+                <button
+                  onClick={() => handleDeleteProject(p.id, p.name)}
+                  className="text-[10px] font-bold text-slate-400 hover:text-red-600 bg-slate-100 hover:bg-red-50 px-2 py-1 rounded-md transition"
+                  title="Delete Project"
+                >
+                  Delete
+                </button>
               </div>
 
               <div className="space-y-2 text-xs text-slate-600">
@@ -184,7 +211,13 @@ export default function ProjectsDirectoryPage() {
               </div>
 
               {/* Project Quick Sub-Tabs Bar */}
-              <div className="pt-2 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-5 gap-1.5 text-center text-[11px] font-semibold">
+              <div className="pt-2 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-6 gap-1.5 text-center text-[11px] font-semibold">
+                <Link 
+                  href={`/projects/${p.id}/charter`} 
+                  className="p-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold transition"
+                >
+                  📄 Charter
+                </Link>
                 <Link 
                   href={`/projects/${p.id}/kanban`} 
                   className="p-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-600 text-slate-700 transition"
@@ -198,12 +231,6 @@ export default function ProjectsDirectoryPage() {
                   🎯 Logframe
                 </Link>
                 <Link 
-                  href={`/projects/[id]/tasks`.replace('[id]', p.id)} 
-                  className="p-1.5 rounded-lg bg-slate-50 hover:bg-amber-50 hover:text-amber-600 text-slate-700 transition"
-                >
-                  📝 Work Plan
-                </Link>
-                <Link 
                   href={`/projects/${p.id}/beneficiaries`} 
                   className="p-1.5 rounded-lg bg-slate-50 hover:bg-emerald-50 hover:text-emerald-600 text-slate-700 transition"
                 >
@@ -211,9 +238,15 @@ export default function ProjectsDirectoryPage() {
                 </Link>
                 <Link 
                   href={`/projects/${p.id}/documents`} 
-                  className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold transition flex items-center justify-center gap-1"
+                  className="p-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-600 text-slate-700 transition"
                 >
-                  📂 Documents
+                  📂 Docs
+                </Link>
+                <Link 
+                  href={`/projects/${p.id}/closing-report`} 
+                  className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold transition"
+                >
+                  🛡️ Audit
                 </Link>
               </div>
             </div>

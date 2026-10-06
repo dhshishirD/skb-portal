@@ -19,7 +19,9 @@ import {
   ChevronRight,
   Building2,
   Clock,
-  Sparkles
+  Sparkles,
+  RotateCcw,
+  Check
 } from 'lucide-react';
 import { getDefaultCharter } from '@/server/services/projectCharterService';
 import { getDefaultClosingAudit } from '@/server/services/projectClosingAuditService';
@@ -50,6 +52,7 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
   const [closingAudit, setClosingAudit] = useState(getDefaultClosingAudit(projectId, `Project ${projectId}`));
 
   const [currentStageKey, setCurrentStageKey] = useState<string>('implementation');
+  const [manualPrereqs, setManualPrereqs] = useState<Record<string, boolean>>({});
   const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
@@ -68,21 +71,25 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       if (savedStage) {
         setCurrentStageKey(savedStage);
       }
+
+      const savedPrereqs = localStorage.getItem(`skb_kanban_prereqs_${projectId}`);
+      if (savedPrereqs) {
+        try { setManualPrereqs(JSON.parse(savedPrereqs)); } catch (e) {}
+      }
     }
   }, [projectId]);
 
-  // Dynamic calculation of Prerequisites
-  const prerequisites: StagePrerequisite[] = [
+  // Base logic calculation of Prerequisites
+  const defaultPrerequisites: Omit<StagePrerequisite, 'isCompleted'>[] = [
     // STAGE 1: Concept & Charter Baseline
     {
       id: 'prereq-1.1',
       stageKey: 'concept',
       title: 'NGOAB (FD-6/7) & RRRC Access Clearance Recorded',
-      description: `Verify Government clearance refs in Section 1 of Project Charter (${charter.metadata.ngoabRef}).`,
+      description: `Verify Government clearance refs in Section 1 of Project Charter (${charter.metadata.ngoabRef || 'Pending Ref'}).`,
       responsibleRole: 'PM / PD',
       targetRoute: `/projects/${projectId}/charter`,
       targetRouteLabel: 'Open Project Charter',
-      isCompleted: Boolean(charter.metadata.ngoabRef && charter.metadata.rrrcRef),
     },
     {
       id: 'prereq-1.2',
@@ -92,7 +99,6 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       responsibleRole: 'PM',
       targetRoute: `/projects/${projectId}/charter`,
       targetRouteLabel: 'Edit Sector & GPS Mapping',
-      isCompleted: Boolean(charter.location.gpsLat && charter.sectors.some(s => s.selected)),
     },
 
     // STAGE 2: Proposal & Budget Baseline
@@ -104,7 +110,6 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       responsibleRole: 'Finance Auditor',
       targetRoute: `/projects/${projectId}/charter`,
       targetRouteLabel: 'View 6-Line Budget',
-      isCompleted: charter.budgetLines.length === 6,
     },
     {
       id: 'prereq-2.2',
@@ -114,7 +119,6 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       responsibleRole: 'Program Officer',
       targetRoute: `/projects/${projectId}/charter`,
       targetRouteLabel: 'View Beneficiary Targets',
-      isCompleted: charter.beneficiaries.hostTotalIndividuals > 0,
     },
 
     // STAGE 3: Executive Approval & RACI
@@ -126,7 +130,6 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       responsibleRole: 'Project Director',
       targetRoute: `/projects/${projectId}/charter`,
       targetRouteLabel: 'View RACI Governance',
-      isCompleted: charter.raci.length > 0,
     },
     {
       id: 'prereq-3.2',
@@ -136,7 +139,6 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       responsibleRole: '4 Executive Leads',
       targetRoute: `/projects/${projectId}/charter`,
       targetRouteLabel: 'Check Sign-Off Panel',
-      isCompleted: charter.signOffs.every(s => s.signed),
     },
 
     // STAGE 4: Field Implementation
@@ -148,7 +150,6 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       responsibleRole: 'Program Officer',
       targetRoute: `/projects/${projectId}/logframe`,
       targetRouteLabel: 'View Logframe Tree',
-      isCompleted: true,
     },
     {
       id: 'prereq-4.2',
@@ -158,7 +159,6 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       responsibleRole: 'Field / PO',
       targetRoute: `/projects/${projectId}/beneficiaries`,
       targetRouteLabel: 'Open Beneficiary Registry',
-      isCompleted: true,
     },
     {
       id: 'prereq-4.3',
@@ -168,7 +168,6 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       responsibleRole: 'Program Officer',
       targetRoute: `/projects/${projectId}/tasks`,
       targetRouteLabel: 'Open Workplan & Tasks',
-      isCompleted: true,
     },
 
     // STAGE 5: Pre-Submission Audit
@@ -180,7 +179,6 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       responsibleRole: 'Finance Auditor',
       targetRoute: `/projects/${projectId}/closing-report`,
       targetRouteLabel: 'Audit Domain A Financials',
-      isCompleted: closingAudit.domainA_financial.every(i => i.status === 'Compliant'),
     },
     {
       id: 'prereq-5.2',
@@ -190,7 +188,6 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       responsibleRole: 'Program Officer',
       targetRoute: `/projects/${projectId}/closing-report`,
       targetRouteLabel: 'Audit Domain B Safeguarding',
-      isCompleted: closingAudit.domainB_safeguarding.every(i => i.status === 'Compliant'),
     },
     {
       id: 'prereq-5.3',
@@ -200,7 +197,6 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       responsibleRole: 'Project Coordinator',
       targetRoute: `/projects/${projectId}/closing-report`,
       targetRouteLabel: 'Audit Domain C Timeline',
-      isCompleted: closingAudit.domainC_timeline.every(i => i.status === 'Compliant'),
     },
     {
       id: 'prereq-5.4',
@@ -210,7 +206,6 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       responsibleRole: 'Media Officer',
       targetRoute: `/projects/${projectId}/closing-report`,
       targetRouteLabel: 'Audit Domain D Media Vault',
-      isCompleted: closingAudit.domainD_media.every(i => i.status === 'Compliant'),
     },
 
     // STAGE 6: Form-7 Export & Closed
@@ -222,7 +217,6 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       responsibleRole: '5 Executive Officers',
       targetRoute: `/projects/${projectId}/closing-report`,
       targetRouteLabel: 'Execute 5-Executive Sign-Off',
-      isCompleted: closingAudit.signOffs.every(s => s.signed),
     },
     {
       id: 'prereq-6.2',
@@ -232,9 +226,44 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       responsibleRole: 'Project Director',
       targetRoute: `/projects/${projectId}/closing-report`,
       targetRouteLabel: 'Download Form-7 Package ZIP',
-      isCompleted: closingAudit.isForm7Unlocked,
     },
   ];
+
+  // Evaluate completion status with manual overrides
+  const getIsDefaultCompleted = (id: string, stageKey: string): boolean => {
+    if (stageKey === 'concept') {
+      if (id === 'prereq-1.1') return Boolean(charter.metadata.ngoabRef && charter.metadata.rrrcRef);
+      if (id === 'prereq-1.2') return Boolean(charter.location.gpsLat && charter.sectors.some(s => s.selected));
+    }
+    if (stageKey === 'proposal') {
+      if (id === 'prereq-2.1') return charter.budgetLines.length === 6;
+      if (id === 'prereq-2.2') return charter.beneficiaries.hostTotalIndividuals > 0;
+    }
+    if (stageKey === 'approved') {
+      if (id === 'prereq-3.1') return charter.raci.length > 0;
+      if (id === 'prereq-3.2') return charter.signOffs.every(s => s.signed);
+    }
+    if (stageKey === 'implementation') {
+      return true; // Default initialized active for field stage
+    }
+    if (stageKey === 'monitoring_evaluation') {
+      if (id === 'prereq-5.1') return closingAudit.domainA_financial.every(i => i.status === 'Compliant');
+      if (id === 'prereq-5.2') return closingAudit.domainB_safeguarding.every(i => i.status === 'Compliant');
+      if (id === 'prereq-5.3') return closingAudit.domainC_timeline.every(i => i.status === 'Compliant');
+      if (id === 'prereq-5.4') return closingAudit.domainD_media.every(i => i.status === 'Compliant');
+    }
+    if (stageKey === 'closed') {
+      if (id === 'prereq-6.1') return closingAudit.signOffs.every(s => s.signed);
+      if (id === 'prereq-6.2') return closingAudit.isForm7Unlocked;
+    }
+    return true;
+  };
+
+  const prerequisites: StagePrerequisite[] = defaultPrerequisites.map(p => {
+    const defaultVal = getIsDefaultCompleted(p.id, p.stageKey);
+    const isCompleted = manualPrereqs[p.id] !== undefined ? manualPrereqs[p.id] : defaultVal;
+    return { ...p, isCompleted };
+  });
 
   const currentStageObj = STAGES.find(s => s.key === currentStageKey) || STAGES[3];
   const currentPrereqs = prerequisites.filter(p => p.stageKey === currentStageKey);
@@ -242,14 +271,15 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
   const isCurrentStageCleared = currentPrereqs.length > 0 && currentCompletedCount === currentPrereqs.length;
   const currentIdx = STAGES.findIndex(s => s.key === currentStageKey);
 
-  const saveStageSelection = (stageKey: string) => {
-    setCurrentStageKey(stageKey);
-    const targetObj = STAGES.find(s => s.key === stageKey) || STAGES[0];
+  // Dynamic progress calculation based on prerequisite checklist ratio
+  const prevStagePct = currentIdx > 0 ? STAGES[currentIdx - 1].pct : 0;
+  const targetStagePct = currentStageObj.pct;
+  const currentStageRatio = currentPrereqs.length > 0 ? currentCompletedCount / currentPrereqs.length : 1;
+  const liveCalculatedProgressPct = Math.round(prevStagePct + currentStageRatio * (targetStagePct - prevStagePct));
 
+  // Sync on state change
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem(`skb_kanban_stage_${projectId}`, stageKey);
-
-      // Also update main projects directory with live stage name and progress percentage (%)
       const savedProjects = localStorage.getItem('skb_portal_projects_v3');
       if (savedProjects) {
         try {
@@ -259,8 +289,8 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
               if (p.id === projectId || p.code === charter.metadata.projectCode) {
                 return {
                   ...p,
-                  stage: targetObj.label,
-                  progressPct: targetObj.pct,
+                  stage: currentStageObj.label,
+                  progressPct: liveCalculatedProgressPct,
                 };
               }
               return p;
@@ -270,6 +300,47 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
         } catch (e) {}
       }
     }
+  }, [projectId, currentStageKey, liveCalculatedProgressPct, currentStageObj.label, charter.metadata.projectCode]);
+
+  const saveStageSelection = (stageKey: string) => {
+    setCurrentStageKey(stageKey);
+    const targetObj = STAGES.find(s => s.key === stageKey) || STAGES[0];
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`skb_kanban_stage_${projectId}`, stageKey);
+    }
+  };
+
+  const handleTogglePrereq = (prereqId: string, currentVal: boolean, title: string) => {
+    const newVal = !currentVal;
+    const updated = { ...manualPrereqs, [prereqId]: newVal };
+    setManualPrereqs(updated);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`skb_kanban_prereqs_${projectId}`, JSON.stringify(updated));
+    }
+
+    setToastMessage(`"${title}" marked as ${newVal ? 'Satisfied [✓]' : 'Pending Action [ ]'}`);
+    setTimeout(() => setToastMessage(''), 4000);
+  };
+
+  const handleToggleAllInStage = (shouldComplete: boolean) => {
+    const updated = { ...manualPrereqs };
+    currentPrereqs.forEach(p => {
+      updated[p.id] = shouldComplete;
+    });
+    setManualPrereqs(updated);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`skb_kanban_prereqs_${projectId}`, JSON.stringify(updated));
+    }
+
+    setToastMessage(
+      shouldComplete 
+        ? `All Stage ${currentStageObj.number} prerequisites marked complete!` 
+        : `Stage ${currentStageObj.number} prerequisites reset to pending.`
+    );
+    setTimeout(() => setToastMessage(''), 4000);
   };
 
   const handleSelectStageTab = (stageKey: string) => {
@@ -280,7 +351,7 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
     if (currentIdx < STAGES.length - 1) {
       const nextStage = STAGES[currentIdx + 1];
       saveStageSelection(nextStage.key);
-      setToastMessage(`Project Stage advanced live to Stage ${nextStage.number}: ${nextStage.label}! (${nextStage.pct}% Complete)`);
+      setToastMessage(`Project Stage advanced live to Stage ${nextStage.number}: ${nextStage.label}! (${nextStage.pct}% Target)`);
       setTimeout(() => setToastMessage(''), 4000);
     }
   };
@@ -298,7 +369,7 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
               isCurrentStageCleared ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200'
             }`}>
               {isCurrentStageCleared ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Clock className="w-3.5 h-3.5 text-amber-600" />}
-              {isCurrentStageCleared ? 'Stage Gate Cleared' : 'Prerequisites Pending'}
+              {isCurrentStageCleared ? 'Stage Gate Cleared' : `${currentPrereqs.length - currentCompletedCount} Prerequisites Pending`}
             </span>
           </div>
 
@@ -313,16 +384,19 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
         </div>
 
         <div>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h1 className="text-xl font-extrabold text-slate-900">
               Stage {currentStageObj.number}: {currentStageObj.label}
             </h1>
-            <span className="text-base font-extrabold text-blue-600 bg-blue-50 border border-blue-200 px-3.5 py-1 rounded-full font-mono">
-              {currentStageObj.pct}% Overall Progress
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Live Progress:</span>
+              <span className="text-base font-extrabold text-blue-600 bg-blue-50 border border-blue-200 px-3.5 py-1 rounded-full font-mono">
+                {liveCalculatedProgressPct}% Overall Progress
+              </span>
+            </div>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Stage gates prevent invalid transitions. All prerequisite checks below are dynamically linked to the <strong>Master Project Charter</strong> and the <strong>Pre-Submission Closing Audit Working Paper</strong>.
+            Officers can directly check off prerequisite requirements below. Real-time changes instantly update the project&apos;s overall progress percentage and sync to the Projects Directory.
           </p>
         </div>
       </div>
@@ -338,8 +412,11 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center">
         {STAGES.map((s) => {
           const isActive = s.key === currentStageKey;
-          const sPrereqs = prerequisites.filter(p => p.stageKey === s.key);
-          const sCompleted = sPrereqs.filter(p => p.isCompleted).length;
+          const sPrereqs = defaultPrerequisites.filter(p => p.stageKey === s.key);
+          const sCompleted = sPrereqs.filter(p => {
+            const def = getIsDefaultCompleted(p.id, p.stageKey);
+            return manualPrereqs[p.id] !== undefined ? manualPrereqs[p.id] : def;
+          }).length;
           const sDone = sPrereqs.length > 0 && sCompleted === sPrereqs.length;
 
           return (
@@ -364,7 +441,7 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
               </div>
               <div className="text-xs font-bold truncate">{s.shortLabel}</div>
               <div className="text-[10px] text-slate-400 font-medium">
-                {sPrereqs.length > 0 ? `${sCompleted}/${sPrereqs.length} Cleared` : 'Automated Check'}
+                {sPrereqs.length > 0 ? `${sCompleted}/${sPrereqs.length} Cleared` : 'Checklist'}
               </div>
             </button>
           );
@@ -373,36 +450,64 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
 
       {/* Prerequisites Checklist Box */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
           <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
             <CheckSquare className="w-5 h-5 text-blue-600" />
-            Stage {currentStageObj.number} Prerequisites Checklist ({currentStageObj.label})
+            Stage {currentStageObj.number} Interactive Prerequisites Checklist ({currentStageObj.label})
           </h3>
-          <span className="text-xs font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-full font-mono">
-            Stage Status: {currentCompletedCount} of {currentPrereqs.length} Satisfied ({isCurrentStageCleared ? '100% Cleared' : 'Pending'})
-          </span>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleToggleAllInStage(!isCurrentStageCleared)}
+              className="text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-full border border-slate-300 transition flex items-center gap-1"
+            >
+              {isCurrentStageCleared ? <RotateCcw className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+              {isCurrentStageCleared ? 'Uncheck All' : 'Quick Check All'}
+            </button>
+            <span className="text-xs font-bold bg-slate-900 text-white px-3 py-1 rounded-full font-mono">
+              Stage Status: {currentCompletedCount} of {currentPrereqs.length} Satisfied ({isCurrentStageCleared ? '100% Cleared' : 'Pending'})
+            </span>
+          </div>
         </div>
 
         <div className="space-y-3">
           {currentPrereqs.map((prereq) => (
             <div
               key={prereq.id}
-              className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition ${
+              className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
                 prereq.isCompleted
-                  ? 'bg-emerald-50/40 border-emerald-200/80 text-emerald-950'
-                  : 'bg-amber-50/30 border-amber-200/80 text-amber-950'
+                  ? 'bg-emerald-50/40 border-emerald-300 text-emerald-950 shadow-xs'
+                  : 'bg-amber-50/30 border-amber-300 text-amber-950'
               }`}
             >
               <div className="flex items-start gap-3">
-                <div className="mt-0.5 shrink-0">
+                {/* Interactive Checkbox Button */}
+                <button
+                  type="button"
+                  onClick={() => handleTogglePrereq(prereq.id, prereq.isCompleted, prereq.title)}
+                  className={`mt-0.5 p-1.5 rounded-xl transition-all flex items-center justify-center border shrink-0 ${
+                    prereq.isCompleted
+                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm hover:bg-emerald-700'
+                      : 'bg-white border-amber-400 text-amber-600 hover:border-emerald-500 hover:text-emerald-600'
+                  }`}
+                  title={prereq.isCompleted ? 'Click to mark as pending' : 'Click to mark as satisfied'}
+                >
                   {prereq.isCompleted ? (
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    <CheckSquare className="w-5 h-5 text-white" />
                   ) : (
-                    <Clock className="w-5 h-5 text-amber-600" />
+                    <Square className="w-5 h-5" />
                   )}
-                </div>
+                </button>
+
                 <div>
-                  <h4 className="text-xs font-bold text-slate-900">{prereq.title}</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-xs font-bold text-slate-900">{prereq.title}</h4>
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md ${
+                      prereq.isCompleted ? 'bg-emerald-200/80 text-emerald-900' : 'bg-amber-200/80 text-amber-900'
+                    }`}>
+                      {prereq.isCompleted ? 'Cleared' : 'Pending'}
+                    </span>
+                  </div>
                   <p className="text-[11px] text-slate-600 mt-0.5">{prereq.description}</p>
                 </div>
               </div>
@@ -411,6 +516,29 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
                 <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md border border-slate-200">
                   Role: {prereq.responsibleRole}
                 </span>
+
+                {/* Direct Manual Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() => handleTogglePrereq(prereq.id, prereq.isCompleted, prereq.title)}
+                  className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all flex items-center gap-1.5 ${
+                    prereq.isCompleted
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200'
+                      : 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200'
+                  }`}
+                >
+                  {prereq.isCompleted ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      Satisfied [✓]
+                    </>
+                  ) : (
+                    <>
+                      <Clock className="w-3.5 h-3.5 text-amber-600" />
+                      Click to Check [ ]
+                    </>
+                  )}
+                </button>
 
                 <Link
                   href={prereq.targetRoute}

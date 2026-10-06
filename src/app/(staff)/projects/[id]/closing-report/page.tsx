@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
   Lock, 
@@ -32,6 +32,26 @@ export default function PreSubmissionClosingReportPage({ params }: { params: { i
   const [toastMessage, setToastMessage] = useState('');
   const [activeTabDomain, setActiveTabDomain] = useState<'A' | 'B' | 'C' | 'D'>('A');
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`skb_closing_audit_${projectId}`);
+      if (saved) {
+        try {
+          setWorkingPaper(JSON.parse(saved));
+        } catch (e) {
+          console.error('Failed to parse closing audit', e);
+        }
+      }
+    }
+  }, [projectId]);
+
+  const updateWorkingPaperState = (updated: ClosingReportWorkingPaper) => {
+    setWorkingPaper(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`skb_closing_audit_${projectId}`, JSON.stringify(updated));
+    }
+  };
+
   const toggleParameterStatus = (domainKey: 'domainA_financial' | 'domainB_safeguarding' | 'domainC_timeline' | 'domainD_media', itemId: string) => {
     const updatedList = workingPaper[domainKey].map((item) => {
       if (item.id === itemId) {
@@ -41,11 +61,12 @@ export default function PreSubmissionClosingReportPage({ params }: { params: { i
       return item;
     });
 
-    setWorkingPaper({
+    const updated = {
       ...workingPaper,
       [domainKey]: updatedList,
-    });
+    };
 
+    updateWorkingPaperState(updated);
     setToastMessage(`Updated compliance audit parameter ${itemId}!`);
     setTimeout(() => setToastMessage(''), 3000);
   };
@@ -57,12 +78,13 @@ export default function PreSubmissionClosingReportPage({ params }: { params: { i
 
     const allSigned = updatedSignOffs.every(s => s.signed);
 
-    setWorkingPaper({
+    const updated = {
       ...workingPaper,
       signOffs: updatedSignOffs,
       isForm7Unlocked: allSigned,
-    });
+    };
 
+    updateWorkingPaperState(updated);
     setToastMessage(`Pre-submission sign-off recorded for ${updatedSignOffs[roleIdx].role}!`);
     setTimeout(() => setToastMessage(''), 3500);
   };

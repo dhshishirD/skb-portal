@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   FileText, 
   ShieldCheck, 
@@ -29,6 +29,26 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
   const [toastMessage, setToastMessage] = useState('');
   const [openAccordion, setOpenAccordion] = useState<number>(1);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`skb_charter_${projectId}`);
+      if (saved) {
+        try {
+          setCharter(JSON.parse(saved));
+        } catch (e) {
+          console.error('Failed to parse saved charter', e);
+        }
+      }
+    }
+  }, [projectId]);
+
+  const updateCharterState = (updated: MasterProjectCharter) => {
+    setCharter(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`skb_charter_${projectId}`, JSON.stringify(updated));
+    }
+  };
+
   const toggleAccordion = (sectionNum: number) => {
     setOpenAccordion(openAccordion === sectionNum ? 0 : sectionNum);
   };
@@ -38,12 +58,13 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
     updatedSignOffs[roleIndex].signed = true;
     updatedSignOffs[roleIndex].signedAt = new Date().toISOString().split('T')[0];
     
-    setCharter({
+    const updated: MasterProjectCharter = {
       ...charter,
       signOffs: updatedSignOffs,
       isLocked: updatedSignOffs.every(s => s.signed)
-    });
+    };
 
+    updateCharterState(updated);
     setToastMessage(`Executive Sign-Off recorded for ${updatedSignOffs[roleIndex].role}!`);
     setTimeout(() => setToastMessage(''), 3500);
   };

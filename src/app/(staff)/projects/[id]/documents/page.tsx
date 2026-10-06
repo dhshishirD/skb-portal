@@ -76,10 +76,6 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
       {/* Top Breadcrumb & Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div>
-          <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
-            <Link href="/projects" className="hover:underline">Projects</Link> &rsaquo;
-            <span className="font-semibold text-slate-800">Project Compliance (#{projectId})</span>
-          </div>
           <h1 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
             <FileText className="w-5 h-5 text-blue-600" />
             Program Officer Document Submission & Donor Sync Workspace
@@ -104,39 +100,6 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
             <Upload className="w-4 h-4" /> Upload Document
           </button>
         </div>
-      </div>
-
-      {/* Sub-Navigation Tabs */}
-      <div className="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-1 text-xs font-semibold">
-        <Link 
-          href={`/projects/${projectId}/kanban`} 
-          className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 transition"
-        >
-          📋 Kanban Lifecycle
-        </Link>
-        <Link 
-          href={`/projects/${projectId}/logframe`} 
-          className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 transition"
-        >
-          🎯 Logframe Targets
-        </Link>
-        <Link 
-          href={`/projects/${projectId}/tasks`} 
-          className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 transition"
-        >
-          📝 Work Plan & Tasks
-        </Link>
-        <Link 
-          href={`/projects/${projectId}/beneficiaries`} 
-          className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 transition"
-        >
-          👥 Project Beneficiaries
-        </Link>
-        <button 
-          className="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold shadow-sm"
-        >
-          📂 Documents & Donor Compliance ({docs.length})
-        </button>
       </div>
 
       {/* Live Sync Banner */}

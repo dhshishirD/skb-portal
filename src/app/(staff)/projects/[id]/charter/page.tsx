@@ -22,9 +22,10 @@ import {
   Edit2,
   X,
   Save,
-  Coins
+  Coins,
+  Target
 } from 'lucide-react';
-import { getDefaultCharter, MasterProjectCharter, CharterBudgetLine } from '@/server/services/projectCharterService';
+import { getDefaultCharter, MasterProjectCharter, CharterBudgetLine, SectorScopeItem } from '@/server/services/projectCharterService';
 import { formatCurrencyString } from '@/server/services/multiCurrency';
 
 export default function MasterProjectCharterPage({ params }: { params: { id: string } }) {
@@ -62,8 +63,28 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
   const [editRohingyaFemale, setEditRohingyaFemale] = useState(300);
   const [editOrphans, setEditOrphans] = useState(25);
 
-  // 6-Line Financial Budget Breakdown Form State
+  // 10-Sector Matrix & 6-Line Financial Budget Breakdown Form State
+  const [editSectors, setEditSectors] = useState<SectorScopeItem[]>([]);
   const [editBudgetLines, setEditBudgetLines] = useState<CharterBudgetLine[]>([]);
+
+  const handleToggleSectorDirect = (sectorId: string) => {
+    const updatedSectors = charter.sectors.map(sec => {
+      if (sec.id === sectorId) {
+        return { ...sec, selected: !sec.selected };
+      }
+      return sec;
+    });
+
+    const updatedCharter = {
+      ...charter,
+      sectors: updatedSectors,
+    };
+
+    updateCharterState(updatedCharter);
+    const targetSector = updatedSectors.find(s => s.id === sectorId);
+    setToastMessage(`Sector "${targetSector?.name}" is now ${targetSector?.selected ? 'ACTIVE [✓]' : 'INACTIVE [ ]'}`);
+    setTimeout(() => setToastMessage(''), 4000);
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -142,9 +163,19 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
     setEditRohingyaFemale(charter.beneficiaries.rohingyaFemale);
     setEditOrphans(charter.beneficiaries.orphanTotal);
 
-    // 6-Line Budget
+    // 10 Sectors & 6-Line Budget
+    setEditSectors(JSON.parse(JSON.stringify(charter.sectors)));
     setEditBudgetLines(JSON.parse(JSON.stringify(charter.budgetLines)));
     setShowEditModal(true);
+  };
+
+  const handleModalToggleSector = (sectorId: string) => {
+    setEditSectors(prev => prev.map(sec => {
+      if (sec.id === sectorId) {
+        return { ...sec, selected: !sec.selected };
+      }
+      return sec;
+    }));
   };
 
   const handleBudgetLineChange = (index: number, field: 'approvedDonorCurrency' | 'approvedBdt' | 'status', value: any) => {
@@ -177,6 +208,7 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
         keyOutput2: editOutput2.trim() || charter.narrative.keyOutput2,
         keyOutput3: editOutput3.trim() || charter.narrative.keyOutput3,
       },
+      sectors: editSectors.length > 0 ? editSectors : charter.sectors,
       location: {
         ...charter.location,
         district: editDistrict.trim() || charter.location.district,
@@ -363,24 +395,37 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
               </div>
 
               <div>
-                <h4 className="font-extrabold text-slate-900 uppercase text-[11px] tracking-wider text-blue-700 mb-2">
-                  10-Sector Scope Selection Matrix
-                </h4>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-extrabold text-slate-900 uppercase text-[11px] tracking-wider text-blue-700">
+                    10-Sector Scope Selection Matrix
+                  </h4>
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    (Click any sector card below to toggle project scope)
+                  </span>
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   {charter.sectors.map((sec) => (
-                    <div
+                    <button
                       key={sec.id}
-                      className={`p-2.5 rounded-xl border text-[11px] font-bold transition ${
+                      type="button"
+                      onClick={() => handleToggleSectorDirect(sec.id)}
+                      className={`p-2.5 rounded-xl border text-[11px] font-bold transition-all text-left flex items-center justify-between gap-1.5 ${
                         sec.selected
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                          : 'bg-slate-50 text-slate-400 border-slate-200'
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs ring-1 ring-blue-400/50 hover:bg-blue-700'
+                          : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100 hover:text-slate-600'
                       }`}
+                      title={sec.selected ? 'Click to deactivate sector' : 'Click to activate sector'}
                     >
-                      <div className="flex items-center gap-1.5">
-                        <span className={`w-2 h-2 rounded-full ${sec.selected ? 'bg-amber-400' : 'bg-slate-300'}`} />
-                        <span>{sec.name}</span>
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${sec.selected ? 'bg-amber-400' : 'bg-slate-300'}`} />
+                        <span className="truncate">{sec.name}</span>
                       </div>
-                    </div>
+                      <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded shrink-0 ${
+                        sec.selected ? 'bg-blue-500/90 text-white' : 'bg-slate-200 text-slate-500'
+                      }`}>
+                        {sec.selected ? 'ACTIVE' : 'OFF'}
+                      </span>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -616,10 +661,38 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
                 </div>
               </div>
 
+              {/* 10-SECTOR SCOPE MATRIX */}
+              <div className="space-y-2 border-t border-slate-100 pt-3">
+                <h4 className="font-extrabold text-blue-700 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                  <Target className="w-4 h-4" /> 2. 10-Sector Scope Selection Matrix (Select Active Project Sectors)
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  {editSectors.map((sec) => (
+                    <button
+                      key={sec.id}
+                      type="button"
+                      onClick={() => handleModalToggleSector(sec.id)}
+                      className={`p-2 rounded-xl border text-[11px] font-bold transition-all text-left flex items-center justify-between gap-1 ${
+                        sec.selected
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs ring-1 ring-blue-400'
+                          : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <span className="truncate">{sec.name}</span>
+                      <span className={`text-[9px] px-1 py-0.5 rounded font-mono ${
+                        sec.selected ? 'bg-blue-500 text-white font-extrabold' : 'bg-slate-100 text-slate-400'
+                      }`}>
+                        {sec.selected ? '✓ ON' : 'OFF'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* NARRATIVE */}
               <div className="space-y-2 border-t border-slate-100 pt-3">
                 <h4 className="font-extrabold text-blue-700 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                  <FileText className="w-4 h-4" /> 2. Executive Background &amp; Outputs
+                  <FileText className="w-4 h-4" /> 3. Executive Background &amp; Outputs
                 </h4>
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Executive Summary</label>

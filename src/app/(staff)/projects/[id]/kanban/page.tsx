@@ -244,7 +244,8 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       if (id === 'prereq-3.2') return charter.signOffs.every(s => s.signed);
     }
     if (stageKey === 'implementation') {
-      return true; // Default initialized active for field stage
+      // Default to false (pending action) so officers can interactively check off items
+      return false;
     }
     if (stageKey === 'monitoring_evaluation') {
       if (id === 'prereq-5.1') return closingAudit.domainA_financial.every(i => i.status === 'Compliant');
@@ -256,7 +257,7 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       if (id === 'prereq-6.1') return closingAudit.signOffs.every(s => s.signed);
       if (id === 'prereq-6.2') return closingAudit.isForm7Unlocked;
     }
-    return true;
+    return false;
   };
 
   const prerequisites: StagePrerequisite[] = defaultPrerequisites.map(p => {

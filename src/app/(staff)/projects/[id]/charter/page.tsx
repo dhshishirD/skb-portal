@@ -21,13 +21,14 @@ import {
   Check,
   Edit2,
   X,
-  Save
+  Save,
+  Coins
 } from 'lucide-react';
-import { getDefaultCharter, MasterProjectCharter } from '@/server/services/projectCharterService';
+import { getDefaultCharter, MasterProjectCharter, CharterBudgetLine } from '@/server/services/projectCharterService';
 import { formatCurrencyString } from '@/server/services/multiCurrency';
 
 export default function MasterProjectCharterPage({ params }: { params: { id: string } }) {
-  const projectId = params.id || 'PID-22567';
+  const projectId = params.id || '1791270873958';
   const [charter, setCharter] = useState<MasterProjectCharter>(getDefaultCharter(projectId, `Project ${projectId}`));
   const [toastMessage, setToastMessage] = useState('');
   const [openAccordion, setOpenAccordion] = useState<number>(1);
@@ -47,8 +48,22 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
   const [editUpazila, setEditUpazila] = useState('');
   const [editGpsLat, setEditGpsLat] = useState('');
   const [editGpsLng, setEditGpsLng] = useState('');
+
+  // Beneficiary Target Demographics Form States
   const [editHostCount, setEditHostCount] = useState(500);
+  const [editHostHouseholds, setEditHostHouseholds] = useState(100);
+  const [editHostMale, setEditHostMale] = useState(200);
+  const [editHostFemale, setEditHostFemale] = useState(300);
+  const [editHostPwd, setEditHostPwd] = useState(10);
+
   const [editRohingyaCount, setEditRohingyaCount] = useState(500);
+  const [editRohingyaHouseholds, setEditRohingyaHouseholds] = useState(100);
+  const [editRohingyaMale, setEditRohingyaMale] = useState(200);
+  const [editRohingyaFemale, setEditRohingyaFemale] = useState(300);
+  const [editOrphans, setEditOrphans] = useState(25);
+
+  // 6-Line Financial Budget Breakdown Form State
+  const [editBudgetLines, setEditBudgetLines] = useState<CharterBudgetLine[]>([]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -75,13 +90,19 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
         try {
           const projects = JSON.parse(savedProjects);
           if (Array.isArray(projects)) {
+            const totalBdt = updated.budgetLines.reduce((acc, l) => acc + l.approvedBdt, 0);
+            const totalUsd = updated.budgetLines.reduce((acc, l) => acc + l.approvedDonorCurrency, 0);
+            const formattedBudget = `$${totalUsd.toLocaleString()} USD (BDT ${totalBdt.toLocaleString()})`;
+
             const updatedProjects = projects.map((p: any) => {
               if (p.id === projectId || p.code === updated.metadata.projectCode) {
                 return {
                   ...p,
                   name: updated.metadata.projectTitle,
                   code: updated.metadata.projectCode,
+                  budget: formattedBudget,
                   location: `${updated.location.district}, ${updated.location.upazila}`,
+                  beneficiariesCount: updated.beneficiaries.hostTotalIndividuals + updated.beneficiaries.rohingyaTotalIndividuals,
                 };
               }
               return p;
@@ -107,9 +128,33 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
     setEditUpazila(charter.location.upazila);
     setEditGpsLat(charter.location.gpsLat);
     setEditGpsLng(charter.location.gpsLng);
+
+    // Demographics
     setEditHostCount(charter.beneficiaries.hostTotalIndividuals);
+    setEditHostHouseholds(charter.beneficiaries.hostTotalHouseholds);
+    setEditHostMale(charter.beneficiaries.hostMale);
+    setEditHostFemale(charter.beneficiaries.hostFemale);
+    setEditHostPwd(charter.beneficiaries.hostPwd);
+
     setEditRohingyaCount(charter.beneficiaries.rohingyaTotalIndividuals);
+    setEditRohingyaHouseholds(charter.beneficiaries.rohingyaTotalHouseholds);
+    setEditRohingyaMale(charter.beneficiaries.rohingyaMale);
+    setEditRohingyaFemale(charter.beneficiaries.rohingyaFemale);
+    setEditOrphans(charter.beneficiaries.orphanTotal);
+
+    // 6-Line Budget
+    setEditBudgetLines(JSON.parse(JSON.stringify(charter.budgetLines)));
     setShowEditModal(true);
+  };
+
+  const handleBudgetLineChange = (index: number, field: 'approvedDonorCurrency' | 'approvedBdt' | 'status', value: any) => {
+    const updated = [...editBudgetLines];
+    if (field === 'approvedDonorCurrency' || field === 'approvedBdt') {
+      updated[index][field] = Number(value) || 0;
+    } else {
+      updated[index][field] = value;
+    }
+    setEditBudgetLines(updated);
   };
 
   const handleSaveCharterEdit = (e: React.FormEvent) => {
@@ -142,8 +187,18 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
       beneficiaries: {
         ...charter.beneficiaries,
         hostTotalIndividuals: Number(editHostCount) || charter.beneficiaries.hostTotalIndividuals,
+        hostTotalHouseholds: Number(editHostHouseholds) || charter.beneficiaries.hostTotalHouseholds,
+        hostMale: Number(editHostMale) || charter.beneficiaries.hostMale,
+        hostFemale: Number(editHostFemale) || charter.beneficiaries.hostFemale,
+        hostPwd: Number(editHostPwd) || charter.beneficiaries.hostPwd,
+
         rohingyaTotalIndividuals: Number(editRohingyaCount) || charter.beneficiaries.rohingyaTotalIndividuals,
-      }
+        rohingyaTotalHouseholds: Number(editRohingyaHouseholds) || charter.beneficiaries.rohingyaTotalHouseholds,
+        rohingyaMale: Number(editRohingyaMale) || charter.beneficiaries.rohingyaMale,
+        rohingyaFemale: Number(editRohingyaFemale) || charter.beneficiaries.rohingyaFemale,
+        orphanTotal: Number(editOrphans) || charter.beneficiaries.orphanTotal,
+      },
+      budgetLines: editBudgetLines.length > 0 ? editBudgetLines : charter.budgetLines,
     };
 
     updateCharterState(updated);
@@ -173,7 +228,7 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
   };
 
   const handleExportPdf = () => {
-    const content = `==========================================================\nSMALL KINDNESS BANGLADESH (SKB) - MASTER HUMANITARIAN PROJECT CHARTER\nProject Title: ${charter.metadata.projectTitle}\nProject Code: ${charter.metadata.projectCode}\nDonor: ${charter.metadata.donorName}\nNGOAB Clearance Ref: ${charter.metadata.ngoabRef}\nRRRC Approval Ref: ${charter.metadata.rrrcRef}\n==========================================================\n\n1. EXECUTIVE SUMMARY:\n${charter.narrative.executiveSummary}\n\n2. KEY OUTPUTS:\n- ${charter.narrative.keyOutput1}\n- ${charter.narrative.keyOutput2}\n- ${charter.narrative.keyOutput3}\n\n3. GEOGRAPHICAL MAPPING:\nDivision: ${charter.location.division} | District: ${charter.location.district} | Upazila: ${charter.location.upazila}\nGPS Coordinates: Lat ${charter.location.gpsLat}, Lng ${charter.location.gpsLng}\n\n4. 6-LINE BUDGET FRAMEWORK:\n${charter.budgetLines.map(b => `- ${b.category}: BDT ${b.approvedBdt.toLocaleString()} (${b.status})`).join('\n')}\n\n5. EXECUTIVE SIGN-OFFS:\n${charter.signOffs.map(s => `- ${s.role}: ${s.officerName} (${s.signed ? 'SIGNED ✓' : 'PENDING'})`).join('\n')}\n`;
+    const content = `==========================================================\nSMALL KINDNESS BANGLADESH (SKB) - MASTER HUMANITARIAN PROJECT CHARTER\nProject Title: ${charter.metadata.projectTitle}\nProject Code: ${charter.metadata.projectCode}\nDonor: ${charter.metadata.donorName}\nNGOAB Clearance Ref: ${charter.metadata.ngoabRef}\nRRRC Approval Ref: ${charter.metadata.rrrcRef}\n==========================================================\n\n1. EXECUTIVE SUMMARY:\n${charter.narrative.executiveSummary}\n\n2. KEY OUTPUTS:\n- ${charter.narrative.keyOutput1}\n- ${charter.narrative.keyOutput2}\n- ${charter.narrative.keyOutput3}\n\n3. GEOGRAPHICAL MAPPING:\nDivision: ${charter.location.division} | District: ${charter.location.district} | Upazila: ${charter.location.upazila}\nGPS Coordinates: Lat ${charter.location.gpsLat}, Lng ${charter.location.gpsLng}\n\n4. 6-LINE BUDGET FRAMEWORK:\n${charter.budgetLines.map(b => `- ${b.category}: $${b.approvedDonorCurrency.toLocaleString()} USD / BDT ${b.approvedBdt.toLocaleString()} (${b.status})`).join('\n')}\n\n5. EXECUTIVE SIGN-OFFS:\n${charter.signOffs.map(s => `- ${s.role}: ${s.officerName} (${s.signed ? 'SIGNED ✓' : 'PENDING'})`).join('\n')}\n`;
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -206,9 +261,9 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
           <div className="flex items-center gap-2">
             <button
               onClick={handleOpenEditModal}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3.5 py-2 rounded-xl transition-all"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3.5 py-2 rounded-xl transition-all shadow-xs"
             >
-              <Edit2 className="w-4 h-4 text-blue-600" /> Edit Project Charter
+              <Edit2 className="w-4 h-4 text-blue-600" /> Edit Project Charter &amp; Budget
             </button>
 
             <button
@@ -351,15 +406,26 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
 
         {/* SECTION ITEM 2: Beneficiary Targeting & Budget */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all">
-          <button 
-            onClick={() => toggleAccordion(2)}
-            className="w-full p-4 flex items-center justify-between bg-slate-50/70 hover:bg-slate-100/70 transition border-b border-slate-100 text-left"
-          >
-            <span className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
+          <div className="p-4 flex items-center justify-between bg-slate-50/70 border-b border-slate-100">
+            <button 
+              onClick={() => toggleAccordion(2)}
+              className="flex items-center gap-2 font-extrabold text-slate-900 text-sm text-left hover:text-blue-600 transition"
+            >
               <Users className="w-4 h-4 text-emerald-600" /> Beneficiary Targeting, Personnel Directory &amp; 6-Line Budget Framework
-            </span>
-            {openAccordion === 2 ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
-          </button>
+            </button>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleOpenEditModal}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 bg-white hover:bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg transition"
+              >
+                <Edit2 className="w-3.5 h-3.5" /> Edit Budget &amp; Targets
+              </button>
+              <button onClick={() => toggleAccordion(2)}>
+                {openAccordion === 2 ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+              </button>
+            </div>
+          </div>
 
           {openAccordion === 2 && (
             <div className="p-5 space-y-5 text-xs">
@@ -390,15 +456,21 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
               </div>
 
               <div>
-                <h4 className="font-extrabold text-slate-900 uppercase text-[11px] tracking-wider text-blue-700 mb-2">
-                  6-Line Financial Budget Framework
-                </h4>
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-extrabold text-slate-900 uppercase text-[11px] tracking-wider text-blue-700">
+                    6-Line Financial Budget Framework
+                  </h4>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-mono">
+                    Total: ${charter.budgetLines.reduce((acc, l) => acc + l.approvedDonorCurrency, 0).toLocaleString()} USD (BDT {charter.budgetLines.reduce((acc, l) => acc + l.approvedBdt, 0).toLocaleString()})
+                  </span>
+                </div>
+
+                <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-900 text-white text-[10px] uppercase font-bold tracking-wider font-mono">
                       <tr>
                         <th className="p-3">Budget Line Category</th>
-                        <th className="p-3 font-mono">Donor Currency</th>
+                        <th className="p-3 font-mono">Donor Currency (USD)</th>
                         <th className="p-3 font-mono">Approved BDT</th>
                         <th className="p-3">Compliance Status</th>
                       </tr>
@@ -470,181 +542,283 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
       {/* EDIT CHARTER MODAL */}
       {showEditModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-3xl rounded-2xl shadow-xl border border-slate-200 p-6 space-y-4 animate-in fade-in duration-200 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white w-full max-w-4xl rounded-2xl shadow-xl border border-slate-200 p-6 space-y-4 animate-in fade-in duration-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Edit2 className="w-5 h-5 text-blue-600" />
-                Edit Operational Project Charter Parameters
+                Edit Project Charter, Budget &amp; Beneficiary Parameters
               </h3>
               <button onClick={() => setShowEditModal(false)} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveCharterEdit} className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Project Code / PID</label>
-                  <input
-                    type="text"
-                    required
-                    value={editCode}
-                    onChange={(e) => setEditCode(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
-                  />
+            <form onSubmit={handleSaveCharterEdit} className="space-y-5 text-xs">
+              {/* METADATA */}
+              <div className="space-y-2">
+                <h4 className="font-extrabold text-blue-700 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                  <Building2 className="w-4 h-4" /> 1. Project Identification &amp; Clearance References
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Project Code / PID</label>
+                    <input
+                      type="text"
+                      required
+                      value={editCode}
+                      onChange={(e) => setEditCode(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">NGOAB Clearance Ref (FD-6/7)</label>
+                    <input
+                      type="text"
+                      required
+                      value={editNgoab}
+                      onChange={(e) => setEditNgoab(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">RRRC Approval Ref</label>
+                    <input
+                      type="text"
+                      required
+                      value={editRrrc}
+                      onChange={(e) => setEditRrrc(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">NGOAB Clearance Ref (FD-6/7)</label>
-                  <input
-                    type="text"
-                    required
-                    value={editNgoab}
-                    onChange={(e) => setEditNgoab(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">RRRC Approval Ref</label>
-                  <input
-                    type="text"
-                    required
-                    value={editRrrc}
-                    onChange={(e) => setEditRrrc(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
-                  />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Full Project Title</label>
+                    <input
+                      type="text"
+                      required
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Donor / Partner Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={editDonor}
+                      onChange={(e) => setEditDonor(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* NARRATIVE */}
+              <div className="space-y-2 border-t border-slate-100 pt-3">
+                <h4 className="font-extrabold text-blue-700 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                  <FileText className="w-4 h-4" /> 2. Executive Background &amp; Outputs
+                </h4>
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Full Project Title</label>
-                  <input
-                    type="text"
+                  <label className="block font-bold text-slate-700 mb-1">Executive Summary</label>
+                  <textarea
+                    rows={3}
                     required
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
+                    value={editSummary}
+                    onChange={(e) => setEditSummary(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
                   />
                 </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Donor Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={editDonor}
-                    onChange={(e) => setEditDonor(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
-                  />
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Key Output 1</label>
+                    <input
+                      type="text"
+                      required
+                      value={editOutput1}
+                      onChange={(e) => setEditOutput1(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Key Output 2</label>
+                    <input
+                      type="text"
+                      required
+                      value={editOutput2}
+                      onChange={(e) => setEditOutput2(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Key Output 3</label>
+                    <input
+                      type="text"
+                      required
+                      value={editOutput3}
+                      onChange={(e) => setEditOutput3(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Executive Summary &amp; Background</label>
-                <textarea
-                  rows={3}
-                  required
-                  value={editSummary}
-                  onChange={(e) => setEditSummary(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
-                />
+              {/* DEMOGRAPHICS */}
+              <div className="space-y-2 border-t border-slate-100 pt-3">
+                <h4 className="font-extrabold text-emerald-700 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                  <Users className="w-4 h-4" /> 3. Beneficiary Target Demographics
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-emerald-50/50 p-3 rounded-xl border border-emerald-200">
+                  <div>
+                    <label className="block font-bold text-emerald-950 mb-1">Host Individuals</label>
+                    <input
+                      type="number"
+                      required
+                      value={editHostCount}
+                      onChange={(e) => setEditHostCount(Number(e.target.value))}
+                      className="w-full bg-white border border-emerald-200 text-slate-900 rounded-xl p-2 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-emerald-950 mb-1">Host Households</label>
+                    <input
+                      type="number"
+                      required
+                      value={editHostHouseholds}
+                      onChange={(e) => setEditHostHouseholds(Number(e.target.value))}
+                      className="w-full bg-white border border-emerald-200 text-slate-900 rounded-xl p-2 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-emerald-950 mb-1">Host Male</label>
+                    <input
+                      type="number"
+                      required
+                      value={editHostMale}
+                      onChange={(e) => setEditHostMale(Number(e.target.value))}
+                      className="w-full bg-white border border-emerald-200 text-slate-900 rounded-xl p-2 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-emerald-950 mb-1">Host Female</label>
+                    <input
+                      type="number"
+                      required
+                      value={editHostFemale}
+                      onChange={(e) => setEditHostFemale(Number(e.target.value))}
+                      className="w-full bg-white border border-emerald-200 text-slate-900 rounded-xl p-2 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-emerald-950 mb-1">Host PWD</label>
+                    <input
+                      type="number"
+                      required
+                      value={editHostPwd}
+                      onChange={(e) => setEditHostPwd(Number(e.target.value))}
+                      className="w-full bg-white border border-emerald-200 text-slate-900 rounded-xl p-2 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-blue-50/50 p-3 rounded-xl border border-blue-200">
+                  <div>
+                    <label className="block font-bold text-blue-950 mb-1">Rohingya Indiv.</label>
+                    <input
+                      type="number"
+                      required
+                      value={editRohingyaCount}
+                      onChange={(e) => setEditRohingyaCount(Number(e.target.value))}
+                      className="w-full bg-white border border-blue-200 text-slate-900 rounded-xl p-2 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-blue-950 mb-1">Rohingya House.</label>
+                    <input
+                      type="number"
+                      required
+                      value={editRohingyaHouseholds}
+                      onChange={(e) => setEditRohingyaHouseholds(Number(e.target.value))}
+                      className="w-full bg-white border border-blue-200 text-slate-900 rounded-xl p-2 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-blue-950 mb-1">Rohingya Male</label>
+                    <input
+                      type="number"
+                      required
+                      value={editRohingyaMale}
+                      onChange={(e) => setEditRohingyaMale(Number(e.target.value))}
+                      className="w-full bg-white border border-blue-200 text-slate-900 rounded-xl p-2 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-blue-950 mb-1">Rohingya Female</label>
+                    <input
+                      type="number"
+                      required
+                      value={editRohingyaFemale}
+                      onChange={(e) => setEditRohingyaFemale(Number(e.target.value))}
+                      className="w-full bg-white border border-blue-200 text-slate-900 rounded-xl p-2 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-blue-950 mb-1">Orphans</label>
+                    <input
+                      type="number"
+                      required
+                      value={editOrphans}
+                      onChange={(e) => setEditOrphans(Number(e.target.value))}
+                      className="w-full bg-white border border-blue-200 text-slate-900 rounded-xl p-2 outline-none"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Key Output 1</label>
-                  <input
-                    type="text"
-                    required
-                    value={editOutput1}
-                    onChange={(e) => setEditOutput1(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Key Output 2</label>
-                  <input
-                    type="text"
-                    required
-                    value={editOutput2}
-                    onChange={(e) => setEditOutput2(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Key Output 3</label>
-                  <input
-                    type="text"
-                    required
-                    value={editOutput3}
-                    onChange={(e) => setEditOutput3(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">District</label>
-                  <input
-                    type="text"
-                    required
-                    value={editDistrict}
-                    onChange={(e) => setEditDistrict(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Upazila</label>
-                  <input
-                    type="text"
-                    required
-                    value={editUpazila}
-                    onChange={(e) => setEditUpazila(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">GPS Lat</label>
-                  <input
-                    type="text"
-                    required
-                    value={editGpsLat}
-                    onChange={(e) => setEditGpsLat(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">GPS Lng</label>
-                  <input
-                    type="text"
-                    required
-                    value={editGpsLng}
-                    onChange={(e) => setEditGpsLng(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Host Target Individuals</label>
-                  <input
-                    type="number"
-                    required
-                    value={editHostCount}
-                    onChange={(e) => setEditHostCount(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Rohingya Target Individuals</label>
-                  <input
-                    type="number"
-                    required
-                    value={editRohingyaCount}
-                    onChange={(e) => setEditRohingyaCount(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
-                  />
+              {/* 6-LINE FINANCIAL BUDGET EDITING TABLE */}
+              <div className="space-y-2 border-t border-slate-100 pt-3">
+                <h4 className="font-extrabold text-amber-700 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                  <Coins className="w-4 h-4" /> 4. 6-Line Financial Budget Breakdown (USD &amp; BDT Amounts)
+                </h4>
+                
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-900 text-white text-[10px] uppercase font-bold tracking-wider font-mono">
+                      <tr>
+                        <th className="p-2.5">Category Name</th>
+                        <th className="p-2.5">Donor Currency (USD)</th>
+                        <th className="p-2.5">Approved BDT</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium">
+                      {editBudgetLines.map((line, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50">
+                          <td className="p-2.5 font-bold text-slate-900">{line.category}</td>
+                          <td className="p-2.5">
+                            <input
+                              type="number"
+                              required
+                              value={line.approvedDonorCurrency}
+                              onChange={(e) => handleBudgetLineChange(idx, 'approvedDonorCurrency', e.target.value)}
+                              className="w-full bg-slate-50 border border-slate-200 text-slate-900 font-mono font-bold rounded-lg p-1.5 outline-none focus:bg-white"
+                            />
+                          </td>
+                          <td className="p-2.5">
+                            <input
+                              type="number"
+                              required
+                              value={line.approvedBdt}
+                              onChange={(e) => handleBudgetLineChange(idx, 'approvedBdt', e.target.value)}
+                              className="w-full bg-slate-50 border border-slate-200 text-emerald-800 font-mono font-bold rounded-lg p-1.5 outline-none focus:bg-white"
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
@@ -658,9 +832,9 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
                 </button>
                 <button
                   type="submit"
-                  className="px-4.5 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all flex items-center gap-1.5"
+                  className="px-5 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all flex items-center gap-1.5"
                 >
-                  <Save className="w-4 h-4" /> Save Project Charter Changes
+                  <Save className="w-4 h-4" /> Save Project Charter &amp; Budget Changes
                 </button>
               </div>
             </form>

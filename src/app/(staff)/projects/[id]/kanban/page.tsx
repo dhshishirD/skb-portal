@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   CheckSquare, 
@@ -36,24 +36,43 @@ interface StagePrerequisite {
 }
 
 const STAGES = [
-  { key: 'concept', number: 1, label: 'Concept & Charter Baseline', shortLabel: 'Charter' },
-  { key: 'proposal', number: 2, label: 'Proposal & Budget Baseline', shortLabel: 'Proposal' },
-  { key: 'approved', number: 3, label: 'Executive Approval & RACI', shortLabel: 'Approved' },
-  { key: 'implementation', number: 4, label: 'Field Implementation', shortLabel: 'Execution' },
-  { key: 'monitoring_evaluation', number: 5, label: 'Pre-Submission Audit', shortLabel: 'M&E Audit' },
-  { key: 'closed', number: 6, label: 'Form-7 Export & Closed', shortLabel: 'Closed' },
+  { key: 'concept', number: 1, label: 'Concept & Charter Baseline', shortLabel: 'Charter', pct: 15 },
+  { key: 'proposal', number: 2, label: 'Proposal & Budget Baseline', shortLabel: 'Proposal', pct: 30 },
+  { key: 'approved', number: 3, label: 'Executive Approval & RACI', shortLabel: 'Approved', pct: 50 },
+  { key: 'implementation', number: 4, label: 'Field Implementation', shortLabel: 'Execution', pct: 75 },
+  { key: 'monitoring_evaluation', number: 5, label: 'Pre-Submission Audit', shortLabel: 'M&E Audit', pct: 90 },
+  { key: 'closed', number: 6, label: 'Form-7 Export & Closed', shortLabel: 'Closed', pct: 100 },
 ];
 
 export default function MasterKanbanStageGatePage({ params }: { params: { id: string } }) {
-  const projectId = params.id || 'PID-22567';
-  const charter = getDefaultCharter(projectId, `Project ${projectId}`);
-  const closingAudit = getDefaultClosingAudit(projectId, `Project ${projectId}`);
+  const projectId = params.id || '1791280957216';
+  const [charter, setCharter] = useState(getDefaultCharter(projectId, `Project ${projectId}`));
+  const [closingAudit, setClosingAudit] = useState(getDefaultClosingAudit(projectId, `Project ${projectId}`));
 
   const [currentStageKey, setCurrentStageKey] = useState<string>('implementation');
   const [toastMessage, setToastMessage] = useState('');
 
-  // Prerequisites dynamically mapped to Master Charter and Closing Audit Working Paper
-  const [prerequisites, setPrerequisites] = useState<StagePrerequisite[]>([
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedCharter = localStorage.getItem(`skb_charter_${projectId}`);
+      if (savedCharter) {
+        try { setCharter(JSON.parse(savedCharter)); } catch (e) {}
+      }
+
+      const savedAudit = localStorage.getItem(`skb_closing_audit_${projectId}`);
+      if (savedAudit) {
+        try { setClosingAudit(JSON.parse(savedAudit)); } catch (e) {}
+      }
+
+      const savedStage = localStorage.getItem(`skb_kanban_stage_${projectId}`);
+      if (savedStage) {
+        setCurrentStageKey(savedStage);
+      }
+    }
+  }, [projectId]);
+
+  // Dynamic calculation of Prerequisites
+  const prerequisites: StagePrerequisite[] = [
     // STAGE 1: Concept & Charter Baseline
     {
       id: 'prereq-1.1',
@@ -112,11 +131,11 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
     {
       id: 'prereq-3.2',
       stageKey: 'approved',
-      title: '4-Executive Charter Authorization Sign-Off Executed',
-      description: 'Digital sign-offs completed by PD, PM, Head of Finance, and Head of Procurement.',
+      title: '4-Executive Digital Baseline Sign-Off Recorded',
+      description: 'Sign-offs by Executive Director, Head of Ops, Finance Auditor, and MEAL Lead.',
       responsibleRole: '4 Executive Leads',
       targetRoute: `/projects/${projectId}/charter`,
-      targetRouteLabel: 'Execute Charter Sign-Off',
+      targetRouteLabel: 'Check Sign-Off Panel',
       isCompleted: charter.signOffs.every(s => s.signed),
     },
 
@@ -215,178 +234,191 @@ export default function MasterKanbanStageGatePage({ params }: { params: { id: st
       targetRouteLabel: 'Download Form-7 Package ZIP',
       isCompleted: closingAudit.isForm7Unlocked,
     },
-  ]);
-
-  const togglePrerequisite = (id: string) => {
-    setPrerequisites(prev =>
-      prev.map(p => (p.id === id ? { ...p, isCompleted: !p.isCompleted } : p))
-    );
-    setToastMessage(`Updated prerequisite status!`);
-    setTimeout(() => setToastMessage(''), 2500);
-  };
+  ];
 
   const currentStageObj = STAGES.find(s => s.key === currentStageKey) || STAGES[3];
   const currentPrereqs = prerequisites.filter(p => p.stageKey === currentStageKey);
   const currentCompletedCount = currentPrereqs.filter(p => p.isCompleted).length;
   const isCurrentStageCleared = currentPrereqs.length > 0 && currentCompletedCount === currentPrereqs.length;
-
   const currentIdx = STAGES.findIndex(s => s.key === currentStageKey);
 
-  const handleAdvanceStage = () => {
-    if (!isCurrentStageCleared) {
-      alert(`Cannot advance to next stage! All prerequisite checks for Stage ${currentIdx + 1} (${currentStageObj.label}) must be 100% completed.`);
-      return;
+  const saveStageSelection = (stageKey: string) => {
+    setCurrentStageKey(stageKey);
+    const targetObj = STAGES.find(s => s.key === stageKey) || STAGES[0];
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`skb_kanban_stage_${projectId}`, stageKey);
+
+      // Also update main projects directory with live stage name and progress percentage (%)
+      const savedProjects = localStorage.getItem('skb_portal_projects_v3');
+      if (savedProjects) {
+        try {
+          const projects = JSON.parse(savedProjects);
+          if (Array.isArray(projects)) {
+            const updated = projects.map((p: any) => {
+              if (p.id === projectId || p.code === charter.metadata.projectCode) {
+                return {
+                  ...p,
+                  stage: targetObj.label,
+                  progressPct: targetObj.pct,
+                };
+              }
+              return p;
+            });
+            localStorage.setItem('skb_portal_projects_v3', JSON.stringify(updated));
+          }
+        } catch (e) {}
+      }
     }
+  };
+
+  const handleSelectStageTab = (stageKey: string) => {
+    saveStageSelection(stageKey);
+  };
+
+  const handleAdvanceStage = () => {
     if (currentIdx < STAGES.length - 1) {
-      const nextKey = STAGES[currentIdx + 1].key;
-      setCurrentStageKey(nextKey);
-      setToastMessage(`Project advanced to Stage ${currentIdx + 2}: ${STAGES[currentIdx + 1].label}!`);
-      setTimeout(() => setToastMessage(''), 3500);
+      const nextStage = STAGES[currentIdx + 1];
+      saveStageSelection(nextStage.key);
+      setToastMessage(`Project Stage advanced live to Stage ${nextStage.number}: ${nextStage.label}! (${nextStage.pct}% Complete)`);
+      setTimeout(() => setToastMessage(''), 4000);
     }
   };
 
   return (
-    <div className="space-y-6 font-sans">
-      {/* 1. HEADER CONTROL BAR */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-sm space-y-4">
+    <div className="space-y-6 font-sans pb-10">
+      {/* Stage Header */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
             <span className="text-xs bg-slate-900 text-white px-3 py-1 rounded-full font-extrabold flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" /> Master Stage Gate Control Engine
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" /> Master Stage-Gate Control Engine
             </span>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-bold border ${
-              isCurrentStageCleared 
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
-                : 'bg-amber-50 text-amber-900 border-amber-200'
+            <span className={`text-xs px-2.5 py-1 rounded-full font-semibold flex items-center gap-1 ${
+              isCurrentStageCleared ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200'
             }`}>
-              {isCurrentStageCleared ? '✓ Stage Gate Cleared' : '🟡 Prerequisites Pending'}
+              {isCurrentStageCleared ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Clock className="w-3.5 h-3.5 text-amber-600" />}
+              {isCurrentStageCleared ? 'Stage Gate Cleared' : 'Prerequisites Pending'}
             </span>
           </div>
 
-          <button
-            onClick={handleAdvanceStage}
-            disabled={!isCurrentStageCleared || currentIdx === STAGES.length - 1}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 px-4 py-2 rounded-xl shadow-sm transition-all"
-          >
-            Advance to Stage {currentIdx + 2} &rsaquo;
-          </button>
+          {currentIdx < STAGES.length - 1 && (
+            <button
+              onClick={handleAdvanceStage}
+              className="inline-flex items-center gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-4.5 py-2 rounded-xl shadow-sm transition-all"
+            >
+              Advance to Stage {currentIdx + 2} ({STAGES[currentIdx + 1].shortLabel}) <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
         <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
-            Stage {currentStageObj.number}: {currentStageObj.label}
-          </h1>
-          <p className="text-xs text-slate-600 leading-relaxed mt-1">
-            Stage gates prevent invalid transitions. All prerequisite checks below are dynamically linked to the **Master Project Charter** and the **Pre-Submission Closing Audit Working Paper**.
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-extrabold text-slate-900">
+              Stage {currentStageObj.number}: {currentStageObj.label}
+            </h1>
+            <span className="text-base font-extrabold text-blue-600 bg-blue-50 border border-blue-200 px-3.5 py-1 rounded-full font-mono">
+              {currentStageObj.pct}% Overall Progress
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Stage gates prevent invalid transitions. All prerequisite checks below are dynamically linked to the <strong>Master Project Charter</strong> and the <strong>Pre-Submission Closing Audit Working Paper</strong>.
           </p>
         </div>
       </div>
 
       {toastMessage && (
-        <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl text-xs font-bold text-emerald-900 flex items-center gap-2 shadow-sm">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600" /> {toastMessage}
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm animate-in fade-in duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          {toastMessage}
         </div>
       )}
 
-      {/* 2. 6-STAGE SEQUENTIAL KANBAN BAR */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-        {STAGES.map((s, idx) => {
-          const isCurrent = s.key === currentStageKey;
-          const isPassed = currentIdx > idx;
-          const stagePrereqs = prerequisites.filter(p => p.stageKey === s.key);
-          const stageDoneCount = stagePrereqs.filter(p => p.isCompleted).length;
+      {/* Stage Progression Tabs Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center">
+        {STAGES.map((s) => {
+          const isActive = s.key === currentStageKey;
+          const sPrereqs = prerequisites.filter(p => p.stageKey === s.key);
+          const sCompleted = sPrereqs.filter(p => p.isCompleted).length;
+          const sDone = sPrereqs.length > 0 && sCompleted === sPrereqs.length;
 
           return (
             <button
               key={s.key}
-              onClick={() => setCurrentStageKey(s.key)}
-              className={`p-3 rounded-2xl border text-left transition-all relative overflow-hidden ${
-                isCurrent
-                  ? 'bg-slate-900 border-slate-900 text-white shadow-md font-bold ring-2 ring-blue-500/50'
-                  : isPassed
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-950 font-semibold hover:bg-emerald-100/70'
-                  : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+              onClick={() => handleSelectStageTab(s.key)}
+              className={`p-3 rounded-2xl border transition-all text-left space-y-1 ${
+                isActive
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-blue-500/30'
+                  : sDone
+                  ? 'bg-emerald-50/60 text-slate-800 border-emerald-200 hover:bg-emerald-100/60'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <div className="flex items-center justify-between text-[10px] uppercase font-extrabold tracking-wider opacity-75 mb-1">
-                <span>Stage {s.number}</span>
-                {isPassed ? (
-                  <span className="text-emerald-600 font-extrabold">✓</span>
-                ) : (
-                  <span>{stageDoneCount}/{stagePrereqs.length}</span>
-                )}
+              <div className="flex items-center justify-between text-[10px] font-mono uppercase">
+                <span className={isActive ? 'text-amber-400 font-extrabold' : 'text-slate-500 font-bold'}>
+                  STAGE {s.number}
+                </span>
+                <span className={`font-bold ${isActive ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                  {s.pct}%
+                </span>
               </div>
-              <div className="text-xs font-extrabold truncate">{s.shortLabel}</div>
-              <div className="text-[10px] opacity-80 mt-0.5 truncate">{s.label}</div>
+              <div className="text-xs font-bold truncate">{s.shortLabel}</div>
+              <div className="text-[10px] text-slate-400 font-medium">
+                {sPrereqs.length > 0 ? `${sCompleted}/${sPrereqs.length} Cleared` : 'Automated Check'}
+              </div>
             </button>
           );
         })}
       </div>
 
-      {/* 3. DYNAMIC PREREQUISITE CHECKLIST CARD */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-blue-600" />
-            <div>
-              <h2 className="text-sm font-bold text-slate-900">
-                Stage {currentStageObj.number} Prerequisites Checklist ({currentStageObj.label})
-              </h2>
-              <p className="text-xs text-slate-500">
-                {currentCompletedCount} of {currentPrereqs.length} prerequisite requirements satisfied for this stage.
-              </p>
-            </div>
-          </div>
-
-          <span className="text-xs font-bold bg-slate-100 text-slate-800 px-3 py-1 rounded-full border border-slate-200">
-            Stage Status: {isCurrentStageCleared ? '🟢 100% Cleared' : '🟡 In Progress'}
+      {/* Prerequisites Checklist Box */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <CheckSquare className="w-5 h-5 text-blue-600" />
+            Stage {currentStageObj.number} Prerequisites Checklist ({currentStageObj.label})
+          </h3>
+          <span className="text-xs font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-full font-mono">
+            Stage Status: {currentCompletedCount} of {currentPrereqs.length} Satisfied ({isCurrentStageCleared ? '100% Cleared' : 'Pending'})
           </span>
         </div>
 
-        {/* Prerequisites List */}
         <div className="space-y-3">
           {currentPrereqs.map((prereq) => (
-            <div 
+            <div
               key={prereq.id}
-              className={`p-4 rounded-xl border transition-all space-y-2 ${
+              className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition ${
                 prereq.isCompleted
-                  ? 'bg-emerald-50/50 border-emerald-300'
-                  : 'bg-slate-50 border-slate-200'
+                  ? 'bg-emerald-50/40 border-emerald-200/80 text-emerald-950'
+                  : 'bg-amber-50/30 border-amber-200/80 text-amber-950'
               }`}
             >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <button
-                    onClick={() => togglePrerequisite(prereq.id)}
-                    className="shrink-0"
-                  >
-                    {prereq.isCompleted ? (
-                      <CheckSquare className="w-5 h-5 text-emerald-600" />
-                    ) : (
-                      <Square className="w-5 h-5 text-slate-400 hover:text-slate-600" />
-                    )}
-                  </button>
-                  <span className="font-extrabold text-xs text-slate-900">{prereq.title}</span>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 shrink-0">
+                  {prereq.isCompleted ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  ) : (
+                    <Clock className="w-5 h-5 text-amber-600" />
+                  )}
                 </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[10px] font-bold bg-slate-200/80 text-slate-700 px-2 py-0.5 rounded-md">
-                    Role: {prereq.responsibleRole}
-                  </span>
-
-                  <Link
-                    href={prereq.targetRoute}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-lg border border-blue-200 transition"
-                  >
-                    <span>{prereq.targetRouteLabel}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">{prereq.title}</h4>
+                  <p className="text-[11px] text-slate-600 mt-0.5">{prereq.description}</p>
                 </div>
               </div>
 
-              <p className="text-xs text-slate-600 pl-7 leading-relaxed">
-                {prereq.description}
-              </p>
+              <div className="flex items-center gap-2 shrink-0 sm:self-center">
+                <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md border border-slate-200">
+                  Role: {prereq.responsibleRole}
+                </span>
+
+                <Link
+                  href={prereq.targetRoute}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl border border-blue-200 transition"
+                >
+                  {prereq.targetRouteLabel} <ChevronRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             </div>
           ))}
         </div>

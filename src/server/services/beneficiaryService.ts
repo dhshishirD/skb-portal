@@ -187,4 +187,17 @@ export class BeneficiaryService {
     }
     return [];
   }
+
+  /**
+   * Save a full list of normalized beneficiaries back to storage
+   */
+  static async saveAllBeneficiaries(records: BeneficiaryRecord[]): Promise<void> {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(records));
+      } catch (e) {
+        console.error('Failed to save all beneficiaries:', e);
+      }
+    }
+  }
 }

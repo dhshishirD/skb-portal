@@ -415,52 +415,59 @@ export default function BeneficiariesPage() {
               const femaleCount = projectRecords.filter(b => b.sex === 'female').length;
 
               return (
-                <div key={pid} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all">
-                  {/* Project Section Header */}
-                  <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-4.5 flex flex-wrap items-center justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2.5">
-                        <span className="bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-md font-mono font-extrabold text-[11px] tracking-wide uppercase shadow-xs">
-                          {pInfo.code}
-                        </span>
-                        <h2 className="text-sm sm:text-base font-extrabold text-white tracking-tight">
-                          {pInfo.name}
-                        </h2>
+                <div key={pid} className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden transition-all">
+                  {/* Executive Clean Project Header */}
+                  <div className="p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-white">
+                    <div className="flex items-start gap-3.5 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shrink-0 mt-0.5">
+                        <FolderKanban className="w-5 h-5 text-blue-600" />
                       </div>
 
-                      <div className="flex items-center gap-3 text-[11px] text-slate-300">
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-amber-400" /> {pInfo.location}
-                        </span>
-                        <span>•</span>
-                        <span className="font-bold text-emerald-400">
-                          {projectRecords.length} Verified Beneficiaries ({femaleCount} Female, {maleCount} Male)
-                        </span>
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <h2 className="text-base font-extrabold text-slate-900 tracking-tight truncate">
+                            {pInfo.name}
+                          </h2>
+                          <span className="bg-slate-100 text-slate-700 border border-slate-200/80 text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-lg shadow-2xs">
+                            {pInfo.code}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                          <span className="flex items-center gap-1 text-slate-600 font-medium">
+                            <MapPin className="w-3.5 h-3.5 text-slate-400" /> {pInfo.location}
+                          </span>
+                          <span className="text-slate-300">•</span>
+                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200/70 px-2.5 py-0.5 rounded-full font-bold text-[11px]">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            {projectRecords.length} Verified Beneficiaries ({femaleCount} Female, {maleCount} Male)
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Project Level Quick Actions */}
-                    <div className="flex items-center gap-2">
+                    {/* Clean Polished Quick Actions */}
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => openAddModalForProject(pid)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition shadow-xs"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs"
                       >
                         <UserPlus className="w-3.5 h-3.5" /> Add Beneficiary
                       </button>
 
                       <button
                         onClick={() => handleExportProjectCsv(pid)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-100 rounded-xl text-xs font-bold transition"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition shadow-2xs"
                         title="Export CSV for this project"
                       >
-                        <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" /> Export CSV
+                        <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" /> Export CSV
                       </button>
 
                       <Link
                         href={`/projects/${pid}/beneficiaries`}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-bold transition"
+                        className="inline-flex items-center gap-1 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-slate-700 rounded-xl text-xs font-bold transition"
                       >
-                        <span>Workspace</span> <ChevronRight className="w-3 h-3" />
+                        <span>Workspace</span> <ChevronRight className="w-3 h-3 text-slate-400" />
                       </Link>
                     </div>
                   </div>

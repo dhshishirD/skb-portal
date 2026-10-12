@@ -419,16 +419,13 @@ export default function BeneficiariesPage() {
                   {/* Project Section Header */}
                   <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-4.5 flex flex-wrap items-center justify-between gap-3">
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-md font-mono font-extrabold text-[10px] tracking-wide uppercase">
+                      <div className="flex items-center gap-2.5">
+                        <span className="bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-md font-mono font-extrabold text-[11px] tracking-wide uppercase shadow-xs">
                           {pInfo.code}
                         </span>
-                        <h2 className="text-sm font-extrabold text-white tracking-tight">
+                        <h2 className="text-sm sm:text-base font-extrabold text-white tracking-tight">
                           {pInfo.name}
                         </h2>
-                        <span className="text-[10px] bg-slate-700/80 text-slate-300 px-2 py-0.5 rounded-full font-mono">
-                          PID: {pid}
-                        </span>
                       </div>
 
                       <div className="flex items-center gap-3 text-[11px] text-slate-300">
@@ -606,7 +603,7 @@ export default function BeneficiariesPage() {
                 >
                   {Object.values(projectsList).map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.code} &mdash; {p.name} (PID: {p.id})
+                      {p.code} &mdash; {p.name}
                     </option>
                   ))}
                 </select>
@@ -728,7 +725,7 @@ export default function BeneficiariesPage() {
                 >
                   {Object.values(projectsList).map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.code} &mdash; {p.name} (PID: {p.id})
+                      {p.code} &mdash; {p.name}
                     </option>
                   ))}
                 </select>

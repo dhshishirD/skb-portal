@@ -276,6 +276,19 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
     setTimeout(() => setToastMessage(''), 4000);
   };
 
+  const handleReloadForm3Baseline = () => {
+    if (confirm(`Reload official Form-3 proposal baseline for "${charter.metadata.projectTitle}"? Any unsaved edits will be reset to the official proposal specifications.`)) {
+      const baseline = getDefaultCharter(projectId, charter.metadata.projectTitle);
+      updateCharterState(baseline);
+      setToastMessage(`Official Form-3 Proposal Baseline reloaded for ${baseline.metadata.projectCode}!`);
+      setTimeout(() => setToastMessage(''), 4000);
+    }
+  };
+
+  const isEur = charter.metadata.donorName.includes('IHH') || charter.metadata.grantNumber.includes('IHH') || charter.metadata.projectCode.includes('COW') || charter.metadata.projectCode.includes('LIV') || charter.metadata.projectCode.includes('WFS');
+  const currencySymbol = isEur ? '€' : '$';
+  const currencyCode = isEur ? 'EUR' : 'USD';
+
   return (
     <div className="space-y-6 font-sans pb-10">
       {/* 1. CHARTER BANNER & ACTION HEADER */}
@@ -291,6 +304,14 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleReloadForm3Baseline}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3.5 py-2 rounded-xl transition-all shadow-xs"
+              title="Reload official proposal specifications from IHH Form-3"
+            >
+              <Sparkles className="w-4 h-4 text-indigo-600" /> Reload Form-3 Baseline
+            </button>
+
             <button
               onClick={handleOpenEditModal}
               className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3.5 py-2 rounded-xl transition-all shadow-xs"
@@ -506,7 +527,7 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
                     6-Line Financial Budget Framework
                   </h4>
                   <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-mono">
-                    Total: ${charter.budgetLines.reduce((acc, l) => acc + l.approvedDonorCurrency, 0).toLocaleString()} USD (BDT {charter.budgetLines.reduce((acc, l) => acc + l.approvedBdt, 0).toLocaleString()})
+                    Total: {currencySymbol}{charter.budgetLines.reduce((acc, l) => acc + l.approvedDonorCurrency, 0).toLocaleString()} {currencyCode} (BDT {charter.budgetLines.reduce((acc, l) => acc + l.approvedBdt, 0).toLocaleString()})
                   </span>
                 </div>
 
@@ -515,7 +536,7 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
                     <thead className="bg-slate-900 text-white text-[10px] uppercase font-bold tracking-wider font-mono">
                       <tr>
                         <th className="p-3">Budget Line Category</th>
-                        <th className="p-3 font-mono">Donor Currency (USD)</th>
+                        <th className="p-3 font-mono">Donor Currency ({currencyCode})</th>
                         <th className="p-3 font-mono">Approved BDT</th>
                         <th className="p-3">Compliance Status</th>
                       </tr>
@@ -524,7 +545,7 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
                       {charter.budgetLines.map((line, idx) => (
                         <tr key={idx} className="hover:bg-slate-50">
                           <td className="p-3 font-bold text-slate-900">{line.category}</td>
-                          <td className="p-3 font-mono text-slate-800">${line.approvedDonorCurrency.toLocaleString()} USD</td>
+                          <td className="p-3 font-mono text-slate-800">{currencySymbol}{line.approvedDonorCurrency.toLocaleString()} {currencyCode}</td>
                           <td className="p-3 font-mono text-emerald-700 font-bold">BDT {line.approvedBdt.toLocaleString()}</td>
                           <td className="p-3">
                             <span className="text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-0.5 rounded-full">

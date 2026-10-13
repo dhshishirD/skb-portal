@@ -51,6 +51,24 @@ const DEFAULT_PROJECT_INFO: Record<string, ProjectInfo> = {
     name: 'Rohingya Humanitarian Aid & Child Protection',
     location: "Camp 9 & Host Community",
   },
+  'P-SKB-2026-COW': {
+    id: 'P-SKB-2026-COW',
+    code: 'BD-SKB-2026-COW-20',
+    name: 'Adak Aqiqa (Sacrificing 20 Cows) for Rohingya Refugees',
+    location: "Cox's Bazar, Ukhiya (Hakim-para & Jamtoli Camps)",
+  },
+  'P-SKB-2026-GOAT': {
+    id: 'P-SKB-2026-GOAT',
+    code: 'BD-SKB-2026-LIV-CLO',
+    name: 'Distribution of Goats, Clothing & Food Packets for Rohingya Refugees',
+    location: "Cox's Bazar, Ukhiya & Teknaf (Kutupalong, Balukhali, Jamtoli)",
+  },
+  'P-SKB-2026-WFS': {
+    id: 'P-SKB-2026-WFS',
+    code: 'BD-SKB-2026-WFS-SDLP',
+    name: 'Women-Friendly Space (Skill Development & Learning Center)',
+    location: "Cox's Bazar, Ukhiya & Teknaf (Camp 11 / 12)",
+  },
 };
 
 // Automatic data healer to fix column shifts from legacy CSV imports

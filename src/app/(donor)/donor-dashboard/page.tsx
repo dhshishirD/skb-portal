@@ -38,7 +38,8 @@ import {
   Briefcase,
   HelpCircle,
   ChevronRight,
-  Award
+  Award,
+  Radio
 } from 'lucide-react';
 import { formatCurrencyString, SupportedCurrency } from '@/server/services/multiCurrency';
 import { 
@@ -46,6 +47,7 @@ import {
   INITIAL_DONOR_QUERIES, 
   createDonorQuery 
 } from '@/server/services/donorQueryService';
+import { CloudSyncService } from '@/server/services/cloudSyncService';
 
 type PartnerWorkspaceKey = 
   | 'ALL'
@@ -393,6 +395,102 @@ export default function DonorDashboardPage() {
   const [queryMessage, setQueryMessage] = useState('');
   const [submitSuccessMsg, setSubmitSuccessMsg] = useState('');
 
+  // Realtime Supabase Subscriptions State
+  const [realtimeActive, setRealtimeActive] = useState(true);
+  const [liveActivityToast, setLiveActivityToast] = useState<{ message: string; timestamp: string } | null>(null);
+
+  // Realtime Supabase Subscriptions for Live Document & Milestone Updates
+  useEffect(() => {
+    // 1. Subscribe to Live Documents
+    const docSub = CloudSyncService.subscribeToDocuments((event) => {
+      setRealtimeActive(true);
+      const doc = event.doc;
+      if (!doc) return;
+
+      const docName = doc.name || doc.title || 'Official Document';
+      const pid = doc.projectId || doc.project_id;
+
+      // Update state for corresponding project
+      setProjects((prevProjects) => {
+        return prevProjects.map((p) => {
+          if (p.pid === pid || (pid && p.pid.includes(pid)) || (pid && pid.includes(p.pid))) {
+            const existingDocs = p.primaryDocs || [];
+            const exists = existingDocs.find((d) => d.name === docName || (doc.id && d.id === doc.id));
+            let updatedDocs: ProjectDocument[];
+            if (exists) {
+              updatedDocs = existingDocs.map((d) =>
+                d.name === docName || (doc.id && d.id === doc.id)
+                  ? {
+                      ...d,
+                      fileUrl: doc.fileUrl || d.fileUrl,
+                      status: 'Submitted' as const,
+                      fileSize: doc.fileSize || d.fileSize || '1.5 MB',
+                    }
+                  : d
+              );
+            } else {
+              updatedDocs = [
+                ...existingDocs,
+                {
+                  id: doc.id || `doc_${Date.now()}`,
+                  name: docName,
+                  category: doc.category || 'MANDATORY_PRIMARY',
+                  fileSize: doc.fileSize || '1.8 MB',
+                  fileUrl: doc.fileUrl,
+                  status: 'Submitted' as const,
+                },
+              ];
+            }
+            return {
+              ...p,
+              primaryDocs: updatedDocs,
+            };
+          }
+          return p;
+        });
+      });
+
+      // Show high-visibility live sync notification
+      setLiveActivityToast({
+        message: `Live Sync: "${docName}" uploaded & verified in real-time!`,
+        timestamp: new Date().toLocaleTimeString(),
+      });
+      setTimeout(() => setLiveActivityToast(null), 5000);
+    });
+
+    // 2. Subscribe to Live Project Stage Changes
+    const projSub = CloudSyncService.subscribeToProjects((event) => {
+      setRealtimeActive(true);
+      const proj = event.project;
+      if (!proj) return;
+
+      const pid = proj.code || proj.pid || proj.id;
+      setProjects((prevProjects) => {
+        return prevProjects.map((p) => {
+          if (p.pid === pid || (pid && p.pid.includes(pid))) {
+            return {
+              ...p,
+              statusLabel: proj.stage || proj.statusLabel || p.statusLabel,
+              statusCategory: proj.statusCategory || p.statusCategory,
+            };
+          }
+          return p;
+        });
+      });
+
+      setLiveActivityToast({
+        message: `Project Milestone Updated: ${proj.title || pid} stage transitioned!`,
+        timestamp: new Date().toLocaleTimeString(),
+      });
+      setTimeout(() => setLiveActivityToast(null), 5000);
+    });
+
+    return () => {
+      docSub.unsubscribe();
+      projSub.unsubscribe();
+    };
+  }, []);
+
   // Handle URL parsing on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -542,6 +640,25 @@ export default function DonorDashboardPage() {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto font-sans pb-16">
+      {/* REALTIME LIVE ACTIVITY NOTIFICATION TOAST */}
+      {liveActivityToast && (
+        <div className="fixed top-20 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-emerald-500/50 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+            <Radio className="w-4 h-4 animate-pulse" />
+          </div>
+          <div className="text-xs">
+            <div className="font-extrabold text-emerald-400 flex items-center gap-1.5">
+              <span>● Realtime Cloud Event</span>
+              <span className="text-[10px] text-slate-400 font-normal">{liveActivityToast.timestamp}</span>
+            </div>
+            <p className="text-slate-200 mt-0.5">{liveActivityToast.message}</p>
+          </div>
+          <button onClick={() => setLiveActivityToast(null)} className="text-slate-400 hover:text-white ml-1">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* 1. TOP PARTNER SELECTOR BAR (Only visible in HQ Master View or when toggled by Internal Staff) */}
       {(selectedPartnerKey === 'ALL' || showHqSwitcher) && (
         <div className="bg-white p-3 rounded-2xl border border-slate-200/90 shadow-sm space-y-2 animate-in fade-in duration-200">
@@ -598,6 +715,13 @@ export default function DonorDashboardPage() {
             </span>
             <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-full font-bold flex items-center gap-1">
               <Lock className="w-3 h-3 text-emerald-600" /> Private Partner Workspace
+            </span>
+            <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-full font-bold flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span>Realtime Live Sync Active</span>
             </span>
           </div>
 

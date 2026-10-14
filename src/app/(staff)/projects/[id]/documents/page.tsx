@@ -171,6 +171,18 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
     // Cloud sync to Supabase Postgres
     await CloudSyncService.saveProjectDocument(created as any);
 
+    // Broadcast live event across active donor and staff tabs
+    CloudSyncService.broadcastLiveEvent('document-uploaded', {
+      projectId,
+      docId: created.id,
+      name: created.name,
+      fileUrl: created.fileUrl,
+      category: created.category,
+      fileSize: created.fileSize,
+      uploadedBy: created.uploadedBy,
+      uploadedAt: created.uploadedAt,
+    });
+
     // Auto-update Closing Audit Working Paper domain parameter if domain tag is provided
     if (typeof window !== 'undefined') {
       const savedAudit = localStorage.getItem(`skb_closing_audit_${projectId}`);

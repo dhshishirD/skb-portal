@@ -35,6 +35,14 @@ import {
   DEFAULT_APPROVED_USERS,
   SystemRole 
 } from '@/server/services/userApprovalService';
+import {
+  HIJABI_CHAIRMAN_AVATAR,
+  MALE_EXECUTIVE_AVATAR,
+  MALE_OFFICER_AVATAR,
+  IT_OFFICER_AVATAR,
+  LAW_OFFICER_AVATAR,
+  getOfficialAvatar
+} from '@/lib/avatarPresets';
 
 const DESIGNATION_PRESETS = [
   'Executive Director',
@@ -66,12 +74,11 @@ const DUTY_STATION_PRESETS = [
 ];
 
 const AVATAR_PRESETS = [
-  { label: 'Executive Director', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
-  { label: 'Chairman', url: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&auto=format&fit=crop&q=80' },
-  { label: 'Program Officer (HR)', url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80' },
-  { label: 'Program Officer', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80' },
-  { label: 'IT Officer', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' },
-  { label: 'Law Officer', url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80' }
+  { label: 'Chairman (Hijabi)', url: HIJABI_CHAIRMAN_AVATAR },
+  { label: 'Executive Director', url: MALE_EXECUTIVE_AVATAR },
+  { label: 'Program Officer', url: MALE_OFFICER_AVATAR },
+  { label: 'IT Officer', url: IT_OFFICER_AVATAR },
+  { label: 'Law Officer', url: LAW_OFFICER_AVATAR }
 ];
 
 export default function UserProfilePage() {
@@ -104,7 +111,7 @@ export default function UserProfilePage() {
     setDesignation(u.designation || 'Program Officer');
     setDepartment(u.department || 'Programs Directorate');
     setRequestedRole(u.requestedRole || 'Program Officer');
-    setAvatarUrl(u.avatarUrl || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80');
+    setAvatarUrl(u.avatarUrl || getOfficialAvatar(u));
     setBio(u.bio || '');
     setEmployeeId(u.employeeId || `SKB-${u.id.slice(-4)}`);
   }, []);
@@ -115,7 +122,7 @@ export default function UserProfilePage() {
 
     const active = targetId 
       ? users.find(u => u.id === targetId || u.email === targetId)
-      : (users.find(u => u.fullName.includes('Huraira')) || users[0]);
+      : (users.find(u => u.fullName.includes('Orakatul')) || users[0]);
 
     if (active) {
       applyProfileToState(active);
@@ -366,9 +373,9 @@ export default function UserProfilePage() {
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
                       <img 
-                        src={u.avatarUrl} 
+                        src={getOfficialAvatar(u)} 
                         alt={u.fullName}
-                        className="w-12 h-12 rounded-2xl object-cover border-2 border-slate-200 shrink-0" 
+                        className="w-12 h-12 rounded-2xl object-cover border-2 border-slate-200 shrink-0 bg-slate-100 shadow-sm" 
                       />
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
@@ -634,11 +641,11 @@ export default function UserProfilePage() {
                   
                   <div className="flex flex-col sm:flex-row items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                     <img
-                      src={avatarUrl}
+                      src={avatarUrl || getOfficialAvatar({ fullName, requestedRole, designation })}
                       alt={fullName}
-                      className="w-20 h-20 rounded-2xl object-cover border-2 border-blue-600 shadow-sm shrink-0"
+                      className="w-20 h-20 rounded-2xl object-cover border-2 border-blue-600 shadow-sm shrink-0 bg-white"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80';
+                        (e.target as HTMLImageElement).src = getOfficialAvatar({ fullName, requestedRole, designation });
                       }}
                     />
                     
@@ -748,11 +755,11 @@ export default function UserProfilePage() {
                 <div className="flex flex-col items-center text-center space-y-3">
                   <div className="relative">
                     <img
-                      src={avatarUrl}
+                      src={avatarUrl || getOfficialAvatar({ fullName, requestedRole, designation })}
                       alt={fullName}
-                      className="w-28 h-28 rounded-2xl object-cover border-4 border-white shadow-xl"
+                      className="w-28 h-28 rounded-2xl object-cover border-4 border-white shadow-xl bg-white"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80';
+                        (e.target as HTMLImageElement).src = getOfficialAvatar({ fullName, requestedRole, designation });
                       }}
                     />
                     <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-1 rounded-full border-2 border-slate-900 shadow">

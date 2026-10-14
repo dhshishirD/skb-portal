@@ -1,3 +1,12 @@
+import { 
+  HIJABI_CHAIRMAN_AVATAR, 
+  MALE_EXECUTIVE_AVATAR, 
+  MALE_OFFICER_AVATAR, 
+  IT_OFFICER_AVATAR, 
+  LAW_OFFICER_AVATAR,
+  getOfficialAvatar
+} from '@/lib/avatarPresets';
+
 export type SystemRole = 
   | 'Chairman'
   | 'Executive Director'
@@ -28,29 +37,31 @@ export interface UserProfileRecord {
 
 const STORAGE_KEY = 'skb_user_approval_profiles';
 
+export const ORGANOGRAM_HIERARCHY: Record<string, number> = {
+  'dr. orakatul jannat': 1,
+  'md. abu huraira': 2,
+  'daloyar hassan': 3,
+  'emran ahmed': 4,
+  'mizbah uddin': 5,
+  'muktadir rahaman': 6,
+  'aminul islam bulbul': 7,
+};
+
+export function sortOrganogramUsers(users: UserProfileRecord[]): UserProfileRecord[] {
+  return [...users].sort((a, b) => {
+    const rankA = ORGANOGRAM_HIERARCHY[a.fullName.trim().toLowerCase()] ?? 99;
+    const rankB = ORGANOGRAM_HIERARCHY[b.fullName.trim().toLowerCase()] ?? 99;
+    if (rankA !== rankB) return rankA - rankB;
+    return a.fullName.localeCompare(b.fullName);
+  });
+}
+
 export const DEFAULT_APPROVED_USERS: UserProfileRecord[] = [
-  {
-    id: '10000000-0000-0000-0000-000000000002',
-    fullName: 'Md. Abu Huraira',
-    email: 'kindnessforbeauty@gmail.com',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    phone: '+880 1711-000001',
-    dutyStation: 'Dhaka HQ',
-    designation: 'Executive Director',
-    employeeId: 'SKB-DIR-001',
-    requestedRole: 'Executive Director',
-    department: 'Directorate General HQ',
-    status: 'APPROVED',
-    approvedBy: 'Founding Charter',
-    approvedAt: '2026-01-01 00:00 AM',
-    createdAt: '2026-01-01 00:00 AM',
-    bio: 'Executive Director managing operational execution, project sign-offs, and humanitarian governance across Bangladesh.',
-  },
   {
     id: '10000000-0000-0000-0000-000000000003',
     fullName: 'Dr. Orakatul Jannat',
     email: 'dr.orakatul@skb.org.bd',
-    avatarUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&auto=format&fit=crop&q=80',
+    avatarUrl: HIJABI_CHAIRMAN_AVATAR,
     phone: '+880 1711-000002',
     dutyStation: 'Dhaka HQ',
     designation: 'Chairman',
@@ -64,10 +75,27 @@ export const DEFAULT_APPROVED_USERS: UserProfileRecord[] = [
     bio: 'Chairman of the Board steering humanitarian vision, strategic donor relations, and high-level organizational leadership.',
   },
   {
+    id: '10000000-0000-0000-0000-000000000002',
+    fullName: 'Md. Abu Huraira',
+    email: 'kindnessforbeauty@gmail.com',
+    avatarUrl: MALE_EXECUTIVE_AVATAR,
+    phone: '+880 1711-000001',
+    dutyStation: 'Dhaka HQ',
+    designation: 'Executive Director',
+    employeeId: 'SKB-DIR-001',
+    requestedRole: 'Executive Director',
+    department: 'Directorate General HQ',
+    status: 'APPROVED',
+    approvedBy: 'Founding Charter',
+    approvedAt: '2026-01-01 00:00 AM',
+    createdAt: '2026-01-01 00:00 AM',
+    bio: 'Executive Director managing operational execution, project sign-offs, and humanitarian governance across Bangladesh.',
+  },
+  {
     id: '0a88393f-1283-42d2-b4c2-31c502b1d538',
     fullName: 'Daloyar Hassan',
     email: 'daloyar.pro@gmail.com',
-    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+    avatarUrl: MALE_OFFICER_AVATAR,
     phone: '+880 1711-000005',
     dutyStation: 'Dhaka HQ',
     designation: 'Program Officer',
@@ -84,7 +112,7 @@ export const DEFAULT_APPROVED_USERS: UserProfileRecord[] = [
     id: '10000000-0000-0000-0000-000000000004',
     fullName: 'Emran Ahmed',
     email: 'emran.ahmed@skb.org.bd',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    avatarUrl: MALE_OFFICER_AVATAR,
     phone: '+880 1711-000003',
     dutyStation: 'Dhaka HQ',
     designation: 'Program Officer',
@@ -101,7 +129,7 @@ export const DEFAULT_APPROVED_USERS: UserProfileRecord[] = [
     id: '10000000-0000-0000-0000-000000000005',
     fullName: 'Mizbah Uddin',
     email: 'mizbah.uddin@skb.org.bd',
-    avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
+    avatarUrl: MALE_OFFICER_AVATAR,
     phone: '+880 1711-000004',
     dutyStation: 'Dhaka HQ',
     designation: 'Program Officer',
@@ -118,7 +146,7 @@ export const DEFAULT_APPROVED_USERS: UserProfileRecord[] = [
     id: '10000000-0000-0000-0000-000000000006',
     fullName: 'Muktadir Rahaman',
     email: 'muktadir.rahaman@skb.org.bd',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    avatarUrl: IT_OFFICER_AVATAR,
     phone: '+880 1711-000006',
     dutyStation: 'Dhaka HQ',
     designation: 'IT Officer',
@@ -135,7 +163,7 @@ export const DEFAULT_APPROVED_USERS: UserProfileRecord[] = [
     id: '10000000-0000-0000-0000-000000000007',
     fullName: 'Aminul Islam Bulbul',
     email: 'aminul.bulbul@skb.org.bd',
-    avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
+    avatarUrl: LAW_OFFICER_AVATAR,
     phone: '+880 1711-000007',
     dutyStation: 'Dhaka HQ',
     designation: 'Law Officer',
@@ -163,7 +191,6 @@ export class UserApprovalService {
       // Clean up legacy entries not part of the active organogram
       parsed = parsed.filter(p => !p.email.toLowerCase().includes('safwanur.rahman'));
 
-      const existingEmails = new Set(parsed.map(p => p.email.toLowerCase()));
       let hasUpdates = false;
       const merged = [...parsed];
       for (const defUser of DEFAULT_APPROVED_USERS) {
@@ -181,10 +208,21 @@ export class UserApprovalService {
           }
         }
       }
-      if (hasUpdates || parsed.length !== merged.length) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+
+      // Upgrade any broken external Unsplash links or missing avatars to official vector SVGs
+      for (const p of merged) {
+        if (!p.avatarUrl || p.avatarUrl.includes('images.unsplash.com')) {
+          p.avatarUrl = getOfficialAvatar(p);
+          hasUpdates = true;
+        }
       }
-      return merged;
+
+      const sorted = sortOrganogramUsers(merged);
+
+      if (hasUpdates || parsed.length !== merged.length) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
+      }
+      return sorted;
     } catch {
       return DEFAULT_APPROVED_USERS;
     }
@@ -232,7 +270,7 @@ export class UserApprovalService {
       id: `usr-${Date.now()}`,
       fullName: googleUser.fullName,
       email: googleUser.email,
-      avatarUrl: googleUser.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      avatarUrl: googleUser.avatarUrl || getOfficialAvatar({ fullName: googleUser.fullName, requestedRole: googleUser.requestedRole }),
       requestedRole: googleUser.requestedRole || 'Program Officer',
       department: 'Operations & Projects',
       status: isPreApproved ? 'APPROVED' : 'PENDING_APPROVAL',

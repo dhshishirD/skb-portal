@@ -20,20 +20,20 @@ interface UserItem {
 
 const REAL_SKB_TEAM: UserItem[] = [
   {
-    id: '10000000-0000-0000-0000-000000000002',
-    fullName: 'Md. Abu Huraira',
-    email: 'kindnessforbeauty@gmail.com',
-    orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['Executive Director'],
-    isActive: true,
-    projectsCount: 4,
-  },
-  {
     id: '10000000-0000-0000-0000-000000000003',
     fullName: 'Dr. Orakatul Jannat',
     email: 'dr.orakatul@skb.org.bd',
     orgName: 'Small Kindness Bangladesh (HQ)',
     roles: ['Chairman'],
+    isActive: true,
+    projectsCount: 4,
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000002',
+    fullName: 'Md. Abu Huraira',
+    email: 'kindnessforbeauty@gmail.com',
+    orgName: 'Small Kindness Bangladesh (HQ)',
+    roles: ['Executive Director'],
     isActive: true,
     projectsCount: 4,
   },

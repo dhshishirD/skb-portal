@@ -58,3 +58,33 @@ describe('Phase 1: CloudSyncService Database Wiring & Fallback', () => {
     expect(found).toBeDefined();
   });
 });
+
+describe('Phase 3: Realtime Subscriptions & Broadcast Delivery', () => {
+  it('should initialize and cleanly unsubscribe from realtime documents channel', () => {
+    let receivedEvent: any = null;
+    const sub = CloudSyncService.subscribeToDocuments((event) => {
+      receivedEvent = event;
+    });
+
+    expect(sub).toBeDefined();
+    expect(typeof sub.unsubscribe).toBe('function');
+    expect(() => sub.unsubscribe()).not.toThrow();
+  });
+
+  it('should initialize and cleanly unsubscribe from realtime projects channel', () => {
+    const sub = CloudSyncService.subscribeToProjects((_event) => {});
+    expect(sub).toBeDefined();
+    expect(typeof sub.unsubscribe).toBe('function');
+    expect(() => sub.unsubscribe()).not.toThrow();
+  });
+
+  it('should broadcast live events safely without crashing in test runner', () => {
+    expect(() => {
+      CloudSyncService.broadcastLiveEvent('document-uploaded', {
+        projectId: 'BD-SKB-2026-COW-20',
+        name: 'Form-7 Bovine Livestock Handover Audit.pdf',
+        officer: 'Md. Abu Huraira',
+      });
+    }).not.toThrow();
+  });
+});

@@ -304,4 +304,94 @@ export class CloudSyncService {
 
     return record;
   }
+
+  // ==========================================
+  // 4. REALTIME LIVE SUBSCRIPTIONS & BROADCASTS
+  // ==========================================
+
+  /**
+   * Subscribe to live document uploads & changes across projects
+   */
+  public static subscribeToDocuments(callback: (event: { type: string; doc: any }) => void) {
+    const supabase = this.getClient();
+    if (!supabase) return { unsubscribe: () => {} };
+
+    try {
+      const channel = supabase
+        .channel('realtime:skb_documents')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'documents' }, (payload: any) => {
+          callback({ type: payload.eventType || 'UPDATE', doc: payload.new || payload.old });
+        })
+        .on('broadcast', { event: 'document-uploaded' }, (payload: any) => {
+          callback({ type: 'BROADCAST_UPLOAD', doc: payload.payload });
+        })
+        .subscribe();
+
+      return {
+        unsubscribe: () => {
+          try {
+            supabase.removeChannel(channel);
+          } catch {}
+        },
+      };
+    } catch (e) {
+      console.warn('Realtime subscription failed:', e);
+      return { unsubscribe: () => {} };
+    }
+  }
+
+  /**
+   * Subscribe to live project milestone and stage transitions
+   */
+  public static subscribeToProjects(callback: (event: { type: string; project: any }) => void) {
+    const supabase = this.getClient();
+    if (!supabase) return { unsubscribe: () => {} };
+
+    try {
+      const channel = supabase
+        .channel('realtime:skb_projects')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, (payload: any) => {
+          callback({ type: payload.eventType || 'UPDATE', project: payload.new || payload.old });
+        })
+        .on('broadcast', { event: 'project-stage-updated' }, (payload: any) => {
+          callback({ type: 'BROADCAST_STAGE', project: payload.payload });
+        })
+        .subscribe();
+
+      return {
+        unsubscribe: () => {
+          try {
+            supabase.removeChannel(channel);
+          } catch {}
+        },
+      };
+    } catch (e) {
+      console.warn('Realtime projects subscription failed:', e);
+      return { unsubscribe: () => {} };
+    }
+  }
+
+  /**
+   * Broadcast an instant live event cross-browser/cross-tab to all connected donor & staff sessions
+   */
+  public static broadcastLiveEvent(eventName: 'document-uploaded' | 'project-stage-updated' | 'dossier-approved', payload: any) {
+    const supabase = this.getClient();
+    if (!supabase) return;
+
+    try {
+      const channelName = eventName === 'project-stage-updated' ? 'realtime:skb_projects' : 'realtime:skb_documents';
+      const channel = supabase.channel(channelName);
+      channel.subscribe((status: string) => {
+        if (status === 'SUBSCRIBED') {
+          channel.send({
+            type: 'broadcast',
+            event: eventName,
+            payload,
+          });
+        }
+      });
+    } catch (e) {
+      console.warn('Realtime broadcast failed:', e);
+    }
+  }
 }

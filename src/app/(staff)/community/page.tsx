@@ -25,9 +25,25 @@ import {
   Download,
   X,
   FileText,
-  Image as ImageIcon
+  Image as ImageIcon,
+  LayoutDashboard,
+  Phone,
+  PhoneCall,
+  Mail,
+  MapPin,
+  Award,
+  Copy,
+  ExternalLink,
+  Radio,
+  Clock,
+  Sparkles
 } from 'lucide-react';
 import { CommunityRealtimeService } from '@/server/services/communityRealtimeService';
+import { 
+  UserApprovalService, 
+  UserProfileRecord 
+} from '@/server/services/userApprovalService';
+import { getOfficialAvatar } from '@/lib/avatarPresets';
 
 export interface AttachmentFile {
   name: string;
@@ -77,21 +93,99 @@ export interface StaffContact {
   status: 'online' | 'away' | 'offline';
   lastMessage?: string;
   lastMessageTime?: string;
+  phone?: string;
+  email?: string;
+  dutyStation?: string;
+  employeeId?: string;
+  department?: string;
+  bio?: string;
 }
 
 const INITIAL_STAFF_CONTACTS: StaffContact[] = [
   {
-    id: 'user-1',
+    id: '10000000-0000-0000-0000-000000000003',
+    name: 'Dr. Orakatul Jannat',
+    role: 'Chairman',
+    status: 'online',
+    phone: '+880 1711-000002',
+    email: 'dr.orakatul@skb.org.bd',
+    dutyStation: 'Dhaka HQ',
+    employeeId: 'SKB-CHM-001',
+    department: 'Directorate General HQ',
+    bio: 'Chairman of the Board steering humanitarian vision, strategic donor relations, and high-level organizational leadership.',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000002',
     name: 'Md. Abu Huraira',
     role: 'Executive Director',
     status: 'online',
+    phone: '+880 1711-000001',
+    email: 'kindnessforbeauty@gmail.com',
+    dutyStation: 'Dhaka HQ',
+    employeeId: 'SKB-DIR-001',
+    department: 'Directorate General HQ',
+    bio: 'Executive Director managing operational execution, project sign-offs, and humanitarian governance across Bangladesh.',
   },
   {
-    id: 'user-2',
-    name: 'Mizbah Uddin',
-    role: 'Executive Officer & Tech Operations',
+    id: '0a88393f-1283-42d2-b4c2-31c502b1d538',
+    name: 'Daloyar Hassan',
+    role: 'Program Officer',
     status: 'online',
+    phone: '+880 1711-000005',
+    email: 'daloyar.pro@gmail.com',
+    dutyStation: 'Dhaka HQ',
+    employeeId: 'SKB-PRG-001',
+    department: 'HR & Admin',
+    bio: 'Program Officer leading HR administration, operational personnel management, and project coordination.',
   },
+  {
+    id: '10000000-0000-0000-0000-000000000004',
+    name: 'Emran Ahmed',
+    role: 'Program Officer',
+    status: 'online',
+    phone: '+880 1711-000003',
+    email: 'emran.ahmed@skb.org.bd',
+    dutyStation: 'Dhaka HQ',
+    employeeId: 'SKB-PRG-002',
+    department: 'Programs Directorate',
+    bio: 'Program Officer managing project planning, Form-3 charters, logframe deliverables, and donor milestone reporting.',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000005',
+    name: 'Mizbah Uddin',
+    role: 'Program Officer',
+    status: 'online',
+    phone: '+880 1711-000004',
+    email: 'mizbah.uddin@skb.org.bd',
+    dutyStation: 'Dhaka HQ',
+    employeeId: 'SKB-PRG-003',
+    department: 'Programs Directorate',
+    bio: 'Program Officer overseeing field implementation, distribution logistics, and partner operational alignment.',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000006',
+    name: 'Muktadir Rahaman',
+    role: 'IT Officer',
+    status: 'online',
+    phone: '+880 1711-000006',
+    email: 'muktadir.rahaman@skb.org.bd',
+    dutyStation: 'Dhaka HQ',
+    employeeId: 'SKB-IT-001',
+    department: 'IT & Systems Desk',
+    bio: 'Official IT Officer profile. Systems, Cloud Storage & Portal Security.',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000007',
+    name: 'Aminul Islam Bulbul',
+    role: 'Law Officer',
+    status: 'online',
+    phone: '+880 1711-000007',
+    email: 'aminul.bulbul@skb.org.bd',
+    dutyStation: 'Dhaka HQ',
+    employeeId: 'SKB-LAW-001',
+    department: 'Legal & Compliance Desk',
+    bio: 'Official Law Officer profile. Legal Vetting, NGOAB FD-6/FD-7 & Compliance.',
+  }
 ];
 
 const INITIAL_DIRECT_MESSAGES: Record<string, DirectMessage[]> = {};
@@ -104,9 +198,14 @@ export default function StaffCommunityPage() {
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
+  // Official Organogram & Presence State
+  const [allOfficers, setAllOfficers] = useState<UserProfileRecord[]>([]);
+  const [onlineOfficerNames, setOnlineOfficerNames] = useState<Set<string>>(new Set());
+  const [inspectingOfficer, setInspectingOfficer] = useState<UserProfileRecord | StaffContact | null>(null);
+
   // Personal Direct Messages State
   const [staffContacts, setStaffContacts] = useState<StaffContact[]>(INITIAL_STAFF_CONTACTS);
-  const [selectedContact, setSelectedContact] = useState<StaffContact>(INITIAL_STAFF_CONTACTS[0]);
+  const [selectedContact, setSelectedContact] = useState<StaffContact>(INITIAL_STAFF_CONTACTS[1] || INITIAL_STAFF_CONTACTS[0]);
   const [directMessages, setDirectMessages] = useState<Record<string, DirectMessage[]>>(INITIAL_DIRECT_MESSAGES);
   const [dmInputText, setDmInputText] = useState('');
   const [dmAttachment, setDmAttachment] = useState<AttachmentFile | null>(null);
@@ -139,9 +238,92 @@ export default function StaffCommunityPage() {
   const dmTextareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Check if an officer is currently online
+  const isOfficerOnline = (name: string) => {
+    if (!name) return false;
+    const clean = name.trim().toLowerCase();
+    if (clean === currentAuthor.trim().toLowerCase()) return true;
+    for (const onlineName of Array.from(onlineOfficerNames)) {
+      if (onlineName.trim().toLowerCase() === clean || clean.includes(onlineName.toLowerCase())) {
+        return true;
+      }
+    }
+    if (typeof window !== 'undefined') {
+      const hb = localStorage.getItem(`skb_presence_${clean}`);
+      if (hb && Date.now() - parseInt(hb, 10) < 60000) return true;
+    }
+    return false;
+  };
+
+  const handleOpenOfficerProfile = (nameOrOfficer: string | UserProfileRecord | StaffContact) => {
+    if (typeof nameOrOfficer === 'object' && nameOrOfficer !== null) {
+      setInspectingOfficer(nameOrOfficer);
+      return;
+    }
+    const clean = String(nameOrOfficer).trim().toLowerCase();
+    const foundOfficer = 
+      allOfficers.find(o => o.fullName.trim().toLowerCase() === clean) ||
+      allOfficers.find(o => o.fullName.toLowerCase().includes(clean) || clean.includes(o.fullName.toLowerCase()));
+    
+    if (foundOfficer) {
+      setInspectingOfficer(foundOfficer);
+    } else {
+      const contact = staffContacts.find(c => c.name.toLowerCase().includes(clean));
+      if (contact) {
+        setInspectingOfficer(contact);
+      }
+    }
+  };
+
+  const handleStartDirectChat = (officer: UserProfileRecord | StaffContact) => {
+    const targetName = 'fullName' in officer ? officer.fullName : officer.name;
+    const foundContact = staffContacts.find(c => c.name.toLowerCase() === targetName.toLowerCase());
+    if (foundContact) {
+      setSelectedContact(foundContact);
+    }
+    setInspectingOfficer(null);
+    setActiveTab('PERSONAL_CHAT');
+    setTimeout(() => {
+      dmTextareaRef.current?.focus();
+    }, 150);
+  };
+
   useEffect(() => {
-    // Load community posts from Supabase DB with localStorage fallback
-    const loadData = async () => {
+    // 1. Load official organogram officers
+    const loadCommunityData = async () => {
+      const users = await UserApprovalService.getAllUsers();
+      setAllOfficers(users);
+
+      // Check stored author or default to Dr. Orakatul Jannat (Chairman)
+      const storedAuthor = localStorage.getItem('skb_current_community_author');
+      const activeUser = (storedAuthor && users.find(u => u.fullName === storedAuthor)) || users[0];
+      if (activeUser) {
+        setCurrentAuthor(activeUser.fullName);
+        setCurrentRole(activeUser.designation || activeUser.requestedRole);
+      }
+
+      // Convert officers to contacts
+      const contacts: StaffContact[] = users.map(u => ({
+        id: u.id,
+        name: u.fullName,
+        role: u.designation || u.requestedRole,
+        avatar: getOfficialAvatar(u),
+        status: 'online',
+        phone: u.phone || '+880 1711-000000',
+        email: u.email,
+        dutyStation: u.dutyStation || 'Dhaka HQ',
+        employeeId: u.employeeId || 'SKB-001',
+        department: u.department,
+        bio: u.bio,
+      }));
+      setStaffContacts(contacts);
+      if (contacts.length > 1) {
+        setSelectedContact(contacts[1]); // default to Executive Director
+      } else if (contacts.length > 0) {
+        setSelectedContact(contacts[0]);
+      }
+
+      // 2. Load posts from Supabase or localStorage
       const dbPosts = await CommunityRealtimeService.fetchPosts();
       if (dbPosts && dbPosts.length > 0) {
         setPosts(dbPosts);
@@ -150,31 +332,44 @@ export default function StaffCommunityPage() {
         if (storedPosts) {
           try {
             setPosts(JSON.parse(storedPosts));
-          } catch (e) {
-            setPosts(INITIAL_COMMUNITY_POSTS);
+          } catch {
+            setPosts([]);
           }
-        } else {
-          setPosts(INITIAL_COMMUNITY_POSTS);
         }
       }
     };
 
-    loadData();
+    loadCommunityData();
+  }, []);
 
-    // Load direct messages
-    const storedDms = localStorage.getItem('skb_hq_direct_messages');
-    if (storedDms) {
-      try {
-        setDirectMessages(JSON.parse(storedDms));
-      } catch (e) {
-        setDirectMessages(INITIAL_DIRECT_MESSAGES);
-      }
-    } else {
-      setDirectMessages(INITIAL_DIRECT_MESSAGES);
+  useEffect(() => {
+    if (!currentAuthor) return;
+    localStorage.setItem('skb_current_community_author', currentAuthor);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`skb_presence_${currentAuthor.trim().toLowerCase()}`, Date.now().toString());
     }
 
+    // Subscribe to Realtime Presence
+    const presenceChannel = CommunityRealtimeService.trackPresence(
+      currentAuthor,
+      currentRole,
+      (activeNames) => {
+        const s = new Set(activeNames);
+        s.add(currentAuthor);
+        setOnlineOfficerNames(s);
+      }
+    );
+
+    // Subscribe to Realtime Posts
+    const postsChannel = CommunityRealtimeService.subscribeRealtimePosts(async () => {
+      const dbPosts = await CommunityRealtimeService.fetchPosts();
+      if (dbPosts && dbPosts.length > 0) {
+        setPosts(dbPosts);
+      }
+    });
+
     // Subscribe to Realtime DMs
-    const channel = CommunityRealtimeService.subscribeRealtimeDms((newDbDm) => {
+    const dmChannel = CommunityRealtimeService.subscribeRealtimeDms((newDbDm) => {
       if (!newDbDm) return;
       const isMine = newDbDm.sender_name === currentAuthor;
       const otherParty = isMine ? newDbDm.recipient_name : newDbDm.sender_name;
@@ -207,11 +402,17 @@ export default function StaffCommunityPage() {
     });
 
     return () => {
-      if (channel && typeof (channel as any).unsubscribe === 'function') {
-        (channel as any).unsubscribe();
+      if (presenceChannel && typeof (presenceChannel as any).unsubscribe === 'function') {
+        (presenceChannel as any).unsubscribe();
+      }
+      if (postsChannel && typeof (postsChannel as any).unsubscribe === 'function') {
+        (postsChannel as any).unsubscribe();
+      }
+      if (dmChannel && typeof (dmChannel as any).unsubscribe === 'function') {
+        (dmChannel as any).unsubscribe();
       }
     };
-  }, [currentAuthor]);
+  }, [currentAuthor, currentRole]);
 
   useEffect(() => {
     if (activeTab === 'PERSONAL_CHAT') {
@@ -506,6 +707,93 @@ SKB Operations Portal - https://skbportal.online
         </div>
       )}
 
+      {/* Top Breadcrumb & Staff Workspace Link */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+        <div className="flex items-center gap-2 text-slate-500">
+          <Link 
+            href="/dashboard" 
+            className="font-black text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1.5 transition"
+          >
+            <LayoutDashboard className="w-3.5 h-3.5" /> Staff Workspace
+          </Link>
+          <span className="text-slate-400">&rsaquo;</span>
+          <span className="font-bold text-slate-800">HQ Staff Community</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard"
+            className="text-[11px] font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 px-3 py-1.5 rounded-xl shadow-sm transition flex items-center gap-1.5"
+          >
+            <LayoutDashboard className="w-3.5 h-3.5 text-blue-600" />
+            <span>Open Staff Workspace Desk</span> &rarr;
+          </Link>
+          <Link
+            href="/me/profile"
+            className="text-[11px] font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 px-3 py-1.5 rounded-xl shadow-sm transition flex items-center gap-1.5"
+          >
+            <User className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Official Desk & ID Badge</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Realtime HQ Officers Presence Bar */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white p-4 sm:p-5 rounded-3xl shadow-lg border border-slate-800 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+            </span>
+            <span className="text-xs font-black tracking-wider uppercase text-emerald-400 flex items-center gap-1.5">
+              HQ Active Officers • Realtime Presence
+            </span>
+          </div>
+          <span className="text-[10px] bg-white/10 px-3 py-1 rounded-full text-slate-300 border border-white/10 font-bold">
+            Click any officer to view profile & contact directly
+          </span>
+        </div>
+
+        {/* Horizontal interactive rail of all 7 officers */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 pt-1">
+          {allOfficers.map((officer) => {
+            const isOnline = isOfficerOnline(officer.fullName);
+            return (
+              <button
+                key={officer.id}
+                type="button"
+                onClick={() => handleOpenOfficerProfile(officer)}
+                className="bg-white/5 hover:bg-white/15 border border-white/10 hover:border-blue-400/60 rounded-2xl p-2.5 text-left transition flex flex-col items-center text-center group cursor-pointer"
+              >
+                <div className="relative mb-2">
+                  <img
+                    src={getOfficialAvatar(officer)}
+                    alt={officer.fullName}
+                    className="w-11 h-11 rounded-2xl object-cover border-2 border-white/20 group-hover:border-blue-400 shadow-md bg-white shrink-0"
+                  />
+                  <span className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-slate-900 ${
+                    isOnline ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.9)] animate-pulse' : 'bg-slate-500'
+                  }`} />
+                </div>
+                <span className="text-[11px] font-black text-white group-hover:text-blue-300 truncate w-full">
+                  {officer.fullName.split(' ')[0]} {officer.fullName.split(' ')[1] || ''}
+                </span>
+                <span className="text-[9px] text-slate-400 truncate w-full mt-0.5">
+                  {officer.designation || officer.requestedRole}
+                </span>
+                <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full mt-1.5 ${
+                  isOnline 
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
+                    : 'bg-slate-700 text-slate-400'
+                }`}>
+                  {isOnline ? 'Active Now' : 'Available'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Top Page Header */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -519,18 +807,19 @@ SKB Operations Portal - https://skbportal.online
             <select
               value={currentAuthor}
               onChange={(e) => {
-                setCurrentAuthor(e.target.value);
-                if (e.target.value === 'Md. Abu Huraira') setCurrentRole('Executive Director');
-                else if (e.target.value === 'Mizbah Uddin') setCurrentRole('Program Officer');
-                else if (e.target.value === 'MD. Emran') setCurrentRole('Program Officer');
-                else setCurrentRole('HQ Admin & IT');
+                const found = allOfficers.find(o => o.fullName === e.target.value);
+                if (found) {
+                  setCurrentAuthor(found.fullName);
+                  setCurrentRole(found.designation || found.requestedRole);
+                }
               }}
-              className="bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 font-bold px-2.5 py-1 outline-none focus:border-blue-500"
+              className="bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-black px-3 py-1.5 outline-none focus:border-blue-500 cursor-pointer shadow-sm"
             >
-              <option value="Mizbah Uddin">Mizbah Uddin (Program Officer)</option>
-              <option value="Md. Abu Huraira">Md. Abu Huraira (Executive Director)</option>
-              <option value="MD. Emran">MD. Emran (Program Officer)</option>
-              <option value="Muktadir Rahaman">Muktadir Rahaman (Admin & IT)</option>
+              {allOfficers.map(o => (
+                <option key={o.id} value={o.fullName}>
+                  {o.fullName} ({o.designation || o.requestedRole})
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -541,7 +830,7 @@ SKB Operations Portal - https://skbportal.online
           HQ Internal Discussion
         </h1>
         <p className="text-xs text-slate-500 leading-relaxed">
-          Collaborate across departments with public team announcements, field bulletins, and direct 1-on-1 staff messaging with real file attachments.
+          Integrated with your <Link href="/dashboard" className="text-blue-600 font-bold hover:underline">Staff Workspace</Link> — collaborate across departments with public team announcements, field bulletins, and direct 1-on-1 staff messaging with real file attachments.
         </p>
 
         {/* Mode Switcher Tabs */}
@@ -582,7 +871,15 @@ SKB Operations Portal - https://skbportal.online
               <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <Plus className="w-4 h-4 text-blue-600" /> Publish Announcement / Field Note
               </h2>
-              <span className="text-xs text-slate-400 font-medium">Post Author: {currentAuthor} ({currentRole})</span>
+              <button
+                type="button"
+                onClick={() => handleOpenOfficerProfile(currentAuthor)}
+                className="text-xs text-blue-600 hover:text-blue-800 font-bold hover:underline inline-flex items-center gap-1 cursor-pointer transition"
+                title="Click to view officer profile & contact card"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>Author: {currentAuthor} ({currentRole})</span>
+              </button>
             </div>
 
             <form onSubmit={handleCreatePost} className="space-y-3.5 text-xs">
@@ -716,25 +1013,38 @@ SKB Operations Portal - https://skbportal.online
                 <div key={post.id} id={post.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                 {/* Author Header */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-3">
-                    {post.authorAvatar ? (
-                      <img src={post.authorAvatar} alt={post.authorName} className="w-9 h-9 rounded-full object-cover border border-blue-200" />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">
-                        {post.authorName.charAt(0)}
-                      </div>
-                    )}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenOfficerProfile(post.authorName)}
+                    className="flex items-center gap-3 text-left group cursor-pointer"
+                    title={`Click to view ${post.authorName}'s official profile & contact card`}
+                  >
+                    <div className="relative">
+                      <img 
+                        src={getOfficialAvatar({ fullName: post.authorName, requestedRole: post.authorRole, avatarUrl: post.authorAvatar })} 
+                        alt={post.authorName} 
+                        className="w-10 h-10 rounded-2xl object-cover border-2 border-slate-200 group-hover:border-blue-500 shadow-xs bg-white transition" 
+                      />
+                      <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
+                        isOfficerOnline(post.authorName) ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                      }`} />
+                    </div>
 
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 text-xs">{post.authorName}</span>
-                        <span className="text-[10px] bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded-full">
+                        <span className="font-bold text-slate-900 text-xs group-hover:text-blue-600 transition flex items-center gap-1">
+                          {post.authorName}
+                        </span>
+                        <span className="text-[10px] bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded-full border border-slate-200">
                           {post.authorRole}
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{post.createdAt}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-[10px] text-slate-400">{post.createdAt}</p>
+                        <span className="text-[9px] text-blue-600 font-medium group-hover:underline">View Desk &rarr;</span>
+                      </div>
                     </div>
-                  </div>
+                  </button>
 
                   <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border ${
                     post.category === 'HQ Announcements' ? 'bg-blue-50 text-blue-800 border-blue-200' :
@@ -803,7 +1113,15 @@ SKB Operations Portal - https://skbportal.online
                     {post.comments.map((c) => (
                       <div key={c.id} className="bg-white p-2.5 rounded-lg border border-slate-200/60 space-y-1">
                         <div className="flex items-center justify-between text-[11px]">
-                          <span className="font-bold text-slate-900">{c.authorName} ({c.authorRole})</span>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenOfficerProfile(c.authorName)}
+                            className="font-bold text-slate-900 hover:text-blue-600 hover:underline cursor-pointer flex items-center gap-1.5 transition"
+                            title={`Click to view ${c.authorName}'s profile & desk`}
+                          >
+                            <span>{c.authorName}</span>
+                            <span className="text-[10px] text-slate-500 font-normal">({c.authorRole})</span>
+                          </button>
                           <span className="text-[10px] text-slate-400">{c.createdAt}</span>
                         </div>
                         <p className="text-slate-700 leading-snug">{c.text}</p>
@@ -876,6 +1194,8 @@ SKB Operations Portal - https://skbportal.online
             <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
               {filteredContacts.map((contact) => {
                 const isSelected = selectedContact.id === contact.id;
+                const isOnline = isOfficerOnline(contact.name);
+                const avatarSrc = getOfficialAvatar({ fullName: contact.name, requestedRole: contact.role, avatarUrl: contact.avatar });
                 const thread = directMessages[contact.name] || [];
                 const lastMsg = thread.length > 0 
                   ? (thread[thread.length - 1].attachment ? `Attachment: ${thread[thread.length - 1].attachment?.name}` : thread[thread.length - 1].text)
@@ -883,35 +1203,44 @@ SKB Operations Portal - https://skbportal.online
                 const lastTime = thread.length > 0 ? thread[thread.length - 1].timestamp : contact.lastMessageTime;
 
                 return (
-                  <button
+                  <div
                     key={contact.id}
-                    onClick={() => setSelectedContact(contact)}
-                    className={`w-full p-3.5 text-left transition flex items-start gap-3 ${
+                    className={`w-full p-3 transition flex items-start gap-3 group ${
                       isSelected ? 'bg-blue-50/80 border-l-4 border-blue-600' : 'hover:bg-slate-100/80'
                     }`}
                   >
-                    <div className="relative">
-                      {contact.avatar ? (
-                        <img src={contact.avatar} alt={contact.name} className="w-10 h-10 rounded-full object-cover border border-slate-200" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-slate-800 text-white text-xs font-bold flex items-center justify-center">
-                          {contact.name.charAt(0)}
-                        </div>
-                      )}
-                      <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${
-                        contact.status === 'online' ? 'bg-emerald-500' : 'bg-amber-400'
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenOfficerProfile(contact);
+                      }}
+                      className="relative shrink-0 cursor-pointer focus:outline-none"
+                      title={`View ${contact.name}'s profile & ID card`}
+                    >
+                      <img 
+                        src={avatarSrc} 
+                        alt={contact.name} 
+                        className="w-10 h-10 rounded-2xl object-cover border border-slate-200 shadow-xs bg-white hover:ring-2 hover:ring-blue-500 transition" 
+                      />
+                      <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
+                        isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
                       }`} />
-                    </div>
+                    </button>
 
-                    <div className="flex-1 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedContact(contact)}
+                      className="flex-1 min-w-0 text-left focus:outline-none cursor-pointer"
+                    >
                       <div className="flex items-center justify-between">
-                        <p className="text-xs font-bold text-slate-900 truncate">{contact.name}</p>
+                        <p className="text-xs font-bold text-slate-900 truncate group-hover:text-blue-600 transition">{contact.name}</p>
                         <span className="text-[10px] text-slate-400">{lastTime}</span>
                       </div>
                       <p className="text-[11px] text-slate-500 font-medium truncate">{contact.role}</p>
-                      <p className="text-[11px] text-slate-600 truncate mt-0.5 italic">{lastMsg}</p>
-                    </div>
-                  </button>
+                      <p className="text-[11px] text-slate-600 truncate mt-0.5 italic">{lastMsg || 'No messages yet'}</p>
+                    </button>
+                  </div>
                 );
               })}
             </div>
@@ -920,34 +1249,78 @@ SKB Operations Portal - https://skbportal.online
           {/* Active Conversation Chat Window */}
           <div className="md:col-span-8 flex flex-col h-full bg-white">
             {/* Active Contact Bar Header */}
-            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/40">
+            <div className="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50/40">
               <div className="flex items-center gap-3">
-                <div className="relative">
-                  {selectedContact.avatar ? (
-                    <img src={selectedContact.avatar} alt={selectedContact.name} className="w-10 h-10 rounded-full object-cover border border-slate-200" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-slate-800 text-white text-xs font-bold flex items-center justify-center">
-                      {selectedContact.name.charAt(0)}
-                    </div>
-                  )}
-                  <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${
-                    selectedContact.status === 'online' ? 'bg-emerald-500' : 'bg-amber-400'
+                <button
+                  type="button"
+                  onClick={() => handleOpenOfficerProfile(selectedContact)}
+                  className="relative cursor-pointer focus:outline-none group"
+                  title="View Officer Profile & Contact Card"
+                >
+                  <img
+                    src={getOfficialAvatar({ fullName: selectedContact.name, requestedRole: selectedContact.role, avatarUrl: selectedContact.avatar })}
+                    alt={selectedContact.name}
+                    className="w-11 h-11 rounded-2xl object-cover border-2 border-slate-200 group-hover:border-blue-500 shadow-sm bg-white transition"
+                  />
+                  <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white ${
+                    isOfficerOnline(selectedContact.name) ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
                   }`} />
-                </div>
+                </button>
 
                 <div>
-                  <h3 className="text-xs font-bold text-slate-900 flex items-center gap-2">
-                    {selectedContact.name}
-                    <span className="text-[10px] text-emerald-600 bg-emerald-50 font-semibold px-2 py-0.5 rounded-full border border-emerald-200">
-                      ● Active
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenOfficerProfile(selectedContact)}
+                      className="text-xs font-black text-slate-900 hover:text-blue-600 hover:underline cursor-pointer"
+                    >
+                      {selectedContact.name}
+                    </button>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      isOfficerOnline(selectedContact.name)
+                        ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                        : 'text-slate-600 bg-slate-100 border-slate-200'
+                    }`}>
+                      {isOfficerOnline(selectedContact.name) ? '● Active Now' : '● Available'}
                     </span>
-                  </h3>
-                  <p className="text-[11px] text-slate-500">{selectedContact.role}</p>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium">{selectedContact.role} • {selectedContact.dutyStation || 'Dhaka HQ'}</p>
                 </div>
               </div>
 
-              <div className="text-right text-[11px] text-slate-400">
-                <span className="font-semibold text-slate-600">Private 1-on-1 Channel</span>
+              {/* Direct Quick Contact Buttons */}
+              <div className="flex items-center gap-2">
+                {selectedContact.phone && (
+                  <a
+                    href={`https://wa.me/${selectedContact.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Assalamu Alaikum ${selectedContact.name}, contacting from SKB Operations Portal.`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-xs"
+                    title="Chat on WhatsApp"
+                  >
+                    <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="hidden sm:inline">WhatsApp</span>
+                  </a>
+                )}
+                {selectedContact.phone && (
+                  <a
+                    href={`tel:${selectedContact.phone}`}
+                    className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-xs"
+                    title="Direct Phone Call"
+                  >
+                    <PhoneCall className="w-3.5 h-3.5 text-blue-600" />
+                    <span className="hidden sm:inline">Call</span>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleOpenOfficerProfile(selectedContact)}
+                  className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+                  title="View Officer Profile & Desk"
+                >
+                  <User className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Profile Desk</span>
+                </button>
               </div>
             </div>
 
@@ -1136,6 +1509,189 @@ SKB Operations Portal - https://skbportal.online
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* OFFICER QUICK DESK MODAL (CLICKABLE OFFICER PROFILE & REALTIME CONTACT)   */}
+      {/* ========================================================================= */}
+      {inspectingOfficer && (() => {
+        const isUserRecord = 'fullName' in inspectingOfficer;
+        const officerName = isUserRecord ? inspectingOfficer.fullName : inspectingOfficer.name;
+        const officerRole = isUserRecord 
+          ? (inspectingOfficer.designation || inspectingOfficer.requestedRole) 
+          : inspectingOfficer.role;
+        const officerEmail = inspectingOfficer.email || 'officer@skb.org.bd';
+        const officerPhone = inspectingOfficer.phone || '+880 1711-000000';
+        const officerDutyStation = inspectingOfficer.dutyStation || 'Dhaka HQ';
+        const officerEmployeeId = inspectingOfficer.employeeId || 'SKB-001';
+        const officerDepartment = inspectingOfficer.department || 'Directorate General HQ';
+        const officerBio = inspectingOfficer.bio || 'Official Small Kindness Bangladesh Officer.';
+        const officerAvatar = isUserRecord 
+          ? getOfficialAvatar(inspectingOfficer) 
+          : getOfficialAvatar({ fullName: inspectingOfficer.name, requestedRole: inspectingOfficer.role, avatarUrl: inspectingOfficer.avatar });
+        const isOnline = isOfficerOnline(officerName);
+        const cleanPhone = officerPhone.replace(/[^0-9]/g, '');
+
+        return (
+          <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              {/* Header Gradient */}
+              <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 text-white p-5 relative">
+                <button
+                  onClick={() => setInspectingOfficer(null)}
+                  className="absolute top-4 right-4 p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+                  title="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-2 text-xs font-bold text-blue-200 mb-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Official SKB Officer Profile</span>
+                </div>
+
+                <div className="flex items-center gap-4 pt-1">
+                  <div className="relative">
+                    <img
+                      src={officerAvatar}
+                      alt={officerName}
+                      className="w-16 h-16 rounded-2xl object-cover border-2 border-white/40 shadow-lg bg-white"
+                    />
+                    <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-slate-900 ${
+                      isOnline ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.9)] animate-pulse' : 'bg-slate-500'
+                    }`} />
+                  </div>
+
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-black text-white truncate flex items-center gap-2">
+                      {officerName}
+                    </h2>
+                    <p className="text-xs text-blue-100 font-semibold truncate">{officerRole}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        isOnline ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30' : 'bg-slate-700 text-slate-300'
+                      }`}>
+                        {isOnline ? '● Online & Active' : '● Available'}
+                      </span>
+                      <span className="text-[10px] bg-white/10 text-white font-mono px-2 py-0.5 rounded-full">
+                        {officerEmployeeId}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Profile Details Body */}
+              <div className="p-6 space-y-4 text-xs">
+                {/* Meta details grid */}
+                <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <Building2 className="w-3 h-3 text-slate-500" /> Department
+                    </span>
+                    <p className="font-bold text-slate-800 truncate">{officerDepartment}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-slate-500" /> Duty Station
+                    </span>
+                    <p className="font-bold text-slate-800 truncate">{officerDutyStation}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <Mail className="w-3 h-3 text-slate-500" /> Official Email
+                    </span>
+                    <p className="font-semibold text-slate-800 truncate select-all">{officerEmail}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <Phone className="w-3 h-3 text-slate-500" /> Phone / WhatsApp
+                    </span>
+                    <p className="font-semibold text-slate-800 truncate select-all">{officerPhone}</p>
+                  </div>
+                </div>
+
+                {/* Bio statement */}
+                {officerBio && (
+                  <div className="bg-blue-50/50 p-3.5 rounded-2xl border border-blue-100 space-y-1">
+                    <span className="text-[10px] text-blue-700 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <Award className="w-3 h-3" /> Responsibility & Bio
+                    </span>
+                    <p className="text-slate-700 leading-relaxed italic">{officerBio}</p>
+                  </div>
+                )}
+
+                {/* Direct Realtime Contact Action Buttons */}
+                <div className="space-y-2 pt-1">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                    Instant Communication Channels
+                  </span>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Portal 1-on-1 Chat */}
+                    <button
+                      type="button"
+                      onClick={() => handleStartDirectChat(inspectingOfficer)}
+                      className="py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition cursor-pointer"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      <span>Start Portal Chat</span>
+                    </button>
+
+                    {/* WhatsApp Direct */}
+                    <a
+                      href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Assalamu Alaikum ${officerName}, contacting from SKB Operations Portal.`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition"
+                    >
+                      <Phone className="w-4 h-4" />
+                      <span>WhatsApp Chat</span>
+                    </a>
+
+                    {/* Direct Call */}
+                    <a
+                      href={`tel:${officerPhone}`}
+                      className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl flex items-center justify-center gap-1.5 border border-slate-200 transition"
+                    >
+                      <PhoneCall className="w-4 h-4 text-blue-600" />
+                      <span>Direct Phone Call</span>
+                    </a>
+
+                    {/* Email Mailto */}
+                    <a
+                      href={`mailto:${officerEmail}?subject=SKB Operations Communication`}
+                      className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl flex items-center justify-center gap-1.5 border border-slate-200 transition"
+                    >
+                      <Mail className="w-4 h-4 text-indigo-600" />
+                      <span>Send Official Email</span>
+                    </a>
+                  </div>
+                </div>
+
+                {/* Footer Portal Links */}
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setInspectingOfficer(null)}
+                    className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
+                  >
+                    <LayoutDashboard className="w-3.5 h-3.5" /> Staff Workspace &rarr;
+                  </Link>
+
+                  <Link
+                    href="/me/profile"
+                    onClick={() => setInspectingOfficer(null)}
+                    className="text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl border border-slate-200 flex items-center gap-1 transition"
+                  >
+                    <User className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>View Official Desk & ID Badge</span>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

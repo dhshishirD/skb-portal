@@ -199,4 +199,68 @@ export class CommunityRealtimeService {
 
     return channel;
   }
+
+  /**
+   * Subscribe to Supabase Realtime changes for Community Posts and Comments
+   */
+  static subscribeRealtimePosts(callback: (payload: any) => void) {
+    const supabase = this.getSupabaseClient();
+    if (!supabase) return null;
+
+    const channel = supabase
+      .channel('public:community_posts_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_posts' }, (payload) => {
+        callback(payload);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_comments' }, (payload) => {
+        callback(payload);
+      })
+      .subscribe();
+
+    return channel;
+  }
+
+  /**
+   * Realtime Presence Tracking across active HQ officers
+   */
+  static trackPresence(
+    officerName: string, 
+    role: string, 
+    onSync: (activeOfficers: string[]) => void
+  ) {
+    const supabase = this.getSupabaseClient();
+    if (!supabase) return null;
+
+    const channel = supabase.channel('skb-community-presence', {
+      config: {
+        presence: { key: officerName },
+      },
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const active = Object.keys(state);
+        onSync(active);
+      })
+      .on('presence', { event: 'join' }, () => {
+        const state = channel.presenceState();
+        onSync(Object.keys(state));
+      })
+      .on('presence', { event: 'leave' }, () => {
+        const state = channel.presenceState();
+        onSync(Object.keys(state));
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({
+            officerName,
+            role,
+            onlineAt: new Date().toISOString(),
+          });
+        }
+      });
+
+    return channel;
+  }
 }

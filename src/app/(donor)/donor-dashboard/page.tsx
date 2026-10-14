@@ -531,51 +531,55 @@ export default function DonorDashboardPage() {
     }, 2000);
   };
 
+  const [showHqSwitcher, setShowHqSwitcher] = useState(false);
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto font-sans pb-16">
-      {/* 1. TOP PARTNER SELECTOR BAR (Dedicated International Desks) */}
-      <div className="bg-white p-3 rounded-2xl border border-slate-200/90 shadow-sm space-y-2">
-        <div className="flex items-center justify-between px-2 pt-1">
-          <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-            <Globe2 className="w-3.5 h-3.5 text-blue-600" /> Dedicated International Partner Workspaces:
-          </span>
-          <span className="text-[10px] text-slate-400 font-semibold hidden sm:inline">
-            Select partner to open isolated audit view
-          </span>
+      {/* 1. TOP PARTNER SELECTOR BAR (Only visible in HQ Master View or when toggled by Internal Staff) */}
+      {(selectedPartnerKey === 'ALL' || showHqSwitcher) && (
+        <div className="bg-white p-3 rounded-2xl border border-slate-200/90 shadow-sm space-y-2 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between px-2 pt-1">
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+              <Globe2 className="w-3.5 h-3.5 text-blue-600" /> HQ Directorate Console — All 6 International Partner Desks:
+            </span>
+            <span className="text-[10px] text-slate-400 font-semibold hidden sm:inline">
+              Internal Governance View • Select desk to inspect
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+            {(Object.keys(PARTNER_REGISTRY) as PartnerWorkspaceKey[]).map((key) => {
+              const p = PARTNER_REGISTRY[key];
+              const isSelected = selectedPartnerKey === key;
+              const projectCount = key === 'ALL' 
+                ? projects.length 
+                : projects.filter(pr => pr.partnerKey === key).length;
+
+              return (
+                <button
+                  key={key}
+                  onClick={() => handleSelectPartner(key)}
+                  className={`py-2 px-3.5 rounded-xl text-xs font-black whitespace-nowrap transition flex items-center gap-2 border shadow-sm ${
+                    isSelected 
+                      ? `${p.accentBg} border-transparent ring-2 ring-blue-500/30 scale-102` 
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                  }`}
+                >
+                  <span>{p.flag}</span>
+                  <span>{p.shortName}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                  }`}>
+                    {projectCount}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
+      )}
 
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
-          {(Object.keys(PARTNER_REGISTRY) as PartnerWorkspaceKey[]).map((key) => {
-            const p = PARTNER_REGISTRY[key];
-            const isSelected = selectedPartnerKey === key;
-            const projectCount = key === 'ALL' 
-              ? projects.length 
-              : projects.filter(pr => pr.partnerKey === key).length;
-
-            return (
-              <button
-                key={key}
-                onClick={() => handleSelectPartner(key)}
-                className={`py-2 px-3.5 rounded-xl text-xs font-black whitespace-nowrap transition flex items-center gap-2 border shadow-sm ${
-                  isSelected 
-                    ? `${p.accentBg} border-transparent ring-2 ring-blue-500/30 scale-102` 
-                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-                }`}
-              >
-                <span>{p.flag}</span>
-                <span>{p.shortName}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
-                }`}>
-                  {projectCount}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 2. DEDICATED PARTNER HERO BANNER */}
+      {/* 2. DEDICATED PARTNER HERO BANNER (Isolated to this Partner) */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div className="flex flex-wrap items-center gap-2.5">
@@ -585,18 +589,29 @@ export default function DonorDashboardPage() {
             <span className="text-xs bg-blue-50 text-blue-900 border border-blue-200 px-3 py-1 rounded-full font-bold flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-blue-600" /> {currentPartnerInfo.accreditationBadge}
             </span>
-            <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-medium hidden md:inline">
-              Base: {currentPartnerInfo.headquarters}
+            <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-full font-bold flex items-center gap-1">
+              <Lock className="w-3 h-3 text-emerald-600" /> Private Partner Workspace
             </span>
           </div>
 
-          <button
-            onClick={handleCopyShareLink}
-            className="inline-flex items-center gap-1.5 text-xs font-black text-slate-800 bg-slate-100 hover:bg-blue-600 hover:text-white px-3.5 py-1.5 rounded-xl border border-slate-200 shadow-sm transition-all"
-          >
-            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-blue-600" />}
-            {copiedLink ? 'Direct Link Copied!' : `Share ${currentPartnerInfo.shortName} Link`}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowHqSwitcher(!showHqSwitcher)}
+              className="text-[11px] text-slate-500 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 font-bold transition flex items-center gap-1.5"
+              title="Toggle HQ Internal Directorate Switcher"
+            >
+              <Building2 className="w-3.5 h-3.5 text-slate-600" />
+              <span>{showHqSwitcher ? 'Hide HQ Switcher' : 'HQ Switcher (Staff)'}</span>
+            </button>
+
+            <button
+              onClick={handleCopyShareLink}
+              className="inline-flex items-center gap-1.5 text-xs font-black text-slate-800 bg-slate-100 hover:bg-blue-600 hover:text-white px-3.5 py-1.5 rounded-xl border border-slate-200 shadow-sm transition-all"
+            >
+              {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-blue-600" />}
+              {copiedLink ? 'Direct Link Copied!' : `Share ${currentPartnerInfo.shortName} Link`}
+            </button>
+          </div>
         </div>
 
         <div>

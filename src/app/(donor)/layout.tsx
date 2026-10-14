@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { 
   Globe, 
@@ -16,33 +16,91 @@ import {
   Menu, 
   X, 
   Building2, 
-  ChevronDown,
   CheckCircle2,
   Lock,
-  Layers,
-  Briefcase
+  ChevronRight
 } from 'lucide-react';
 
-export default function DonorLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+interface PartnerLayoutMeta {
+  shortName: string;
+  flag: string;
+  auditName: string;
+  auditRole: string;
+  operationsText: string;
+}
+
+const PARTNER_LAYOUT_MAP: Record<string, PartnerLayoutMeta> = {
+  IHH_SOUTH_ASIA: {
+    shortName: 'IHH South Asian Desk',
+    flag: '🇹🇷',
+    auditName: 'IHH South Asia Audit Bureau',
+    auditRole: 'Regional Partner Audit Representative',
+    operationsText: 'IHH South Asia Operations • Cloud Verified',
+  },
+  IHH_ADAK_AQIQAH: {
+    shortName: 'IHH Adak & Aqiqah Department',
+    flag: '🇹🇷',
+    auditName: 'IHH Adak Aqiqah Directorate',
+    auditRole: 'Livestock & Food Audit Representative',
+    operationsText: 'IHH Adak Aqiqah Operations • Cloud Verified',
+  },
+  IHH_ORPHAN: {
+    shortName: 'IHH Orphan Care Department',
+    flag: '🇹🇷',
+    auditName: 'IHH Orphan Care Directorate',
+    auditRole: 'Child Protection Audit Representative',
+    operationsText: 'IHH Orphan Operations • Cloud Verified',
+  },
+  UMUT_OL: {
+    shortName: 'UMUT OL Derneği Workspace',
+    flag: '🇹🇷',
+    auditName: 'UMUT OL Audit Directorate',
+    auditRole: 'Turkish INGO Audit Representative',
+    operationsText: 'UMUT OL Operations • Cloud Verified',
+  },
+  MAVI_MARMARA: {
+    shortName: 'Mavi Marmara Solidarity Desk',
+    flag: '🇹🇷',
+    auditName: 'Mavi Marmara Solidarity Audit',
+    auditRole: 'Refugee Solidarity Representative',
+    operationsText: 'Mavi Marmara Operations • Cloud Verified',
+  },
+  QWCQP: {
+    shortName: 'QWCQP Welfare Desk',
+    flag: '🌐',
+    auditName: 'QWCQP International Audit Bureau',
+    auditRole: 'Welfare Program Representative',
+    operationsText: 'QWCQP Welfare Operations • Cloud Verified',
+  },
+  ALL: {
+    shortName: 'Directorate Master Console',
+    flag: '🏛️',
+    auditName: 'SKB Directorate General',
+    auditRole: 'HQ Central Governance & Audit',
+    operationsText: 'HQ Multi-Tenant Engine • 6 Partner Desks Active',
+  }
+};
+
+function DonorLayoutInner({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const partnerParam = (searchParams.get('partner') || 'IHH_ADAK_AQIQAH').toUpperCase();
+  const partnerMeta = PARTNER_LAYOUT_MAP[partnerParam] || PARTNER_LAYOUT_MAP.IHH_ADAK_AQIQAH;
 
   const navItems = [
-    { href: '/donor-dashboard', label: 'Partner Command Overview', icon: Globe },
-    { href: '/donor-dashboard#portfolio', label: 'Grant Program Portfolio', icon: FolderKanban },
-    { href: '/donor-dashboard#compliance', label: 'Form-7 Compliance', icon: FileCheck2, badge: '7/7' },
-    { href: '/donor-dashboard#clarifications', label: 'Audit Clarification Threads', icon: MessageSquare, badge: 'Live' },
-    { href: '/donor-dashboard#financials', label: 'Multi-Currency Disbursal', icon: DollarSign },
-    { href: '/donor-dashboard#security', label: 'Partner Audit Verification', icon: ShieldCheck, badge: 'Verified' },
+    { href: `/donor-dashboard?partner=${partnerParam}`, label: 'Partner Command Overview', icon: Globe },
+    { href: `/donor-dashboard?partner=${partnerParam}#portfolio`, label: 'Grant Program Portfolio', icon: FolderKanban },
+    { href: `/donor-dashboard?partner=${partnerParam}#compliance`, label: 'Form-7 Compliance', icon: FileCheck2, badge: '7/7' },
+    { href: `/donor-dashboard?partner=${partnerParam}#clarifications`, label: 'Audit Clarification Threads', icon: MessageSquare, badge: 'Live' },
+    { href: `/donor-dashboard?partner=${partnerParam}#financials`, label: 'Multi-Currency Disbursal', icon: DollarSign },
+    { href: `/donor-dashboard?partner=${partnerParam}#security`, label: 'Partner Audit Verification', icon: ShieldCheck, badge: 'Verified' },
   ];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
-      {/* Top Standard Executive Navbar */}
+      {/* Top Dynamic Executive Navbar */}
       <header className="bg-slate-900 text-white border-b border-slate-800 shadow-md px-4 sm:px-6 lg:px-8 py-3 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -54,7 +112,7 @@ export default function DonorLayout({
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
 
-            <Link href="/donor-dashboard" className="font-bold text-base sm:text-lg flex items-center gap-2.5 text-white group">
+            <Link href={`/donor-dashboard?partner=${partnerParam}`} className="font-bold text-base sm:text-lg flex items-center gap-2.5 text-white group">
               <Image
                 src="/skb-logo.png"
                 alt="Small Kindness Bangladesh Logo"
@@ -65,7 +123,7 @@ export default function DonorLayout({
               />
               <span className="hidden sm:inline tracking-tight font-extrabold text-slate-100">SKB Works Portal</span>
               <span className="text-[10px] bg-blue-500/20 text-blue-300 font-bold px-2.5 py-0.5 rounded-full border border-blue-400/30 flex items-center gap-1">
-                <span>🇹🇷</span> IHH Partner Workspace
+                <span>{partnerMeta.flag}</span> {partnerMeta.shortName}
               </span>
             </Link>
           </div>
@@ -73,14 +131,14 @@ export default function DonorLayout({
           {/* Right Top Header Actions */}
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-2 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700/70 text-xs">
-              <div className="w-6 h-6 rounded-full bg-blue-600 text-white font-extrabold text-[10px] flex items-center justify-center">
-                IHH
+              <div className="w-6 h-6 rounded-full bg-blue-600 text-white font-black text-[10px] flex items-center justify-center">
+                {partnerMeta.shortName.charAt(0)}
               </div>
               <div className="text-left leading-tight">
                 <p className="font-bold text-slate-100 flex items-center gap-1">
-                  IHH Turkey Audit Directorate
+                  {partnerMeta.auditName}
                 </p>
-                <p className="text-[10px] text-blue-400 font-medium">External Audit Representative</p>
+                <p className="text-[10px] text-blue-400 font-medium">{partnerMeta.auditRole}</p>
               </div>
             </div>
 
@@ -110,11 +168,11 @@ export default function DonorLayout({
         `}>
           <div>
             <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-3 mb-3">
-              Partner Workspaces & Audit Tools
+              Partner Workspace & Audit Tools
             </p>
             <nav className="space-y-1">
               {navItems.map((item) => {
-                const isActive = pathname === item.href || (item.href !== '/donor-dashboard' && pathname?.includes(item.href));
+                const isActive = pathname === item.href || (item.href.includes('#') && typeof window !== 'undefined' && window.location.hash && item.href.endsWith(window.location.hash));
                 const Icon = item.icon;
 
                 return (
@@ -149,10 +207,10 @@ export default function DonorLayout({
           <div className="pt-4 border-t border-slate-100 space-y-3">
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-1.5">
               <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-800">
-                <Building2 className="w-3.5 h-3.5 text-blue-600" /> Multi-Tenant Active
+                <Building2 className="w-3.5 h-3.5 text-blue-600" /> Isolated Workspace
               </div>
               <p className="text-[10px] text-slate-500 leading-tight">
-                IHH Turkey Operations • Connected to Supabase Storage
+                {partnerMeta.operationsText}
               </p>
             </div>
 
@@ -184,10 +242,22 @@ export default function DonorLayout({
       {/* Footer */}
       <footer className="border-t border-slate-200 py-4 px-4 text-center text-xs text-slate-500 bg-white mt-auto">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>&copy; {new Date().getFullYear()} Small Kindness Bangladesh • International Partner Workspace</span>
-          <span className="text-slate-400">NGO Affairs Bureau Reg #2938 • Multi-Tenant Partner Security</span>
+          <span>&copy; {new Date().getFullYear()} Small Kindness Bangladesh • Dedicated Partner Desk</span>
+          <span className="text-slate-400">NGO Affairs Bureau Reg #2938 • Multi-Tenant Partner Isolation</span>
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function DonorLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8 text-xs text-slate-400">
+        Loading partner workspace...
+      </div>
+    }>
+      <DonorLayoutInner>{children}</DonorLayoutInner>
+    </Suspense>
   );
 }

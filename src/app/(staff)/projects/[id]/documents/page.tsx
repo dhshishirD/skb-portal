@@ -20,6 +20,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { getDefaultClosingAudit, ClosingReportWorkingPaper } from '@/server/services/projectClosingAuditService';
+import { CloudSyncService } from '@/server/services/cloudSyncService';
 
 export interface ProjectComplianceDoc {
   id: string;
@@ -52,19 +53,33 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
   const [previewDoc, setPreviewDoc] = useState<ProjectComplianceDoc | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`skb_documents_${projectId}`);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            setDocs(parsed);
+    let isMounted = true;
+    const loadDocs = async () => {
+      // 1. Try Supabase cloud sync first
+      const cloudDocs = await CloudSyncService.getProjectDocuments(projectId);
+      if (isMounted && cloudDocs && cloudDocs.length > 0) {
+        setDocs(cloudDocs as ProjectComplianceDoc[]);
+        return;
+      }
+
+      // 2. Fallback to local storage
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem(`skb_documents_${projectId}`);
+        if (saved && isMounted) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) {
+              setDocs(parsed);
+            }
+          } catch (e) {
+            console.error('Failed to load documents', e);
           }
-        } catch (e) {
-          console.error('Failed to load documents', e);
         }
       }
-    }
+    };
+
+    loadDocs();
+    return () => { isMounted = false; };
   }, [projectId]);
 
   const saveDocuments = (updatedDocs: ProjectComplianceDoc[]) => {
@@ -132,6 +147,8 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
 
     const updated = [created, ...docs];
     saveDocuments(updated);
+    // Cloud sync to Supabase Postgres
+    CloudSyncService.saveProjectDocument(created as any);
 
     // Auto-update Closing Audit Working Paper domain parameter if domain tag is provided
     if (typeof window !== 'undefined') {

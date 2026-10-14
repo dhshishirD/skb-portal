@@ -25,6 +25,7 @@ export interface CloudDocumentRecord {
   fileSize: string;
   fileType?: string;
   fileDataUrl?: string;
+  fileUrl?: string;
   status: 'Submitted' | 'Pending Officer Upload';
   specialReason?: string;
   uploadedBy: string;

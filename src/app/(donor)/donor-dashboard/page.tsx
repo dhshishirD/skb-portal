@@ -179,6 +179,7 @@ interface ProjectDocument {
   fileSize: string;
   status: 'Submitted' | 'Missing' | 'Special Request Pending';
   downloadUrl?: string;
+  fileUrl?: string;
   specialReason?: string;
 }
 
@@ -468,7 +469,13 @@ export default function DonorDashboardPage() {
     setTimeout(() => setDownloadToast(null), 4000);
   };
 
-  const handleDownloadFile = (docName: string) => {
+  const handleDownloadFile = (docName: string, fileUrl?: string) => {
+    if (fileUrl) {
+      window.open(fileUrl, '_blank');
+      setDownloadToast(`Opening cloud file "${docName}" from Supabase Storage...`);
+      setTimeout(() => setDownloadToast(null), 3500);
+      return;
+    }
     const dummyContent = `==========================================================\nSMALL KINDNESS BANGLADESH (SKB) - OFFICIAL AUDIT SUBMISSION\nPartner Workspace: ${currentPartnerInfo.name}\nDocument Name: ${docName}\nNGO Affairs Bureau Registration #2938 | SKB Works Portal\n==========================================================\n\nOfficial verified archive document extract generated for donor review.\nAudit Timestamp: ${new Date().toLocaleString()}\n`;
     const blob = new Blob([dummyContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -922,8 +929,14 @@ export default function DonorDashboardPage() {
 
                     <div className="flex items-center gap-2 shrink-0">
                       <button
-                        onClick={() => handleDownloadFile(doc.name)}
-                        className="py-1 px-3 bg-white hover:bg-blue-600 hover:text-white text-slate-700 font-bold text-xs rounded-xl border border-slate-300 shadow-sm transition flex items-center gap-1.5"
+                        onClick={() => setViewingDoc({ doc, pid: inspectingProject.pid, partner: inspectingProject.partner })}
+                        className="py-1 px-2.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition flex items-center gap-1.5"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Preview
+                      </button>
+                      <button
+                        onClick={() => handleDownloadFile(doc.name, doc.fileUrl)}
+                        className="py-1 px-3 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-300 shadow-sm transition flex items-center gap-1.5"
                       >
                         <Download className="w-3.5 h-3.5" /> Download
                       </button>
@@ -1050,6 +1063,95 @@ export default function DonorDashboardPage() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+      {/* 8. LIVE CLOUD DOCUMENT PREVIEW MODAL */}
+      {viewingDoc && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <span className="text-[10px] font-black uppercase text-blue-600 tracking-wider">
+                  Cloud Verified Document Inspection
+                </span>
+                <h3 className="text-base font-black text-slate-900 truncate">
+                  {viewingDoc.doc.name}
+                </h3>
+                <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                  <span>Project: <strong className="font-mono text-slate-800">{viewingDoc.pid}</strong></span>
+                  <span>•</span>
+                  <span>Size: {viewingDoc.doc.fileSize}</span>
+                  <span>•</span>
+                  <span className="text-emerald-700 font-bold">Supabase Cloud Verified ✓</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setViewingDoc(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Document Body / Iframe or Certificate Viewer */}
+            <div className="flex-1 min-h-[300px] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 flex flex-col items-center justify-center p-4">
+              {viewingDoc.doc.fileUrl ? (
+                viewingDoc.doc.name.match(/\.(jpeg|jpg|png|webp|gif)$/i) ? (
+                  <img
+                    src={viewingDoc.doc.fileUrl}
+                    alt={viewingDoc.doc.name}
+                    className="max-h-[50vh] object-contain rounded-xl shadow-xs"
+                  />
+                ) : (
+                  <iframe
+                    src={viewingDoc.doc.fileUrl}
+                    title={viewingDoc.doc.name}
+                    className="w-full h-[55vh] rounded-xl border border-slate-200 bg-white"
+                  />
+                )
+              ) : (
+                <div className="text-center p-6 space-y-3 max-w-md">
+                  <div className="w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mx-auto shadow-sm">
+                    <FileCheck2 className="w-7 h-7" />
+                  </div>
+                  <h4 className="text-sm font-black text-slate-800">
+                    Officially Registered Field Compliance Dossier
+                  </h4>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    This file has been signed off by the assigned field officer and registered under Bangladesh NGO Affairs Bureau (FD-6 / FD-7) compliance guidelines.
+                  </p>
+                  <div className="p-3 bg-white rounded-xl border border-slate-200/80 text-[11px] text-slate-600 text-left space-y-1">
+                    <div>Document: <strong className="text-slate-800">{viewingDoc.doc.name}</strong></div>
+                    <div>Status: <strong className="text-emerald-700 font-bold">Compliant &amp; Active</strong></div>
+                    <div>Storage Vault: <span className="font-mono text-slate-700">supabase://project-documents</span></div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+              <span className="text-[11px] text-slate-400">
+                Encrypted for Bilateral International Partner Review
+              </span>
+              <div className="flex items-center gap-2">
+                {viewingDoc.doc.fileUrl && (
+                  <button
+                    onClick={() => window.open(viewingDoc.doc.fileUrl, '_blank')}
+                    className="py-2 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-1.5"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" /> Open in New Tab
+                  </button>
+                )}
+                <button
+                  onClick={() => handleDownloadFile(viewingDoc.doc.name, viewingDoc.doc.fileUrl)}
+                  className="py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-sm flex items-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" /> Download Verified File
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

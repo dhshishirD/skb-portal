@@ -1,10 +1,11 @@
 export type SystemRole = 
+  | 'Chairman'
   | 'Executive Director'
   | 'Program Officer'
-  | 'Field Operations Officer'
+  | 'IT Officer'
+  | 'Law Officer'
   | 'Finance Manager'
-  | 'IT & Admin Officer'
-  | 'Medical / Health Officer'
+  | 'Field Operations Officer'
   | 'General Staff';
 
 export interface UserProfileRecord {
@@ -35,7 +36,7 @@ export const DEFAULT_APPROVED_USERS: UserProfileRecord[] = [
     avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     phone: '+880 1711-000001',
     dutyStation: 'Dhaka HQ',
-    designation: 'Executive Director & General Secretariat',
+    designation: 'Executive Director',
     employeeId: 'SKB-DIR-001',
     requestedRole: 'Executive Director',
     department: 'Directorate General HQ',
@@ -43,7 +44,7 @@ export const DEFAULT_APPROVED_USERS: UserProfileRecord[] = [
     approvedBy: 'Founding Charter',
     approvedAt: '2026-01-01 00:00 AM',
     createdAt: '2026-01-01 00:00 AM',
-    bio: 'General Executive Director overseeing strategic governance, donor liaisons, and humanitarian missions across Bangladesh.',
+    bio: 'Executive Director managing operational execution, project sign-offs, and humanitarian governance across Bangladesh.',
   },
   {
     id: '10000000-0000-0000-0000-000000000003',
@@ -51,50 +52,16 @@ export const DEFAULT_APPROVED_USERS: UserProfileRecord[] = [
     email: 'dr.orakatul@skb.org.bd',
     avatarUrl: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150&auto=format&fit=crop&q=80',
     phone: '+880 1711-000002',
-    dutyStation: 'Cox\'s Bazar & Dhaka HQ',
-    designation: 'Medical Lead & Health Programs Consultant',
-    employeeId: 'SKB-MED-002',
-    requestedRole: 'Medical / Health Officer',
-    department: 'Health, Nutrition & Emergency Relief',
-    status: 'APPROVED',
-    approvedBy: 'Directorate General',
-    approvedAt: '2026-01-01 00:00 AM',
-    createdAt: '2026-01-01 00:00 AM',
-    bio: 'Lead Medical Consultant managing community health outreach, nutrition initiatives, and clinical relief missions.',
-  },
-  {
-    id: '10000000-0000-0000-0000-000000000004',
-    fullName: 'Safwanur Rahman',
-    email: 'safwanur.rahman@skb.org.bd',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    phone: '+880 1711-000003',
     dutyStation: 'Dhaka HQ',
-    designation: 'Senior Program & Operations Coordinator',
-    employeeId: 'SKB-PRG-003',
-    requestedRole: 'Program Officer',
-    department: 'Programs & International Donors Desk',
+    designation: 'Chairman',
+    employeeId: 'SKB-CHM-001',
+    requestedRole: 'Chairman',
+    department: 'Directorate General HQ',
     status: 'APPROVED',
-    approvedBy: 'Directorate General',
+    approvedBy: 'Governing Board',
     approvedAt: '2026-01-01 00:00 AM',
     createdAt: '2026-01-01 00:00 AM',
-    bio: 'Senior Program Coordinator supervising Form-3 proposals, donor compliance, and project logframe execution.',
-  },
-  {
-    id: '10000000-0000-0000-0000-000000000005',
-    fullName: 'Mizbah Uddin',
-    email: 'mizbah.uddin@skb.org.bd',
-    avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
-    phone: '+880 1711-000004',
-    dutyStation: 'Cox\'s Bazar Field Hub',
-    designation: 'Field Operations & Logistics Lead',
-    employeeId: 'SKB-FLD-004',
-    requestedRole: 'Field Operations Officer',
-    department: 'Field Logistics & Emergency Response',
-    status: 'APPROVED',
-    approvedBy: 'Directorate General',
-    approvedAt: '2026-01-01 00:00 AM',
-    createdAt: '2026-01-01 00:00 AM',
-    bio: 'Lead Field Operations Officer coordinating on-ground distribution, Teknaf warehouse logistics, and beneficiary verification.',
+    bio: 'Chairman of the Board steering humanitarian vision, strategic donor relations, and high-level organizational leadership.',
   },
   {
     id: '0a88393f-1283-42d2-b4c2-31c502b1d538',
@@ -103,15 +70,49 @@ export const DEFAULT_APPROVED_USERS: UserProfileRecord[] = [
     avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
     phone: '+880 1711-000005',
     dutyStation: 'Dhaka HQ',
-    designation: 'Lead IT & Systems Administrator',
-    employeeId: 'SKB-ADM-005',
-    requestedRole: 'IT & Admin Officer',
-    department: 'IT & Super Admin',
+    designation: 'Program Officer',
+    employeeId: 'SKB-PRG-001',
+    requestedRole: 'Program Officer',
+    department: 'HR & Admin',
     status: 'APPROVED',
-    approvedBy: 'System Pre-Authorization',
+    approvedBy: 'Executive Directorate',
     approvedAt: '2026-01-01 00:00 AM',
     createdAt: '2026-01-01 00:00 AM',
-    bio: 'Systems Architect overseeing portal security, cloud infrastructure, Supabase integrations, and RBAC governance.',
+    bio: 'Program Officer leading HR administration, operational personnel management, and project coordination.',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000004',
+    fullName: 'Emran Ahmed',
+    email: 'emran.ahmed@skb.org.bd',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    phone: '+880 1711-000003',
+    dutyStation: 'Dhaka HQ',
+    designation: 'Program Officer',
+    employeeId: 'SKB-PRG-002',
+    requestedRole: 'Program Officer',
+    department: 'Programs Directorate',
+    status: 'APPROVED',
+    approvedBy: 'Executive Directorate',
+    approvedAt: '2026-01-01 00:00 AM',
+    createdAt: '2026-01-01 00:00 AM',
+    bio: 'Program Officer managing project planning, Form-3 charters, logframe deliverables, and donor milestone reporting.',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000005',
+    fullName: 'Mizbah Uddin',
+    email: 'mizbah.uddin@skb.org.bd',
+    avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
+    phone: '+880 1711-000004',
+    dutyStation: 'Dhaka HQ',
+    designation: 'Program Officer',
+    employeeId: 'SKB-PRG-003',
+    requestedRole: 'Program Officer',
+    department: 'Programs Directorate',
+    status: 'APPROVED',
+    approvedBy: 'Executive Directorate',
+    approvedAt: '2026-01-01 00:00 AM',
+    createdAt: '2026-01-01 00:00 AM',
+    bio: 'Program Officer overseeing field implementation, distribution logistics, and partner operational alignment.',
   },
   {
     id: '10000000-0000-0000-0000-000000000006',
@@ -120,15 +121,32 @@ export const DEFAULT_APPROVED_USERS: UserProfileRecord[] = [
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     phone: '+880 1711-000006',
     dutyStation: 'Dhaka HQ',
-    designation: 'Finance & Compliance Specialist',
-    employeeId: 'SKB-FIN-006',
-    requestedRole: 'Finance Manager',
-    department: 'Finance, Grants & Audits',
+    designation: 'IT Officer',
+    employeeId: 'SKB-IT-001',
+    requestedRole: 'IT Officer',
+    department: 'IT & Systems Desk',
     status: 'APPROVED',
-    approvedBy: 'Directorate General',
+    approvedBy: 'Executive Directorate',
     approvedAt: '2026-01-01 00:00 AM',
     createdAt: '2026-01-01 00:00 AM',
-    bio: 'Finance Specialist handling multi-currency disbursement, bank reconciliations, Form-8/9 financial reports, and grant audits.',
+    bio: 'IT Officer maintaining portal infrastructure, Supabase cloud databases, user access security, and digital archives.',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000007',
+    fullName: 'Aminul Islam Bulbul',
+    email: 'aminul.bulbul@skb.org.bd',
+    avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
+    phone: '+880 1711-000007',
+    dutyStation: 'Dhaka HQ',
+    designation: 'Law Officer',
+    employeeId: 'SKB-LAW-001',
+    requestedRole: 'Law Officer',
+    department: 'Legal & Compliance Desk',
+    status: 'APPROVED',
+    approvedBy: 'Executive Directorate',
+    approvedAt: '2026-01-01 00:00 AM',
+    createdAt: '2026-01-01 00:00 AM',
+    bio: 'Law Officer ensuring NGO Affairs Bureau (NGOAB) FD-6/FD-7 regulatory compliance, partner contracts, and legal vetting.',
   }
 ];
 
@@ -141,18 +159,29 @@ export class UserApprovalService {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_APPROVED_USERS));
         return DEFAULT_APPROVED_USERS;
       }
-      const parsed: UserProfileRecord[] = JSON.parse(stored);
-      // Ensure all 6 core team members are present even if localStorage was initialized with older data
+      let parsed: UserProfileRecord[] = JSON.parse(stored);
+      // Clean up legacy entries not part of the active organogram
+      parsed = parsed.filter(p => !p.email.toLowerCase().includes('safwanur.rahman'));
+
       const existingEmails = new Set(parsed.map(p => p.email.toLowerCase()));
-      let hasMissing = false;
+      let hasUpdates = false;
       const merged = [...parsed];
       for (const defUser of DEFAULT_APPROVED_USERS) {
-        if (!existingEmails.has(defUser.email.toLowerCase())) {
+        const foundIndex = merged.findIndex(p => p.email.toLowerCase() === defUser.email.toLowerCase());
+        if (foundIndex === -1) {
           merged.push(defUser);
-          hasMissing = true;
+          hasUpdates = true;
+        } else {
+          // If role/designation was updated in default organogram, refresh default fields if they were untouched
+          if (merged[foundIndex].requestedRole !== defUser.requestedRole && (defUser.email.includes('dr.orakatul') || defUser.email.includes('muktadir') || defUser.email.includes('daloyar'))) {
+            merged[foundIndex].designation = defUser.designation;
+            merged[foundIndex].requestedRole = defUser.requestedRole;
+            merged[foundIndex].department = defUser.department;
+            hasUpdates = true;
+          }
         }
       }
-      if (hasMissing) {
+      if (hasUpdates || parsed.length !== merged.length) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
       }
       return merged;

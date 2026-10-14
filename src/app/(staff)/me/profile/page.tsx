@@ -27,8 +27,11 @@ import {
   ArrowRight,
   GitBranch,
   CheckCircle,
-  FileText
+  FileText,
+  Lock,
+  ShieldAlert
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import { 
   UserApprovalService, 
   UserProfileRecord, 
@@ -85,6 +88,10 @@ export default function UserProfilePage() {
   const [allUsers, setAllUsers] = useState<UserProfileRecord[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [profile, setProfile] = useState<UserProfileRecord | null>(null);
+
+  // Authenticated user state
+  const [currentUserEmail, setCurrentUserEmail] = useState<string>('');
+  const [currentUserName, setCurrentUserName] = useState<string>('');
   
   // Editable form fields
   const [fullName, setFullName] = useState('');
@@ -133,6 +140,39 @@ export default function UserProfilePage() {
     loadProfiles();
   }, [loadProfiles]);
 
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setCurrentUserEmail(user.email || '');
+        setCurrentUserName(user.user_metadata?.full_name || '');
+      } else {
+        const storedAuthor = localStorage.getItem('skb_current_community_author');
+        if (storedAuthor) {
+          setCurrentUserName(storedAuthor);
+        }
+      }
+    });
+  }, []);
+
+  // Super Admin (Daloyar Hassan) or Executive Director (Md. Abu Huraira)
+  const isSuperAdminOrDirector = 
+    currentUserEmail.toLowerCase() === 'daloyar.pro@gmail.com' ||
+    currentUserEmail.toLowerCase() === 'kindnessforbeauty@gmail.com' ||
+    currentUserName.toLowerCase().includes('huraira') ||
+    currentUserName.toLowerCase().includes('daloyar');
+
+  // Check if viewing own profile
+  const isOwnProfile = Boolean(profile && (
+    (currentUserEmail && profile.email.toLowerCase() === currentUserEmail.toLowerCase()) ||
+    (currentUserName && profile.fullName.toLowerCase().trim() === currentUserName.toLowerCase().trim()) ||
+    (!currentUserEmail && !currentUserName && selectedUserId === profile.id)
+  ));
+
+  // Security Rule: Only Super Admin and Executive Director can edit other officers' profiles.
+  // Officers can only edit their own profile.
+  const canEditProfile = isOwnProfile || isSuperAdminOrDirector;
+
   const handleSelectOfficer = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const uid = e.target.value;
     const found = allUsers.find(u => u.id === uid);
@@ -142,6 +182,7 @@ export default function UserProfilePage() {
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canEditProfile) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -162,6 +203,11 @@ export default function UserProfilePage() {
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
+
+    if (!canEditProfile) {
+      alert('Security Policy: Only the Executive Director (Md. Abu Huraira) or Super Admin (Daloyar Hassan) can modify other officers\' profiles. You can only edit your own personal desk.');
+      return;
+    }
 
     setSaving(true);
     const updated = await UserApprovalService.updateFullProfile(profile.id, {
@@ -492,6 +538,21 @@ export default function UserProfilePage() {
                 <span className="text-[11px] text-slate-400 font-medium">Self-Service Setup</span>
               </div>
 
+              {!canEditProfile && (
+                <div className="bg-amber-50 border border-amber-300 p-4 rounded-2xl text-amber-950 flex items-start gap-3 shadow-sm animate-in fade-in">
+                  <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <span className="font-black text-xs text-amber-900 block flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-amber-700" />
+                      Viewing {profile.fullName}&apos;s Official Desk (Read-Only Mode)
+                    </span>
+                    <p className="text-[11px] text-amber-800 leading-relaxed">
+                      Security Policy: Only the <strong>Executive Director (Md. Abu Huraira)</strong> or <strong>Super Admin (Daloyar Hassan)</strong> can edit other officers&apos; profiles. You can only modify your own personal desk and ID details.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <form onSubmit={handleSaveProfile} className="space-y-5 text-xs">
                 {/* Section 1: Basic Identity */}
                 <div className="space-y-3">
@@ -503,9 +564,12 @@ export default function UserProfilePage() {
                       <input
                         type="text"
                         value={fullName}
+                        disabled={!canEditProfile}
                         onChange={(e) => setFullName(e.target.value)}
                         placeholder="e.g. Md. Abu Huraira"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-black text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition"
+                        className={`w-full border border-slate-200 rounded-xl p-2.5 text-xs font-black text-slate-900 outline-none focus:border-blue-500 transition ${
+                          !canEditProfile ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-slate-50 focus:bg-white'
+                        }`}
                         required
                       />
                     </div>
@@ -529,9 +593,12 @@ export default function UserProfilePage() {
                       <input
                         type="text"
                         value={phone}
+                        disabled={!canEditProfile}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="+880 1711-xxxxxx"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition"
+                        className={`w-full border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 outline-none focus:border-blue-500 transition ${
+                          !canEditProfile ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-slate-50 focus:bg-white'
+                        }`}
                         required
                       />
                     </div>
@@ -543,9 +610,12 @@ export default function UserProfilePage() {
                       <input
                         type="text"
                         value={employeeId}
+                        disabled={!canEditProfile}
                         onChange={(e) => setEmployeeId(e.target.value)}
                         placeholder="e.g. SKB-DIR-001"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-mono font-bold text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition"
+                        className={`w-full border border-slate-200 rounded-xl p-2.5 text-xs font-mono font-bold text-slate-900 outline-none focus:border-blue-500 transition ${
+                          !canEditProfile ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-slate-50 focus:bg-white'
+                        }`}
                       />
                     </div>
                   </div>
@@ -563,9 +633,12 @@ export default function UserProfilePage() {
                       <input
                         type="text"
                         value={designation}
+                        disabled={!canEditProfile}
                         onChange={(e) => setDesignation(e.target.value)}
                         placeholder="Type or select designation below..."
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-black text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition"
+                        className={`w-full border border-slate-200 rounded-xl p-2.5 text-xs font-black text-slate-900 outline-none focus:border-blue-500 transition ${
+                          !canEditProfile ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-slate-50 focus:bg-white'
+                        }`}
                         required
                       />
                       <div className="flex flex-wrap gap-1.5 pt-1">
@@ -573,8 +646,11 @@ export default function UserProfilePage() {
                           <button
                             key={p}
                             type="button"
+                            disabled={!canEditProfile}
                             onClick={() => setDesignation(p)}
                             className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition ${
+                              !canEditProfile ? 'opacity-40 cursor-not-allowed' : ''
+                            } ${
                               designation === p 
                                 ? 'bg-blue-50 border-blue-400 text-blue-800' 
                                 : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
@@ -592,8 +668,11 @@ export default function UserProfilePage() {
                       <label className="block font-bold text-slate-700 mb-1">Department / Division *</label>
                       <select
                         value={department}
+                        disabled={!canEditProfile}
                         onChange={(e) => setDepartment(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 outline-none focus:border-blue-500"
+                        className={`w-full border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 outline-none focus:border-blue-500 ${
+                          !canEditProfile ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-slate-50'
+                        }`}
                       >
                         {DEPARTMENT_PRESETS.map((d) => (
                           <option key={d} value={d}>{d}</option>
@@ -605,8 +684,11 @@ export default function UserProfilePage() {
                       <label className="block font-bold text-slate-700 mb-1">Primary System Role *</label>
                       <select
                         value={requestedRole}
+                        disabled={!canEditProfile}
                         onChange={(e) => setRequestedRole(e.target.value as SystemRole)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-black text-slate-900 outline-none focus:border-blue-500"
+                        className={`w-full border border-slate-200 rounded-xl p-2.5 text-xs font-black text-slate-900 outline-none focus:border-blue-500 ${
+                          !canEditProfile ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-slate-50'
+                        }`}
                       >
                         <option value="Chairman">Chairman (Board Governance & Strategic Oversight)</option>
                         <option value="Executive Director">Executive Director (Directorate Approvals & Signatures)</option>
@@ -625,8 +707,11 @@ export default function UserProfilePage() {
                     </label>
                     <select
                       value={dutyStation}
+                      disabled={!canEditProfile}
                       onChange={(e) => setDutyStation(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 outline-none focus:border-blue-500"
+                      className={`w-full border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 outline-none focus:border-blue-500 ${
+                        !canEditProfile ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-slate-50'
+                      }`}
                     >
                       {DUTY_STATION_PRESETS.map((st) => (
                         <option key={st} value={st}>{st}</option>
@@ -651,45 +736,55 @@ export default function UserProfilePage() {
                     
                     <div className="space-y-2 flex-1 w-full">
                       <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="py-1.5 px-3 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl font-black text-slate-800 text-[11px] flex items-center gap-1.5 shadow-sm transition"
-                        >
-                          <Upload className="w-3.5 h-3.5 text-blue-600" /> Upload from Computer
-                        </button>
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          onChange={handleFileUpload}
-                          accept="image/*"
-                          className="hidden"
-                        />
-                        <span className="text-[10px] text-slate-400">PNG or JPG, max 2MB</span>
+                        {canEditProfile ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="py-1.5 px-3 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl font-black text-slate-800 text-[11px] flex items-center gap-1.5 shadow-sm transition"
+                            >
+                              <Upload className="w-3.5 h-3.5 text-blue-600" /> Upload from Computer
+                            </button>
+                            <input
+                              type="file"
+                              ref={fileInputRef}
+                              onChange={handleFileUpload}
+                              accept="image/*"
+                              className="hidden"
+                            />
+                            <span className="text-[10px] text-slate-400">PNG or JPG, max 2MB</span>
+                          </>
+                        ) : (
+                          <span className="text-[11px] text-slate-500 font-medium italic">Photo upload locked in read-only mode</span>
+                        )}
                       </div>
 
-                      <input
-                        type="url"
-                        value={avatarUrl}
-                        onChange={(e) => setAvatarUrl(e.target.value)}
-                        placeholder="Or paste external image URL..."
-                        className="w-full bg-white border border-slate-200 rounded-xl p-2 text-[11px] font-mono text-slate-700 outline-none focus:border-blue-500"
-                      />
+                      {canEditProfile && (
+                        <>
+                          <input
+                            type="url"
+                            value={avatarUrl}
+                            onChange={(e) => setAvatarUrl(e.target.value)}
+                            placeholder="Or paste external image URL..."
+                            className="w-full bg-white border border-slate-200 rounded-xl p-2 text-[11px] font-mono text-slate-700 outline-none focus:border-blue-500"
+                          />
 
-                      {/* Preset Quick Avatars */}
-                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                        <span className="text-[10px] text-slate-500 font-bold">Presets:</span>
-                        {AVATAR_PRESETS.map((av) => (
-                          <button
-                            key={av.label}
-                            type="button"
-                            onClick={() => setAvatarUrl(av.url)}
-                            className="text-[10px] font-semibold bg-white border border-slate-200 hover:border-blue-400 px-2 py-0.5 rounded text-slate-600 transition"
-                          >
-                            {av.label}
-                          </button>
-                        ))}
-                      </div>
+                          {/* Preset Quick Avatars */}
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                            <span className="text-[10px] text-slate-500 font-bold">Presets:</span>
+                            {AVATAR_PRESETS.map((av) => (
+                              <button
+                                key={av.label}
+                                type="button"
+                                onClick={() => setAvatarUrl(av.url)}
+                                className="text-[10px] font-semibold bg-white border border-slate-200 hover:border-blue-400 px-2 py-0.5 rounded text-slate-600 transition"
+                              >
+                                {av.label}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -699,26 +794,38 @@ export default function UserProfilePage() {
                   <label className="block font-bold text-slate-700">Brief Humanitarian Background & Scope</label>
                   <textarea
                     value={bio}
+                    disabled={!canEditProfile}
                     onChange={(e) => setBio(e.target.value)}
                     rows={2}
                     placeholder="Brief summary of duties, mission background, or emergency specializations..."
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition"
+                    className={`w-full border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 outline-none focus:border-blue-500 transition ${
+                      !canEditProfile ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-slate-50 focus:bg-white'
+                    }`}
                   />
                 </div>
 
                 {/* Submit Bar */}
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-100">
                   <span className="text-[11px] text-slate-500">
-                    All changes reflect across projects, vouchers & donor reports immediately.
+                    {canEditProfile 
+                      ? 'All changes reflect across projects, vouchers & donor reports immediately.'
+                      : 'Desk locked in read-only mode according to executive governance rules.'}
                   </span>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="py-2.5 px-6 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center gap-2 group disabled:opacity-50"
-                  >
-                    <Save className="w-4 h-4 group-hover:scale-110 transition" />
-                    {saving ? 'Saving...' : 'Save Desk Profile & ID Badge'}
-                  </button>
+                  {canEditProfile ? (
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="py-2.5 px-6 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center gap-2 group disabled:opacity-50"
+                    >
+                      <Save className="w-4 h-4 group-hover:scale-110 transition" />
+                      {saving ? 'Saving...' : 'Save Desk Profile & ID Badge'}
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-slate-100 border border-slate-300 px-4 py-2 rounded-xl">
+                      <Lock className="w-4 h-4 text-amber-600" />
+                      <span>Editing Locked (Director / Super Admin Only)</span>
+                    </div>
+                  )}
                 </div>
               </form>
             </div>

@@ -3,7 +3,16 @@ export interface DonorQueryTicket {
   pid: string;
   donorName: string;
   donorEmail: string;
-  queryType: 'Underage Beneficiary Query' | 'Budget Discrepancy' | 'Photo Request' | 'Logframe Question' | 'General Feedback';
+  queryType: 
+    | 'Beneficiary Verification Query'
+    | 'Underage Beneficiary Query' 
+    | 'Budget Discrepancy' 
+    | 'Receipt / Voucher Clarification'
+    | 'Photo Request' 
+    | 'Special Document Request'
+    | 'Logframe Question' 
+    | 'General Feedback'
+    | 'General Project Inquiry';
   message: string;
   status: 'Pending Officer Review' | 'Officer Clarification Posted' | 'Resolved';
   assignedOfficerName: string;

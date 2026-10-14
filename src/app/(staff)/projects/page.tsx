@@ -58,7 +58,7 @@ const INITIAL_PROJECTS: ProjectItem[] = [
     id: 'P-SKB-2026-GOAT',
     code: 'BD-SKB-2026-LIV-CLO',
     name: 'Distribution of Goats, Clothing & Food Packets for Rohingya Refugees',
-    assignedOfficer: 'Safwanur Rahman',
+    assignedOfficer: 'Emran Ahmed',
     location: "Cox's Bazar, Ukhiya & Teknaf (Kutupalong, Balukhali, Jamtoli)",
     budget: '€14,280 EUR (BDT 1,955,704)',
     status: 'Form-3 Proposal Approved',

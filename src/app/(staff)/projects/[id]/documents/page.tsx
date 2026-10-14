@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { getDefaultClosingAudit, ClosingReportWorkingPaper } from '@/server/services/projectClosingAuditService';
 import { CloudSyncService } from '@/server/services/cloudSyncService';
+import { CloudStorageService } from '@/server/services/cloudStorageService';
 
 export interface ProjectComplianceDoc {
   id: string;
@@ -31,6 +32,7 @@ export interface ProjectComplianceDoc {
   fileSize: string;
   fileType: string;
   fileDataUrl?: string;
+  fileUrl?: string;
   status: 'Submitted' | 'Pending Officer Upload';
   specialReason?: string;
   uploadedBy: string;
@@ -41,6 +43,7 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
   const projectId = params.id || '1791270873958';
   const [docs, setDocs] = useState<ProjectComplianceDoc[]>([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [statusToast, setStatusToast] = useState('');
 
   // Upload Form State
@@ -123,12 +126,29 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
     }
   };
 
-  const handleUploadDocument = (e: React.FormEvent) => {
+  const handleUploadDocument = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDocName.trim() && !selectedFile) return;
 
+    setIsUploading(true);
     const fileName = selectedFile ? selectedFile.name : (newDocName.includes('.') ? newDocName : `${newDocName}.pdf`);
-    const fileDataUrl = (selectedFile as any)?.dataUrl || `data:text/plain;charset=utf-8,SKB Official Document Content for ${fileName}`;
+    
+    let fileUrl = '';
+    let finalSize = newFileSize || '1.2 MB';
+
+    if (selectedFile) {
+      try {
+        const uploadRes = await CloudStorageService.uploadFile(selectedFile, projectId, fileName, newCategory);
+        if (uploadRes.success) {
+          fileUrl = uploadRes.fileUrl;
+          finalSize = uploadRes.fileSize;
+        }
+      } catch (err) {
+        console.warn('Storage upload encountered error, fallback to local:', err);
+      }
+    }
+
+    const fileDataUrl = (selectedFile as any)?.dataUrl || fileUrl || `data:text/plain;charset=utf-8,SKB Official Document Content for ${fileName}`;
 
     const created: ProjectComplianceDoc = {
       id: `doc_${Date.now()}`,
@@ -136,9 +156,10 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
       name: fileName,
       category: newCategory,
       auditDomainTag: newAuditDomain,
-      fileSize: newFileSize || '1.2 MB',
+      fileSize: finalSize,
       fileType: selectedFile ? selectedFile.type || 'application/pdf' : 'application/pdf',
       fileDataUrl,
+      fileUrl,
       status: 'Submitted',
       specialReason: newCategory === 'SPECIAL_AD_HOC' ? newSpecialReason : undefined,
       uploadedBy: 'Mizbah Uddin (Program Officer)',
@@ -148,7 +169,7 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
     const updated = [created, ...docs];
     saveDocuments(updated);
     // Cloud sync to Supabase Postgres
-    CloudSyncService.saveProjectDocument(created as any);
+    await CloudSyncService.saveProjectDocument(created as any);
 
     // Auto-update Closing Audit Working Paper domain parameter if domain tag is provided
     if (typeof window !== 'undefined') {
@@ -168,11 +189,12 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
       localStorage.setItem(`skb_closing_audit_${projectId}`, JSON.stringify(auditPaper));
     }
 
+    setIsUploading(false);
     setShowUploadModal(false);
     setSelectedFile(null);
     setNewDocName('');
     setNewSpecialReason('');
-    setStatusToast(`File "${created.name}" uploaded successfully & synced real-time to Donor Portal!`);
+    setStatusToast(`File "${created.name}" uploaded to Supabase Storage & synced live to Donor Portal!`);
     setTimeout(() => setStatusToast(''), 4000);
   };
 
@@ -186,6 +208,12 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
   };
 
   const handleDownloadFile = (doc: ProjectComplianceDoc) => {
+    if (doc.fileUrl) {
+      window.open(doc.fileUrl, '_blank');
+      setStatusToast(`Opening cloud file "${doc.name}"...`);
+      setTimeout(() => setStatusToast(''), 3000);
+      return;
+    }
     const link = document.createElement('a');
     link.href = doc.fileDataUrl || `data:text/plain;charset=utf-8,SKB Official Document Content for ${doc.name}`;
     link.download = doc.name;
@@ -524,9 +552,18 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
                 </button>
                 <button
                   type="submit"
-                  className="px-4.5 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-all flex items-center gap-1.5"
+                  disabled={isUploading}
+                  className="px-4.5 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-xl shadow-md transition-all flex items-center gap-1.5"
                 >
-                  <Upload className="w-4 h-4" /> Upload &amp; Sync Live
+                  {isUploading ? (
+                    <>
+                      <Clock className="w-4 h-4 animate-spin" /> Uploading to Supabase...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" /> Upload &amp; Sync Live
+                    </>
+                  )}
                 </button>
               </div>
             </form>

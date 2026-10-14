@@ -57,6 +57,15 @@ describe('UserApprovalService', () => {
       expect(found?.requestedRole).toBe(item.role);
     }
 
+    // Explicitly verify strict organogram hierarchy: Chairman #1, Executive Director #2
+    expect(allUsers[0].fullName).toBe('Dr. Orakatul Jannat');
+    expect(allUsers[0].requestedRole).toBe('Chairman');
+    expect(allUsers[0].avatarUrl).toContain('data:image/svg+xml');
+
+    expect(allUsers[1].fullName).toBe('Md. Abu Huraira');
+    expect(allUsers[1].requestedRole).toBe('Executive Director');
+    expect(allUsers[1].avatarUrl).toContain('data:image/svg+xml');
+
     // Explicitly verify Safwanur Rahman is not present
     const safwanur = allUsers.find(u => u.fullName.includes('Safwanur'));
     expect(safwanur).toBeUndefined();

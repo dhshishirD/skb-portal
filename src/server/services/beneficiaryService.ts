@@ -20,7 +20,7 @@ export const INITIAL_BENEFICIARIES: BeneficiaryRecord[] = [];
 const LOCAL_STORAGE_KEY = 'skb_portal_beneficiaries';
 
 export class BeneficiaryService {
-  private static getSupabaseClient() {
+  private static getSupabaseClient(): any {
     try {
       return createClient();
     } catch {

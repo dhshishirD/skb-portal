@@ -272,41 +272,61 @@ export default function UserProfilePage() {
 
           {/* Workflow Sequence Diagram */}
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5">
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">
-              Standard Humanitarian Delivery Cycle (End-to-End Pipeline)
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                  Standard Humanitarian Delivery Cycle (End-to-End Pipeline)
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Agile execution pipeline: Project steps are flexible and never bottlenecked.
+                </p>
+              </div>
+              <span className="text-[10px] bg-emerald-50 text-emerald-800 font-bold px-3 py-1 rounded-full border border-emerald-200 self-start sm:self-auto">
+                Flexible Operational Delegation
+              </span>
+            </div>
+
+            {/* Crucial Operational Flexibility Alert */}
+            <div className="bg-blue-50/80 border border-blue-200 p-4 rounded-2xl text-xs text-blue-950 space-y-1">
+              <span className="font-black flex items-center gap-1.5 text-blue-900">
+                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" /> Operational Notice on Role Execution:
+              </span>
+              <p className="text-[11px] text-blue-800 leading-relaxed">
+                Legal clearance (NGOAB FD-6/FD-7) and IT/cloud storage vault verification are <strong>not locked</strong> to specific individuals. The <strong>Executive Director (Md. Abu Huraira)</strong> or <strong>any Program Officer (Emran Ahmed, Mizbah Uddin, Daloyar Hassan)</strong> can directly execute, upload, and certify these steps. <strong>Aminul Islam Bulbul (Law Officer)</strong> and <strong>Muktadir Rahaman (IT Officer)</strong> hold official advisory access, and their detailed operational duties will be defined later.
+              </p>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-blue-700 uppercase">Step 1: Program Desk</span>
+                  <span className="text-[10px] font-black text-blue-700 uppercase">Step 1: Programs</span>
                   <span className="w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-[10px] font-black">1</span>
                 </div>
                 <h4 className="text-xs font-black text-blue-950">Proposal & Charter</h4>
-                <p className="text-[11px] text-slate-600">
-                  <strong>Emran / Mizbah / Daloyar</strong> draft Form-3 charters, beneficiary quotas, and project budgets.
+                <p className="text-[11px] text-slate-600 leading-snug">
+                  <strong>Emran, Mizbah, Daloyar</strong> draft Form-3 charters, beneficiary quotas, and project budgets.
                 </p>
               </div>
 
               <div className="p-4 bg-purple-50 border border-purple-200 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-purple-700 uppercase">Step 2: Legal Desk</span>
+                  <span className="text-[10px] font-black text-purple-700 uppercase">Step 2: Compliance</span>
                   <span className="w-5 h-5 bg-purple-600 text-white rounded-full flex items-center justify-center text-[10px] font-black">2</span>
                 </div>
-                <h4 className="text-xs font-black text-purple-950">NGOAB Vetting</h4>
-                <p className="text-[11px] text-slate-600">
-                  <strong>Aminul Islam Bulbul</strong> reviews FD-6/FD-7 regulatory compliance and vendor contracts.
+                <h4 className="text-xs font-black text-purple-950">NGOAB & Partner Vetting</h4>
+                <p className="text-[11px] text-slate-600 leading-snug">
+                  <strong>Executive Director or Program Officers</strong> verify FD-6/FD-7 clauses (Legal Officer available for advisory).
                 </p>
               </div>
 
               <div className="p-4 bg-slate-100 border border-slate-300 rounded-2xl space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-slate-700 uppercase">Step 3: IT Desk</span>
+                  <span className="text-[10px] font-black text-slate-700 uppercase">Step 3: Documents</span>
                   <span className="w-5 h-5 bg-slate-800 text-white rounded-full flex items-center justify-center text-[10px] font-black">3</span>
                 </div>
-                <h4 className="text-xs font-black text-slate-900">Infrastructure & Vault</h4>
-                <p className="text-[11px] text-slate-600">
-                  <strong>Muktadir Rahaman</strong> provisions secure cloud buckets and configures donor access keys.
+                <h4 className="text-xs font-black text-slate-900">Vault & Storage Access</h4>
+                <p className="text-[11px] text-slate-600 leading-snug">
+                  <strong>Program Officers or Director</strong> upload and verify cloud document attachments directly in Supabase.
                 </p>
               </div>
 
@@ -315,8 +335,8 @@ export default function UserProfilePage() {
                   <span className="text-[10px] font-black text-emerald-700 uppercase">Step 4: Directorate</span>
                   <span className="w-5 h-5 bg-emerald-600 text-white rounded-full flex items-center justify-center text-[10px] font-black">4</span>
                 </div>
-                <h4 className="text-xs font-black text-emerald-950">Executive Approval</h4>
-                <p className="text-[11px] text-slate-600">
+                <h4 className="text-xs font-black text-emerald-950">Executive Authorization</h4>
+                <p className="text-[11px] text-slate-600 leading-snug">
                   <strong>Md. Abu Huraira</strong> authorizes project execution, signs partner MoUs, and releases budget tranches.
                 </p>
               </div>
@@ -327,7 +347,7 @@ export default function UserProfilePage() {
                   <span className="w-5 h-5 bg-amber-600 text-white rounded-full flex items-center justify-center text-[10px] font-black">5</span>
                 </div>
                 <h4 className="text-xs font-black text-amber-950">Governance & Audit</h4>
-                <p className="text-[11px] text-slate-600">
+                <p className="text-[11px] text-slate-600 leading-snug">
                   <strong>Dr. Orakatul Jannat</strong> provides strategic oversight; international donors inspect verified deliverables.
                 </p>
               </div>
@@ -336,56 +356,71 @@ export default function UserProfilePage() {
 
           {/* 7 Dedicated Role Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {allUsers.map((u) => (
-              <div 
-                key={u.id}
-                className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3 flex flex-col justify-between"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <img 
-                      src={u.avatarUrl} 
-                      alt={u.fullName}
-                      className="w-12 h-12 rounded-2xl object-cover border-2 border-slate-200 shrink-0" 
-                    />
-                    <div className="min-w-0">
-                      <h4 className="text-xs font-black text-slate-900 truncate">{u.fullName}</h4>
-                      <p className="text-[11px] font-bold text-blue-600 truncate">{u.designation}</p>
-                      <span className="text-[10px] text-slate-500 font-semibold">{u.department}</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-[11px] space-y-1">
-                    <span className="font-bold text-slate-700 block">Separated Desk Focus:</span>
-                    <p className="text-slate-600 leading-snug">{u.bio || 'General humanitarian operational desk.'}</p>
-                  </div>
-
-                  <div className="space-y-1 text-[11px]">
-                    <div className="flex items-center justify-between text-slate-500">
-                      <span>Duty Station:</span>
-                      <span className="font-bold text-slate-800">{u.dutyStation || 'Dhaka HQ'}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-slate-500">
-                      <span>System Gate:</span>
-                      <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-[10px]">
-                        {u.requestedRole}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    applyProfileToState(u);
-                    setActiveTab('profile');
-                  }}
-                  className="w-full mt-3 py-2 bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 font-black text-[11px] rounded-xl transition flex items-center justify-center gap-1.5"
+            {allUsers.map((u) => {
+              const isAdvisoryOnly = u.fullName.includes('Bulbul') || u.fullName.includes('Muktadir');
+              return (
+                <div 
+                  key={u.id}
+                  className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3 flex flex-col justify-between"
                 >
-                  <span>Open This Officer&apos;s Desk</span> &rsaquo;
-                </button>
-              </div>
-            ))}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <img 
+                        src={u.avatarUrl} 
+                        alt={u.fullName}
+                        className="w-12 h-12 rounded-2xl object-cover border-2 border-slate-200 shrink-0" 
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="text-xs font-black text-slate-900 truncate">{u.fullName}</h4>
+                          {isAdvisoryOnly && (
+                            <span className="text-[9px] bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded shrink-0">
+                              Advisory
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] font-bold text-blue-600 truncate">{u.designation}</p>
+                        <span className="text-[10px] text-slate-500 font-semibold">{u.department}</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-[11px] space-y-1">
+                      <span className="font-bold text-slate-700 block">Separated Desk Focus:</span>
+                      <p className="text-slate-600 leading-snug">{u.bio || 'General humanitarian operational desk.'}</p>
+                    </div>
+
+                    <div className="space-y-1 text-[11px]">
+                      <div className="flex items-center justify-between text-slate-500">
+                        <span>Duty Station:</span>
+                        <span className="font-bold text-slate-800">{u.dutyStation || 'Dhaka HQ'}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-500">
+                        <span>System Gate:</span>
+                        <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-[10px]">
+                          {u.requestedRole}
+                        </span>
+                      </div>
+                      {isAdvisoryOnly && (
+                        <div className="pt-1 text-[10px] text-amber-700 font-medium">
+                          • Non-operational in daily projects; role to be detailed later.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      applyProfileToState(u);
+                      setActiveTab('profile');
+                    }}
+                    className="w-full mt-3 py-2 bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 font-black text-[11px] rounded-xl transition flex items-center justify-center gap-1.5"
+                  >
+                    <span>Open This Officer&apos;s Desk</span> &rsaquo;
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       ) : (

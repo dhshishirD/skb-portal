@@ -129,7 +129,7 @@ export const DEFAULT_APPROVED_USERS: UserProfileRecord[] = [
     approvedBy: 'Executive Directorate',
     approvedAt: '2026-01-01 00:00 AM',
     createdAt: '2026-01-01 00:00 AM',
-    bio: 'IT Officer maintaining portal infrastructure, Supabase cloud databases, user access security, and digital archives.',
+    bio: 'Official IT Officer profile. Non-operational in daily project execution; official advisory access with detailed operational scope to be defined later.',
   },
   {
     id: '10000000-0000-0000-0000-000000000007',
@@ -146,7 +146,7 @@ export const DEFAULT_APPROVED_USERS: UserProfileRecord[] = [
     approvedBy: 'Executive Directorate',
     approvedAt: '2026-01-01 00:00 AM',
     createdAt: '2026-01-01 00:00 AM',
-    bio: 'Law Officer ensuring NGO Affairs Bureau (NGOAB) FD-6/FD-7 regulatory compliance, partner contracts, and legal vetting.',
+    bio: 'Official Law Officer profile. Non-operational in daily project execution; official legal advisory access with detailed operational scope to be defined later.',
   }
 ];
 

@@ -155,6 +155,7 @@ export interface SKBDonorGrantProject {
   location: string;
   assignedOfficer: string;
   assignedOfficerEmail: string;
+  assignedOfficers?: string[];
   primaryDocs: ProjectDocument[];
   specialDocs: ProjectDocument[];
 }
@@ -176,6 +177,7 @@ export const DEFAULT_PARTNER_PROJECTS: SKBDonorGrantProject[] = [
     location: "Cox's Bazar, Ukhiya (Hakim-para & Jamtoli Camps)",
     assignedOfficer: 'Md. Abu Huraira',
     assignedOfficerEmail: 'kindnessforbeauty@gmail.com',
+    assignedOfficers: ['Md. Abu Huraira', 'Mizbah Uddin'],
     primaryDocs: [
       { id: 'cow_doc_1', name: 'Form-3 Master Project Charter (Signed).pdf', category: 'MANDATORY_PRIMARY', fileSize: '1.8 MB', status: 'Submitted' },
       { id: 'cow_doc_2', name: 'Form-7 Beneficiary Registry & Distribution Vouchers.pdf', category: 'MANDATORY_PRIMARY', fileSize: '2.4 MB', status: 'Submitted' },
@@ -203,6 +205,7 @@ export const DEFAULT_PARTNER_PROJECTS: SKBDonorGrantProject[] = [
     location: "Cox's Bazar, Ukhiya & Teknaf (Kutupalong, Balukhali, Jamtoli)",
     assignedOfficer: 'Emran Ahmed',
     assignedOfficerEmail: 'emran.ahmed@skb.org.bd',
+    assignedOfficers: ['Emran Ahmed'],
     primaryDocs: [
       { id: 'goat_doc_1', name: 'Form-3 Master Project Charter (Signed).pdf', category: 'MANDATORY_PRIMARY', fileSize: '1.9 MB', status: 'Submitted' },
       { id: 'goat_doc_2', name: 'Form-7 Orphan Roster with Guardian NID & Birth Records.pdf', category: 'MANDATORY_PRIMARY', fileSize: '3.2 MB', status: 'Submitted' },
@@ -230,6 +233,7 @@ export const DEFAULT_PARTNER_PROJECTS: SKBDonorGrantProject[] = [
     location: "Cox's Bazar, Ukhiya & Teknaf (Camp 11 / 12)",
     assignedOfficer: 'Daloyar Hassan',
     assignedOfficerEmail: 'daloyar.pro@gmail.com',
+    assignedOfficers: ['Daloyar Hassan', 'Emran Ahmed'],
     primaryDocs: [
       { id: 'wfs_doc_1', name: 'Form-3 Master Project Charter (WFS 22221).pdf', category: 'MANDATORY_PRIMARY', fileSize: '2.1 MB', status: 'Submitted' },
       { id: 'wfs_doc_2', name: 'Form-7 Trainee Enrollment & Graduation Directory.pdf', category: 'MANDATORY_PRIMARY', fileSize: '4.1 MB', status: 'Submitted' },
@@ -257,6 +261,7 @@ export const DEFAULT_PARTNER_PROJECTS: SKBDonorGrantProject[] = [
     location: 'Satkhira & Bagerhat Coastal Belt',
     assignedOfficer: 'Mizbah Uddin',
     assignedOfficerEmail: 'mizbah.uddin@skb.org.bd',
+    assignedOfficers: ['Mizbah Uddin'],
     primaryDocs: [
       { id: 'uol_doc_1', name: 'Form-3 Water Sanitation Project Charter.pdf', category: 'MANDATORY_PRIMARY', fileSize: '1.5 MB', status: 'Submitted' },
       { id: 'uol_doc_2', name: 'Water Quality Laboratory Testing & Arsenic Clearance.pdf', category: 'MANDATORY_PRIMARY', fileSize: '1.8 MB', status: 'Submitted' },
@@ -284,6 +289,7 @@ export const DEFAULT_PARTNER_PROJECTS: SKBDonorGrantProject[] = [
     location: 'Cox\'s Bazar, Ukhia Refugee Camp 4 & Camp 9',
     assignedOfficer: 'Emran Ahmed',
     assignedOfficerEmail: 'emran.ahmed@skb.org.bd',
+    assignedOfficers: ['Emran Ahmed'],
     primaryDocs: [
       { id: 'mvm_doc_1', name: 'Form-3 Emergency Humanitarian Charter.pdf', category: 'MANDATORY_PRIMARY', fileSize: '2.0 MB', status: 'Submitted' },
       { id: 'mvm_doc_2', name: 'Refugee Family Food Distribution Master Log.pdf', category: 'MANDATORY_PRIMARY', fileSize: '3.9 MB', status: 'Submitted' },
@@ -311,6 +317,7 @@ export const DEFAULT_PARTNER_PROJECTS: SKBDonorGrantProject[] = [
     location: 'Rangpur & Kurigram Rural Unions',
     assignedOfficer: 'Daloyar Hassan',
     assignedOfficerEmail: 'daloyar.pro@gmail.com',
+    assignedOfficers: ['Daloyar Hassan'],
     primaryDocs: [
       { id: 'qwc_doc_1', name: 'Form-3 Welfare Project Charter.pdf', category: 'MANDATORY_PRIMARY', fileSize: '1.7 MB', status: 'Submitted' },
       { id: 'qwc_doc_2', name: 'Widow Household Vulnerability Assessment Register.pdf', category: 'MANDATORY_PRIMARY', fileSize: '2.8 MB', status: 'Submitted' },

@@ -217,8 +217,18 @@ export default function StaffCommunityPage() {
   const [newContent, setNewContent] = useState('');
   const [newCategory, setNewCategory] = useState<CommunityPost['category']>('Field Updates');
   const [postAttachment, setPostAttachment] = useState<AttachmentFile | null>(null);
-  const [currentAuthor, setCurrentAuthor] = useState('Mizbah Uddin');
-  const [currentRole, setCurrentRole] = useState('Program Officer');
+  const [currentAuthor, setCurrentAuthor] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('skb_current_community_author') || '';
+    }
+    return '';
+  });
+  const [currentRole, setCurrentRole] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('skb_current_user_role') || 'Program Officer';
+    }
+    return 'Program Officer';
+  });
 
   // Comment Input State map (postId -> text)
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
@@ -243,17 +253,31 @@ export default function StaffCommunityPage() {
   const isOfficerOnline = (name: string) => {
     if (!name) return false;
     const clean = name.split('(')[0].trim().toLowerCase();
-    const cleanAuthor = currentAuthor.split('(')[0].trim().toLowerCase();
-    if (clean === cleanAuthor || clean.includes(cleanAuthor) || cleanAuthor.includes(clean)) return true;
+    const cleanAuthor = (currentAuthor || '').split('(')[0].trim().toLowerCase();
+
+    // The user themselves is always online in their own active view
+    if (cleanAuthor && (clean === cleanAuthor || clean.includes(cleanAuthor) || cleanAuthor.includes(clean))) {
+      return true;
+    }
+
+    // Check onlineOfficerNames (synced from server heartbeats, BroadcastChannel, and Supabase)
     for (const onlineName of Array.from(onlineOfficerNames)) {
       const oClean = onlineName.split('(')[0].trim().toLowerCase();
-      if (oClean === clean || oClean.includes(clean) || clean.includes(oClean)) {
+      if (!oClean) continue;
+      if (
+        oClean === clean ||
+        oClean.includes(clean) ||
+        clean.includes(oClean) ||
+        (clean.includes('emran') && oClean.includes('emran')) ||
+        (clean.includes('daloyar') && oClean.includes('daloyar')) ||
+        (clean.includes('mizbah') && oClean.includes('mizbah')) ||
+        (clean.includes('huraira') && oClean.includes('huraira')) ||
+        (clean.includes('orakatul') && oClean.includes('orakatul')) ||
+        (clean.includes('muktadir') && oClean.includes('muktadir')) ||
+        (clean.includes('bulbul') && oClean.includes('bulbul'))
+      ) {
         return true;
       }
-    }
-    if (typeof window !== 'undefined') {
-      const hb = localStorage.getItem(`skb_presence_${clean}`);
-      if (hb && Date.now() - parseInt(hb, 10) < 60000) return true;
     }
     return false;
   };
@@ -292,6 +316,20 @@ export default function StaffCommunityPage() {
   };
 
   useEffect(() => {
+    // Clear any stale legacy mock presence flags in localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('skb_presence_')) {
+            localStorage.removeItem(k);
+          }
+        }
+      } catch (e) {
+        console.warn('LocalStorage cleanup warning:', e);
+      }
+    }
+
     // 1. Load official organogram officers
     const loadCommunityData = async () => {
       const users = await UserApprovalService.getAllUsers();
@@ -330,6 +368,7 @@ export default function StaffCommunityPage() {
         if (typeof window !== 'undefined') {
           localStorage.setItem('skb_current_community_author', activeUser.fullName);
           localStorage.setItem('skb_current_user_email', activeUser.email);
+          localStorage.setItem('skb_current_user_role', activeUser.designation || activeUser.requestedRole);
         }
       }
 
@@ -375,23 +414,52 @@ export default function StaffCommunityPage() {
 
   useEffect(() => {
     if (!currentAuthor) return;
-    localStorage.setItem('skb_current_community_author', currentAuthor);
     if (typeof window !== 'undefined') {
-      localStorage.setItem(`skb_presence_${currentAuthor.trim().toLowerCase()}`, Date.now().toString());
+      localStorage.setItem('skb_current_community_author', currentAuthor);
     }
 
-    // Subscribe to Realtime Presence
+    // 1. Subscribe to Multi-Channel Realtime Presence (BroadcastChannel + Server Heartbeat + Supabase Realtime)
     const presenceChannel = CommunityRealtimeService.trackPresence(
       currentAuthor,
       currentRole,
       (activeNames) => {
-        const s = new Set(activeNames);
-        s.add(currentAuthor);
-        setOnlineOfficerNames(s);
+        setOnlineOfficerNames((prev) => {
+          const s = new Set(prev);
+          activeNames.forEach((n) => s.add(n));
+          if (currentAuthor) s.add(currentAuthor);
+          return s;
+        });
       }
     );
 
-    // Subscribe to Realtime Posts, Comments, and Likes
+    // 2. Continuous server-backed presence heartbeat poll (every 8s) to synchronize cross-browser / cross-device sessions
+    const syncServerPresence = async () => {
+      try {
+        const res = await fetch('/api/community/presence');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && Array.isArray(data.activeOfficers)) {
+            const serverActiveNames: string[] = data.activeOfficers.map((o: any) =>
+              typeof o === 'string' ? o : (o.userName || o.name || '')
+            ).filter(Boolean);
+            setOnlineOfficerNames((prev) => {
+              const s = new Set<string>();
+              if (currentAuthor) s.add(currentAuthor);
+              serverActiveNames.forEach((n) => s.add(n));
+              return s;
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Presence heartbeat poll warning:', err);
+      }
+    };
+
+    // Immediate first fetch
+    syncServerPresence();
+    const pollInterval = setInterval(syncServerPresence, 8000);
+
+    // 3. Subscribe to Realtime Posts, Comments, and Likes
     const postsChannel = CommunityRealtimeService.subscribeRealtimePosts(
       (newPost: CommunityPost) => {
         if (!newPost || !newPost.id) return;
@@ -430,7 +498,7 @@ export default function StaffCommunityPage() {
       }
     );
 
-    // Subscribe to Realtime DMs
+    // 4. Subscribe to Realtime DMs
     const dmChannel = CommunityRealtimeService.subscribeRealtimeDms((incomingDm: DirectMessage) => {
       if (!incomingDm) return;
       const isMine = incomingDm.senderName === currentAuthor;
@@ -447,6 +515,7 @@ export default function StaffCommunityPage() {
     });
 
     return () => {
+      clearInterval(pollInterval);
       if (presenceChannel && typeof (presenceChannel as any).unsubscribe === 'function') {
         (presenceChannel as any).unsubscribe();
       }
@@ -729,8 +798,16 @@ SKB Operations Portal - https://skbportal.online
 
   const activeThread = directMessages[selectedContact.name] || [];
 
-  const activeOfficer = allOfficers.find(o => o.fullName.toLowerCase() === currentAuthor.toLowerCase());
-  const currentUserAvatar = activeOfficer?.avatarUrl || getOfficialAvatar(activeOfficer || { fullName: currentAuthor, requestedRole: currentRole as any });
+  const cleanAuthName = (currentAuthor || '').split('(')[0].trim().toLowerCase();
+  const activeOfficer = allOfficers.find(o => {
+    const oName = o.fullName.split('(')[0].trim().toLowerCase();
+    return cleanAuthName && (
+      oName === cleanAuthName ||
+      oName.includes(cleanAuthName) ||
+      cleanAuthName.includes(oName)
+    );
+  });
+  const currentUserAvatar = activeOfficer?.avatarUrl || getOfficialAvatar(activeOfficer || { fullName: currentAuthor || 'Staff Officer', requestedRole: (currentRole || 'Program Officer') as any });
 
   return (
     <div className="space-y-6 pb-10 max-w-6xl mx-auto">
@@ -808,8 +885,21 @@ SKB Operations Portal - https://skbportal.online
         {/* Horizontal interactive rail of all 7 officers */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 pt-1">
           {allOfficers.map((officer) => {
-            const isMe = officer.fullName.trim().toLowerCase() === currentAuthor.trim().toLowerCase();
-            const isOnline = isOfficerOnline(officer.fullName);
+            const cleanOfficerName = officer.fullName.split('(')[0].trim().toLowerCase();
+            const cleanCurAuthor = (currentAuthor || '').split('(')[0].trim().toLowerCase();
+            const isMe = cleanCurAuthor !== '' && (
+              cleanOfficerName === cleanCurAuthor ||
+              cleanOfficerName.includes(cleanCurAuthor) ||
+              cleanCurAuthor.includes(cleanOfficerName) ||
+              (cleanOfficerName.includes('daloyar') && cleanCurAuthor.includes('daloyar')) ||
+              (cleanOfficerName.includes('emran') && cleanCurAuthor.includes('emran')) ||
+              (cleanOfficerName.includes('mizbah') && cleanCurAuthor.includes('mizbah')) ||
+              (cleanOfficerName.includes('huraira') && cleanCurAuthor.includes('huraira')) ||
+              (cleanOfficerName.includes('orakatul') && cleanCurAuthor.includes('orakatul')) ||
+              (cleanOfficerName.includes('muktadir') && cleanCurAuthor.includes('muktadir')) ||
+              (cleanOfficerName.includes('bulbul') && cleanCurAuthor.includes('bulbul'))
+            );
+            const isOnline = isMe || isOfficerOnline(officer.fullName);
             return (
               <button
                 key={officer.id}
@@ -835,8 +925,8 @@ SKB Operations Portal - https://skbportal.online
                     isMe || isOnline ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.9)] animate-pulse' : 'bg-slate-500'
                   }`} />
                 </div>
-                <span className={`text-[11px] font-black truncate w-full ${isMe ? 'text-emerald-300' : 'text-white group-hover:text-blue-300'}`}>
-                  {officer.fullName.split(' ')[0]} {officer.fullName.split(' ')[1] || ''}
+                <span className={`text-[11px] font-black truncate w-full ${isMe ? 'text-emerald-300' : 'text-white group-hover:text-blue-300'}`} title={officer.fullName}>
+                  {officer.fullName}
                 </span>
                 <span className="text-[9px] text-slate-400 truncate w-full mt-0.5">
                   {officer.designation || officer.requestedRole}

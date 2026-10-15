@@ -39,18 +39,36 @@ const STORAGE_KEY = 'skb_user_approval_profiles';
 
 export const ORGANOGRAM_HIERARCHY: Record<string, number> = {
   'dr. orakatul jannat': 1,
+  'orakatul jannat': 1,
   'md. abu huraira': 2,
+  'abu huraira': 2,
   'daloyar hassan': 3,
   'emran ahmed': 4,
+  'md. emran': 4,
+  'md. emran ahmed': 4,
   'mizbah uddin': 5,
   'muktadir rahaman': 6,
   'aminul islam bulbul': 7,
+  'aminul islam': 7,
 };
 
 export function sortOrganogramUsers(users: UserProfileRecord[]): UserProfileRecord[] {
+  const getRank = (name: string) => {
+    const clean = name.trim().toLowerCase();
+    if (ORGANOGRAM_HIERARCHY[clean]) return ORGANOGRAM_HIERARCHY[clean];
+    if (clean.includes('orakatul')) return 1;
+    if (clean.includes('huraira')) return 2;
+    if (clean.includes('daloyar')) return 3;
+    if (clean.includes('emran')) return 4;
+    if (clean.includes('mizbah')) return 5;
+    if (clean.includes('muktadir')) return 6;
+    if (clean.includes('bulbul') || clean.includes('aminul')) return 7;
+    return 99;
+  };
+
   return [...users].sort((a, b) => {
-    const rankA = ORGANOGRAM_HIERARCHY[a.fullName.trim().toLowerCase()] ?? 99;
-    const rankB = ORGANOGRAM_HIERARCHY[b.fullName.trim().toLowerCase()] ?? 99;
+    const rankA = getRank(a.fullName);
+    const rankB = getRank(b.fullName);
     if (rankA !== rankB) return rankA - rankB;
     return a.fullName.localeCompare(b.fullName);
   });
@@ -211,6 +229,10 @@ export class UserApprovalService {
 
       // Upgrade any broken external Unsplash links or missing avatars to official vector SVGs
       for (const p of merged) {
+        if (p.email.toLowerCase().includes('emran') && p.fullName !== 'Emran Ahmed') {
+          p.fullName = 'Emran Ahmed';
+          hasUpdates = true;
+        }
         if (!p.avatarUrl || p.avatarUrl.includes('images.unsplash.com')) {
           p.avatarUrl = getOfficialAvatar(p);
           hasUpdates = true;

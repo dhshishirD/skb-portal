@@ -277,50 +277,156 @@ export class CommunityRealtimeService {
   }
 
   /**
-   * Realtime Presence Tracking across active HQ officers cross-browser
+   * Realtime Presence Tracking across active HQ officers cross-browser & cross-device
    */
   static trackPresence(
     rawOfficerName: string, 
     role: string, 
     onSync: (activeOfficers: string[]) => void
   ) {
-    const supabase = this.getSupabaseClient();
-    if (!supabase) return null;
+    if (!rawOfficerName) return null;
 
     // Normalize officer name: remove any "(Role...)" suffixes to ensure clean matching
     const officerName = rawOfficerName.split('(')[0].trim();
+    const cleanSelf = officerName.toLowerCase();
 
-    try {
-      const channel = supabase.channel('skb-community-presence', {
-        config: {
-          presence: { key: officerName },
-        },
-      });
+    const activeSet = new Set<string>();
+    activeSet.add(cleanSelf);
 
-      const handlePresenceUpdate = () => {
-        const state = channel.presenceState();
-        const active = Object.keys(state);
-        onSync(active);
-      };
+    const broadcastSync = () => {
+      onSync(Array.from(activeSet));
+    };
 
-      channel
-        .on('presence', { event: 'sync' }, handlePresenceUpdate)
-        .on('presence', { event: 'join' }, handlePresenceUpdate)
-        .on('presence', { event: 'leave' }, handlePresenceUpdate)
-        .subscribe(async (status) => {
-          if (status === 'SUBSCRIBED') {
-            await channel.track({
-              officerName,
-              role,
-              onlineAt: new Date().toISOString(),
-            });
+    // Channel 1: Native HTML5 BroadcastChannel for instantaneous same-machine tab sync
+    let bc: BroadcastChannel | null = null;
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        bc = new BroadcastChannel('skb_hq_officer_presence');
+        bc.onmessage = (event) => {
+          if (event.data?.type === 'JOIN' || event.data?.type === 'HEARTBEAT') {
+            const name = (event.data?.name || '').trim().toLowerCase();
+            if (name) {
+              activeSet.add(name);
+              broadcastSync();
+            }
+          } else if (event.data?.type === 'LEAVE') {
+            const name = (event.data?.name || '').trim().toLowerCase();
+            if (name && name !== cleanSelf) {
+              activeSet.delete(name);
+              broadcastSync();
+            }
           }
+        };
+
+        bc.postMessage({ type: 'JOIN', name: cleanSelf, role });
+      } catch (err) {
+        console.warn('BroadcastChannel error', err);
+      }
+    }
+
+    // Channel 2: Server-Backed Heartbeat API (/api/community/presence)
+    const sendHeartbeat = async () => {
+      try {
+        if (typeof window !== 'undefined') {
+          const res = await fetch('/api/community/presence', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ officerName, role, action: 'heartbeat' }),
+          });
+
+          if (res.ok) {
+            const json = await res.json();
+            if (json.success && Array.isArray(json.activeOfficers)) {
+              json.activeOfficers.forEach((name: string) => {
+                if (name) activeSet.add(name.toLowerCase());
+              });
+              broadcastSync();
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Presence heartbeat error:', e);
+      }
+    };
+
+    // Immediate heartbeat
+    sendHeartbeat();
+    const heartbeatInterval = setInterval(sendHeartbeat, 10000);
+
+    // Channel 3: Supabase Realtime WebSocket presence channel
+    const supabase = this.getSupabaseClient();
+    let channel: any = null;
+    if (supabase) {
+      try {
+        channel = supabase.channel('skb-community-presence', {
+          config: {
+            presence: { key: officerName },
+          },
         });
 
-      return channel;
-    } catch (e) {
-      console.warn('Presence tracking exception:', e);
-      return null;
+        const handlePresenceUpdate = () => {
+          try {
+            const state = channel.presenceState();
+            Object.keys(state).forEach((key) => {
+              if (key) activeSet.add(key.toLowerCase());
+            });
+            broadcastSync();
+          } catch {}
+        };
+
+        channel
+          .on('presence', { event: 'sync' }, handlePresenceUpdate)
+          .on('presence', { event: 'join' }, handlePresenceUpdate)
+          .on('presence', { event: 'leave' }, handlePresenceUpdate)
+          .subscribe(async (status: string) => {
+            if (status === 'SUBSCRIBED') {
+              try {
+                await channel.track({
+                  officerName,
+                  role,
+                  onlineAt: new Date().toISOString(),
+                });
+              } catch {}
+            }
+          });
+      } catch (e) {
+        console.warn('Supabase presence channel error:', e);
+      }
     }
+
+    // Unload hook: broadcast exit
+    const handleUnload = () => {
+      if (bc) {
+        try {
+          bc.postMessage({ type: 'LEAVE', name: cleanSelf });
+        } catch {}
+      }
+      if (typeof window !== 'undefined' && navigator.sendBeacon) {
+        try {
+          navigator.sendBeacon('/api/community/presence', JSON.stringify({ officerName, action: 'leave' }));
+        } catch {}
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', handleUnload);
+    }
+
+    // Return cleanup handle
+    return {
+      unsubscribe: () => {
+        clearInterval(heartbeatInterval);
+        handleUnload();
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('beforeunload', handleUnload);
+        }
+        if (bc) {
+          try { bc.close(); } catch {}
+        }
+        if (channel && typeof channel.unsubscribe === 'function') {
+          try { channel.unsubscribe(); } catch {}
+        }
+      },
+    };
   }
 }

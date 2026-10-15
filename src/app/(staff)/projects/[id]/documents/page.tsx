@@ -12,13 +12,17 @@ import {
   Sparkles, 
   Trash2, 
   Eye, 
-  X,
-  FolderArchive,
-  FileCheck2,
-  FileUp,
-  Clock,
-  UserCheck
+  X, 
+  FolderArchive, 
+  FileCheck2, 
+  FileUp, 
+  Clock, 
+  UserCheck,
+  Globe2,
+  ShieldAlert,
+  Lock
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import { getDefaultClosingAudit, ClosingReportWorkingPaper } from '@/server/services/projectClosingAuditService';
 import { CloudSyncService } from '@/server/services/cloudSyncService';
 import { CloudStorageService } from '@/server/services/cloudStorageService';
@@ -37,6 +41,9 @@ export interface ProjectComplianceDoc {
   specialReason?: string;
   uploadedBy: string;
   uploadedAt: string;
+  publishedToDonorWorkspace?: boolean;
+  publishedBy?: string;
+  publishedAt?: string;
 }
 
 export default function DocumentLibraryPage({ params }: { params: { id: string } }) {
@@ -54,6 +61,49 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
   const [newFileSize, setNewFileSize] = useState('');
   const [newSpecialReason, setNewSpecialReason] = useState('');
   const [previewDoc, setPreviewDoc] = useState<ProjectComplianceDoc | null>(null);
+
+  // Authenticated user & Director quality control state
+  const [currentUserEmail, setCurrentUserEmail] = useState('');
+  const [currentUserName, setCurrentUserName] = useState('');
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setCurrentUserEmail(user.email || '');
+        setCurrentUserName(user.user_metadata?.full_name || '');
+      } else {
+        const storedAuthor = localStorage.getItem('skb_current_community_author');
+        if (storedAuthor) {
+          setCurrentUserName(storedAuthor);
+        }
+      }
+    });
+  }, []);
+
+  const isExecutiveOrAdmin =
+    currentUserEmail.toLowerCase() === 'kindnessforbeauty@gmail.com' ||
+    currentUserEmail.toLowerCase() === 'daloyar.pro@gmail.com' ||
+    currentUserName.toLowerCase().includes('huraira') ||
+    currentUserName.toLowerCase().includes('daloyar');
+
+  const handleTogglePublication = async (doc: ProjectComplianceDoc, publish: boolean) => {
+    const signatory = currentUserName || 'Md. Abu Huraira (Executive Director)';
+    await CloudSyncService.togglePublicationToDonor(projectId, doc.id, publish, signatory);
+    const updated = docs.map(d => d.id === doc.id ? {
+      ...d,
+      publishedToDonorWorkspace: publish,
+      publishedBy: publish ? signatory : undefined,
+      publishedAt: publish ? new Date().toLocaleString() : undefined,
+    } : d);
+    saveDocuments(updated);
+    setStatusToast(
+      publish 
+        ? `Document "${doc.name}" published to Foreign Donor Workspace by ${signatory}!` 
+        : `Document "${doc.name}" recalled to internal draft.`
+    );
+    setTimeout(() => setStatusToast(''), 4500);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -324,7 +374,7 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
                     <FileCheck2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h4 className="text-xs font-extrabold text-slate-900">{doc.name}</h4>
                       {doc.auditDomainTag && (
                         <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md">
@@ -334,18 +384,58 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
                       <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md">
                         {doc.status}
                       </span>
+                      {doc.publishedToDonorWorkspace ? (
+                        <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs">
+                          <Globe2 className="w-3 h-3 text-emerald-700" /> Published to Foreign Donor Workspace
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs">
+                          <Lock className="w-3 h-3 text-amber-700" /> Draft / Pending Director Sign-Off
+                        </span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-1">
+                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 mt-1">
                       <span>Size: <strong className="text-slate-700">{doc.fileSize}</strong></span>
                       <span>•</span>
                       <span className="flex items-center gap-1"><UserCheck className="w-3 h-3 text-blue-600" /> {doc.uploadedBy}</span>
                       <span>•</span>
                       <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-slate-400" /> {doc.uploadedAt}</span>
+                      {doc.publishedBy && (
+                        <>
+                          <span>•</span>
+                          <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3 text-emerald-600" /> Vetted by {doc.publishedBy}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
+                  {isExecutiveOrAdmin && (
+                    <button
+                      onClick={() => handleTogglePublication(doc, !doc.publishedToDonorWorkspace)}
+                      className={`inline-flex items-center gap-1 px-3 py-1.5 font-bold text-xs rounded-xl shadow-xs transition ${
+                        doc.publishedToDonorWorkspace
+                          ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300'
+                          : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      }`}
+                      title={doc.publishedToDonorWorkspace ? "Recall from Foreign Donor Workspace" : "Publish to Foreign Partner Inspection Portal"}
+                    >
+                      {doc.publishedToDonorWorkspace ? (
+                        <>
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Recall Draft</span>
+                        </>
+                      ) : (
+                        <>
+                          <Globe2 className="w-3.5 h-3.5" />
+                          <span>Publish to Donor</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                   <button
                     onClick={() => setPreviewDoc(doc)}
                     className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition"
@@ -407,11 +497,20 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
                     <FileCheck2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h4 className="text-xs font-extrabold text-slate-900">{doc.name}</h4>
                       {doc.auditDomainTag && (
                         <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md">
                           {doc.auditDomainTag}
+                        </span>
+                      )}
+                      {doc.publishedToDonorWorkspace ? (
+                        <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs">
+                          <Globe2 className="w-3 h-3 text-emerald-700" /> Published to Foreign Donor Workspace
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs">
+                          <Lock className="w-3 h-3 text-amber-700" /> Draft / Pending Director Sign-Off
                         </span>
                       )}
                     </div>
@@ -420,17 +519,48 @@ export default function DocumentLibraryPage({ params }: { params: { id: string }
                         Note: {doc.specialReason}
                       </p>
                     )}
-                    <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-1">
+                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 mt-1">
                       <span>Size: <strong className="text-slate-700">{doc.fileSize}</strong></span>
                       <span>•</span>
                       <span>{doc.uploadedBy}</span>
                       <span>•</span>
                       <span>{doc.uploadedAt}</span>
+                      {doc.publishedBy && (
+                        <>
+                          <span>•</span>
+                          <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3 text-emerald-600" /> Vetted by {doc.publishedBy}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
+                  {isExecutiveOrAdmin && (
+                    <button
+                      onClick={() => handleTogglePublication(doc, !doc.publishedToDonorWorkspace)}
+                      className={`inline-flex items-center gap-1 px-3 py-1.5 font-bold text-xs rounded-xl shadow-xs transition ${
+                        doc.publishedToDonorWorkspace
+                          ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300'
+                          : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      }`}
+                      title={doc.publishedToDonorWorkspace ? "Recall from Foreign Donor Workspace" : "Publish to Foreign Partner Inspection Portal"}
+                    >
+                      {doc.publishedToDonorWorkspace ? (
+                        <>
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Recall Draft</span>
+                        </>
+                      ) : (
+                        <>
+                          <Globe2 className="w-3.5 h-3.5" />
+                          <span>Publish to Donor</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDownloadFile(doc)}
                     className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-sm transition"

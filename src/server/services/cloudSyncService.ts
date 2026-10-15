@@ -30,6 +30,9 @@ export interface CloudDocumentRecord {
   specialReason?: string;
   uploadedBy: string;
   uploadedAt: string;
+  publishedToDonorWorkspace?: boolean;
+  publishedBy?: string;
+  publishedAt?: string;
 }
 
 export interface CloudBeneficiaryRecord {
@@ -204,6 +207,72 @@ export class CloudSyncService {
     return true;
   }
 
+  public static async getAllDocuments(): Promise<CloudDocumentRecord[]> {
+    if (typeof window !== 'undefined') {
+      const globalSaved = localStorage.getItem('skb_portal_all_documents');
+      if (globalSaved) {
+        try {
+          return JSON.parse(globalSaved);
+        } catch {}
+      }
+    }
+    return [];
+  }
+
+  public static async togglePublicationToDonor(
+    projectId: string, 
+    docId: string, 
+    publish: boolean, 
+    signatoryName: string = 'Md. Abu Huraira (Executive Director)'
+  ): Promise<boolean> {
+    if (typeof window !== 'undefined') {
+      const key = `skb_documents_${projectId}`;
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        try {
+          const list: CloudDocumentRecord[] = JSON.parse(stored);
+          const updated = list.map(d => {
+            if (d.id === docId) {
+              return {
+                ...d,
+                publishedToDonorWorkspace: publish,
+                publishedBy: publish ? signatoryName : undefined,
+                publishedAt: publish ? new Date().toLocaleString() : undefined,
+              };
+            }
+            return d;
+          });
+          localStorage.setItem(key, JSON.stringify(updated));
+
+          // Also update global all documents
+          const globalSaved = localStorage.getItem('skb_portal_all_documents');
+          if (globalSaved) {
+            const gList: CloudDocumentRecord[] = JSON.parse(globalSaved);
+            const gUpdated = gList.map(d => d.id === docId ? {
+              ...d,
+              publishedToDonorWorkspace: publish,
+              publishedBy: publish ? signatoryName : undefined,
+              publishedAt: publish ? new Date().toLocaleString() : undefined,
+            } : d);
+            localStorage.setItem('skb_portal_all_documents', JSON.stringify(gUpdated));
+          }
+        } catch (e) {
+          console.error('Publication toggle error:', e);
+        }
+      }
+    }
+
+    this.broadcastLiveEvent(publish ? 'document-published' : 'document-unpublished', {
+      projectId,
+      docId,
+      publishedToDonorWorkspace: publish,
+      signatoryName,
+      timestamp: new Date().toISOString(),
+    });
+
+    return true;
+  }
+
   // ==========================================
   // 3. BENEFICIARIES CLOUD SYNC
   // ==========================================
@@ -325,6 +394,12 @@ export class CloudSyncService {
         .on('broadcast', { event: 'document-uploaded' }, (payload: any) => {
           callback({ type: 'BROADCAST_UPLOAD', doc: payload.payload });
         })
+        .on('broadcast', { event: 'document-published' }, (payload: any) => {
+          callback({ type: 'BROADCAST_PUBLISHED', doc: payload.payload });
+        })
+        .on('broadcast', { event: 'document-unpublished' }, (payload: any) => {
+          callback({ type: 'BROADCAST_UNPUBLISHED', doc: payload.payload });
+        })
         .subscribe();
 
       return {
@@ -374,7 +449,10 @@ export class CloudSyncService {
   /**
    * Broadcast an instant live event cross-browser/cross-tab to all connected donor & staff sessions
    */
-  public static broadcastLiveEvent(eventName: 'document-uploaded' | 'project-stage-updated' | 'dossier-approved', payload: any) {
+  public static broadcastLiveEvent(
+    eventName: 'document-uploaded' | 'project-stage-updated' | 'dossier-approved' | 'document-published' | 'document-unpublished', 
+    payload: any
+  ) {
     const supabase = this.getClient();
     if (!supabase) return;
 

@@ -241,10 +241,12 @@ export default function StaffCommunityPage() {
   // Check if an officer is currently online
   const isOfficerOnline = (name: string) => {
     if (!name) return false;
-    const clean = name.trim().toLowerCase();
-    if (clean === currentAuthor.trim().toLowerCase()) return true;
+    const clean = name.split('(')[0].trim().toLowerCase();
+    const cleanAuthor = currentAuthor.split('(')[0].trim().toLowerCase();
+    if (clean === cleanAuthor || clean.includes(cleanAuthor) || cleanAuthor.includes(clean)) return true;
     for (const onlineName of Array.from(onlineOfficerNames)) {
-      if (onlineName.trim().toLowerCase() === clean || clean.includes(onlineName.toLowerCase())) {
+      const oClean = onlineName.split('(')[0].trim().toLowerCase();
+      if (oClean === clean || oClean.includes(clean) || clean.includes(oClean)) {
         return true;
       }
     }
@@ -360,36 +362,50 @@ export default function StaffCommunityPage() {
       }
     );
 
-    // Subscribe to Realtime Posts
-    const postsChannel = CommunityRealtimeService.subscribeRealtimePosts(async () => {
-      const dbPosts = await CommunityRealtimeService.fetchPosts();
-      if (dbPosts && dbPosts.length > 0) {
-        setPosts(dbPosts);
+    // Subscribe to Realtime Posts, Comments, and Likes
+    const postsChannel = CommunityRealtimeService.subscribeRealtimePosts(
+      (newPost: CommunityPost) => {
+        if (!newPost || !newPost.id) return;
+        setPosts((prev) => {
+          if (prev.some((p) => p.id === newPost.id)) return prev;
+          const updated = [newPost, ...prev];
+          localStorage.setItem('skb_hq_community_posts', JSON.stringify(updated));
+          return updated;
+        });
+      },
+      ({ postId, comment }: { postId: string; comment: any }) => {
+        if (!postId || !comment) return;
+        setPosts((prev) => {
+          const updated = prev.map((p) => {
+            if (p.id === postId) {
+              const cList = p.comments || [];
+              if (cList.some((c) => c.id === comment.id)) return p;
+              return {
+                ...p,
+                comments: [...cList, comment],
+              };
+            }
+            return p;
+          });
+          localStorage.setItem('skb_hq_community_posts', JSON.stringify(updated));
+          return updated;
+        });
+      },
+      ({ postId, likesCount }: { postId: string; likesCount: number }) => {
+        if (!postId) return;
+        setPosts((prev) => {
+          const updated = prev.map((p) => (p.id === postId ? { ...p, likesCount } : p));
+          localStorage.setItem('skb_hq_community_posts', JSON.stringify(updated));
+          return updated;
+        });
       }
-    });
+    );
 
     // Subscribe to Realtime DMs
-    const dmChannel = CommunityRealtimeService.subscribeRealtimeDms((newDbDm) => {
-      if (!newDbDm) return;
-      const isMine = newDbDm.sender_name === currentAuthor;
-      const otherParty = isMine ? newDbDm.recipient_name : newDbDm.sender_name;
-      const incomingDm: DirectMessage = {
-        id: newDbDm.id,
-        senderName: newDbDm.sender_name,
-        senderRole: newDbDm.sender_role,
-        recipientName: newDbDm.recipient_name,
-        text: newDbDm.text,
-        attachment: newDbDm.attachment_name
-          ? {
-              name: newDbDm.attachment_name,
-              size: newDbDm.attachment_size,
-              type: newDbDm.attachment_type,
-              dataUrl: newDbDm.attachment_url,
-            }
-          : undefined,
-        timestamp: new Date(newDbDm.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isMine: isMine,
-      };
+    const dmChannel = CommunityRealtimeService.subscribeRealtimeDms((incomingDm: DirectMessage) => {
+      if (!incomingDm) return;
+      const isMine = incomingDm.senderName === currentAuthor;
+      const otherParty = isMine ? incomingDm.recipientName : incomingDm.senderName;
 
       setDirectMessages((prevMap) => {
         const thread = prevMap[otherParty] || [];
@@ -608,18 +624,21 @@ SKB Operations Portal - https://skbportal.online
   };
 
   const handleToggleLike = (postId: string) => {
+    let newLikesCount = 1;
     const updated = posts.map((p) => {
       if (p.id === postId) {
         const liked = !p.likedByMe;
+        newLikesCount = liked ? p.likesCount + 1 : Math.max(0, p.likesCount - 1);
         return {
           ...p,
           likedByMe: liked,
-          likesCount: liked ? p.likesCount + 1 : p.likesCount - 1,
+          likesCount: newLikesCount,
         };
       }
       return p;
     });
     savePosts(updated);
+    CommunityRealtimeService.likePost(postId, newLikesCount);
   };
 
   const handleAddComment = (postId: string) => {

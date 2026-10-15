@@ -5,262 +5,322 @@ export class CommunityRealtimeService {
   private static getSupabaseClient() {
     try {
       return createClient();
-    } catch (e) {
+    } catch {
       return null;
     }
   }
 
   /**
-   * Fetch all community posts from Supabase database with fallback
+   * Fetch all persistent community posts from Supabase database via persistent sync API
    */
   static async fetchPosts(): Promise<CommunityPost[] | null> {
-    const supabase = this.getSupabaseClient();
-    if (!supabase) return null;
-
     try {
-      const { data: postsData, error: postsError } = await supabase
-        .from('community_posts')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (postsError || !postsData) return null;
-
-      const { data: commentsData } = await supabase
-        .from('community_comments')
-        .select('*')
-        .order('created_at', { ascending: true });
-
-      const commentsMap: Record<string, any[]> = {};
-      (commentsData as any[] || []).forEach((c: any) => {
-        if (!commentsMap[c.post_id]) commentsMap[c.post_id] = [];
-        commentsMap[c.post_id].push({
-          id: c.id,
-          authorName: c.author_name,
-          authorRole: c.author_role,
-          authorAvatar: c.author_avatar,
-          text: c.text,
-          createdAt: new Date(c.created_at).toLocaleString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' }),
-        });
-      });
-
-      return (postsData as any[]).map((p: any) => ({
-        id: p.id,
-        authorName: p.author_name,
-        authorRole: p.author_role,
-        authorAvatar: p.author_avatar,
-        category: p.category,
-        title: p.title,
-        content: p.content,
-        attachment: p.attachment_name
-          ? {
-              name: p.attachment_name,
-              size: p.attachment_size,
-              type: p.attachment_type,
-              dataUrl: p.attachment_url,
-            }
-          : undefined,
-        likesCount: p.likes_count || 1,
-        likedByMe: false,
-        createdAt: new Date(p.created_at).toLocaleString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' }),
-        comments: commentsMap[p.id] || [],
-      }));
+      if (typeof window !== 'undefined') {
+        const res = await fetch('/api/community/sync');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.posts) && json.posts.length > 0) {
+            return json.posts;
+          }
+        }
+      }
     } catch (e) {
-      return null;
+      console.warn('API sync fetch error, falling back to local cache', e);
     }
+
+    // LocalStorage fallback if offline
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('skb_hq_community_posts');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch {}
+      }
+    }
+    return null;
   }
 
   /**
-   * Insert new community post into Supabase
+   * Insert new community post into Supabase & Broadcast via WebSocket
    */
   static async insertPost(post: CommunityPost): Promise<boolean> {
-    const supabase = this.getSupabaseClient();
-    if (!supabase) return false;
-
+    // 1. Persist to Supabase Database
     try {
-      const { error } = await supabase.from('community_posts').insert({
-        id: post.id,
-        author_name: post.authorName,
-        author_role: post.authorRole,
-        author_avatar: post.authorAvatar,
-        category: post.category,
-        title: post.title,
-        content: post.content,
-        attachment_name: post.attachment?.name,
-        attachment_size: post.attachment?.size,
-        attachment_type: post.attachment?.type,
-        attachment_url: post.attachment?.dataUrl,
-        likes_count: post.likesCount,
-      } as any);
-
-      return !error;
+      if (typeof window !== 'undefined') {
+        fetch('/api/community/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'POST', payload: post }),
+        }).catch((err) => console.warn('Background sync POST error:', err));
+      }
     } catch (e) {
-      return false;
+      console.warn('Post persist exception:', e);
     }
+
+    // 2. Realtime WebSocket Broadcast to all connected browsers (Chrome, Edge, mobile)
+    const supabase = this.getSupabaseClient();
+    if (supabase) {
+      try {
+        const channel = supabase.channel('skb-community-sync');
+        channel.subscribe((status: string) => {
+          if (status === 'SUBSCRIBED') {
+            channel.send({
+              type: 'broadcast',
+              event: 'new-post',
+              payload: post,
+            });
+          }
+        });
+      } catch (err) {
+        console.warn('Broadcast exception:', err);
+      }
+    }
+
+    return true;
   }
 
   /**
-   * Insert comment into Supabase
+   * Insert comment into Supabase & Broadcast via WebSocket
    */
-  static async insertComment(postId: string, comment: { authorName: string; authorRole: string; text: string }): Promise<boolean> {
-    const supabase = this.getSupabaseClient();
-    if (!supabase) return false;
-
+  static async insertComment(postId: string, comment: { id?: string; authorName: string; authorRole: string; authorAvatar?: string; text: string; createdAt?: string }): Promise<boolean> {
     try {
-      const { error } = await supabase.from('community_comments').insert({
-        post_id: postId,
-        author_name: comment.authorName,
-        author_role: comment.authorRole,
-        text: comment.text,
-      } as any);
-
-      return !error;
+      if (typeof window !== 'undefined') {
+        fetch('/api/community/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'COMMENT', payload: { postId, comment } }),
+        }).catch((err) => console.warn('Background comment sync error:', err));
+      }
     } catch (e) {
-      return false;
+      console.warn('Comment persist exception:', e);
     }
+
+    // Realtime Broadcast
+    const supabase = this.getSupabaseClient();
+    if (supabase) {
+      try {
+        const channel = supabase.channel('skb-community-sync');
+        channel.subscribe((status: string) => {
+          if (status === 'SUBSCRIBED') {
+            channel.send({
+              type: 'broadcast',
+              event: 'new-comment',
+              payload: { postId, comment },
+            });
+          }
+        });
+      } catch (err) {
+        console.warn('Broadcast comment exception:', err);
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Broadcast post like update
+   */
+  static async likePost(postId: string, likesCount: number): Promise<boolean> {
+    try {
+      if (typeof window !== 'undefined') {
+        fetch('/api/community/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'LIKE', payload: { postId, likesCount } }),
+        }).catch((err) => console.warn('Background like sync error:', err));
+      }
+    } catch {}
+
+    const supabase = this.getSupabaseClient();
+    if (supabase) {
+      try {
+        const channel = supabase.channel('skb-community-sync');
+        channel.subscribe((status: string) => {
+          if (status === 'SUBSCRIBED') {
+            channel.send({
+              type: 'broadcast',
+              event: 'like-post',
+              payload: { postId, likesCount },
+            });
+          }
+        });
+      } catch {}
+    }
+
+    return true;
   }
 
   /**
    * Fetch Direct Messages for a thread
    */
   static async fetchDirectMessages(user1: string, user2: string): Promise<DirectMessage[] | null> {
+    try {
+      if (typeof window !== 'undefined') {
+        const res = await fetch('/api/community/sync');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.directMessages) {
+            const thread = json.directMessages[user2] || json.directMessages[user1] || [];
+            return thread.map((d: any) => ({
+              ...d,
+              isMine: d.senderName === user1,
+            }));
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('API sync DM fetch error', e);
+    }
+
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('skb_hq_direct_messages');
+      if (stored) {
+        try {
+          const map = JSON.parse(stored);
+          return map[user2] || [];
+        } catch {}
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Insert Direct Message into Supabase & Broadcast via WebSocket
+   */
+  static async insertDirectMessage(dm: DirectMessage): Promise<boolean> {
+    try {
+      if (typeof window !== 'undefined') {
+        fetch('/api/community/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'DM', payload: { dm } }),
+        }).catch((err) => console.warn('Background DM sync error:', err));
+      }
+    } catch (e) {
+      console.warn('DM persist exception:', e);
+    }
+
+    // Realtime Broadcast
+    const supabase = this.getSupabaseClient();
+    if (supabase) {
+      try {
+        const channel = supabase.channel('skb-community-sync');
+        channel.subscribe((status: string) => {
+          if (status === 'SUBSCRIBED') {
+            channel.send({
+              type: 'broadcast',
+              event: 'new-dm',
+              payload: dm,
+            });
+          }
+        });
+      } catch (err) {
+        console.warn('Broadcast DM exception:', err);
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Subscribe to Supabase Realtime Broadcast changes for Community Posts, Comments, and Likes
+   */
+  static subscribeRealtimePosts(
+    onNewPost: (post: CommunityPost) => void,
+    onNewComment?: (payload: { postId: string; comment: any }) => void,
+    onLikePost?: (payload: { postId: string; likesCount: number }) => void
+  ) {
     const supabase = this.getSupabaseClient();
     if (!supabase) return null;
 
     try {
-      const { data, error } = await supabase
-        .from('direct_messages')
-        .select('*')
-        .or(`and(sender_name.eq.${user1},recipient_name.eq.${user2}),and(sender_name.eq.${user2},recipient_name.eq.${user1})`)
-        .order('created_at', { ascending: true });
+      const channel = supabase
+        .channel('skb-community-sync')
+        .on('broadcast', { event: 'new-post' }, (msg: any) => {
+          if (msg.payload) onNewPost(msg.payload);
+        })
+        .on('broadcast', { event: 'new-comment' }, (msg: any) => {
+          if (msg.payload && onNewComment) onNewComment(msg.payload);
+        })
+        .on('broadcast', { event: 'like-post' }, (msg: any) => {
+          if (msg.payload && onLikePost) onLikePost(msg.payload);
+        })
+        .subscribe();
 
-      if (error || !data) return null;
-
-      return (data as any[]).map((d: any) => ({
-        id: d.id,
-        senderName: d.sender_name,
-        senderRole: d.sender_role,
-        recipientName: d.recipient_name,
-        text: d.text,
-        attachment: d.attachment_name
-          ? {
-              name: d.attachment_name,
-              size: d.attachment_size,
-              type: d.attachment_type,
-              dataUrl: d.attachment_url,
-            }
-          : undefined,
-        timestamp: new Date(d.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isMine: d.sender_name === user1,
-      }));
+      return channel;
     } catch (e) {
+      console.warn('Realtime sync subscribe failed:', e);
       return null;
-    }
-  }
-
-  /**
-   * Insert Direct Message into Supabase
-   */
-  static async insertDirectMessage(dm: DirectMessage): Promise<boolean> {
-    const supabase = this.getSupabaseClient();
-    if (!supabase) return false;
-
-    try {
-      const { error } = await supabase.from('direct_messages').insert({
-        id: dm.id,
-        sender_name: dm.senderName,
-        sender_role: dm.senderRole,
-        recipient_name: dm.recipientName,
-        text: dm.text,
-        attachment_name: dm.attachment?.name,
-        attachment_size: dm.attachment?.size,
-        attachment_type: dm.attachment?.type,
-        attachment_url: dm.attachment?.dataUrl,
-      } as any);
-
-      return !error;
-    } catch (e) {
-      return false;
     }
   }
 
   /**
    * Subscribe to Supabase Realtime changes for Direct Messages
    */
-  static subscribeRealtimeDms(callback: (payload: any) => void) {
+  static subscribeRealtimeDms(callback: (dm: DirectMessage) => void) {
     const supabase = this.getSupabaseClient();
     if (!supabase) return null;
 
-    const channel = supabase
-      .channel('public:direct_messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages' }, (payload) => {
-        callback(payload.new);
-      })
-      .subscribe();
+    try {
+      const channel = supabase
+        .channel('skb-community-sync')
+        .on('broadcast', { event: 'new-dm' }, (msg: any) => {
+          if (msg.payload) callback(msg.payload);
+        })
+        .subscribe();
 
-    return channel;
+      return channel;
+    } catch (e) {
+      console.warn('Realtime DM subscribe failed:', e);
+      return null;
+    }
   }
 
   /**
-   * Subscribe to Supabase Realtime changes for Community Posts and Comments
-   */
-  static subscribeRealtimePosts(callback: (payload: any) => void) {
-    const supabase = this.getSupabaseClient();
-    if (!supabase) return null;
-
-    const channel = supabase
-      .channel('public:community_posts_sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_posts' }, (payload) => {
-        callback(payload);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_comments' }, (payload) => {
-        callback(payload);
-      })
-      .subscribe();
-
-    return channel;
-  }
-
-  /**
-   * Realtime Presence Tracking across active HQ officers
+   * Realtime Presence Tracking across active HQ officers cross-browser
    */
   static trackPresence(
-    officerName: string, 
+    rawOfficerName: string, 
     role: string, 
     onSync: (activeOfficers: string[]) => void
   ) {
     const supabase = this.getSupabaseClient();
     if (!supabase) return null;
 
-    const channel = supabase.channel('skb-community-presence', {
-      config: {
-        presence: { key: officerName },
-      },
-    });
+    // Normalize officer name: remove any "(Role...)" suffixes to ensure clean matching
+    const officerName = rawOfficerName.split('(')[0].trim();
 
-    channel
-      .on('presence', { event: 'sync' }, () => {
+    try {
+      const channel = supabase.channel('skb-community-presence', {
+        config: {
+          presence: { key: officerName },
+        },
+      });
+
+      const handlePresenceUpdate = () => {
         const state = channel.presenceState();
         const active = Object.keys(state);
         onSync(active);
-      })
-      .on('presence', { event: 'join' }, () => {
-        const state = channel.presenceState();
-        onSync(Object.keys(state));
-      })
-      .on('presence', { event: 'leave' }, () => {
-        const state = channel.presenceState();
-        onSync(Object.keys(state));
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({
-            officerName,
-            role,
-            onlineAt: new Date().toISOString(),
-          });
-        }
-      });
+      };
 
-    return channel;
+      channel
+        .on('presence', { event: 'sync' }, handlePresenceUpdate)
+        .on('presence', { event: 'join' }, handlePresenceUpdate)
+        .on('presence', { event: 'leave' }, handlePresenceUpdate)
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await channel.track({
+              officerName,
+              role,
+              onlineAt: new Date().toISOString(),
+            });
+          }
+        });
+
+      return channel;
+    } catch (e) {
+      console.warn('Presence tracking exception:', e);
+      return null;
+    }
   }
 }

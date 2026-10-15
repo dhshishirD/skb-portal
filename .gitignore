@@ -24,3 +24,5 @@
 *.njsproj
 *.sln
 *.sw?
+supabase/.temp/
+.temp/

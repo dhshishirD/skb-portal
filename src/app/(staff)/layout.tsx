@@ -23,8 +23,11 @@ import {
   ChevronRight,
   MessageSquare,
   Camera,
-  ChevronDown
+  ChevronDown,
+  User
 } from 'lucide-react';
+import { DEFAULT_APPROVED_USERS } from '@/server/services/userApprovalService';
+import { getOfficialAvatar } from '@/lib/avatarPresets';
 
 export default function StaffLayout({
   children,
@@ -46,22 +49,74 @@ export default function StaffLayout({
   const roleT = useTranslations('RoleAreas');
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    const resolveUser = async () => {
+      const storedAuthor = typeof window !== 'undefined' ? localStorage.getItem('skb_current_community_author') : null;
+      const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('skb_current_user_email') : null;
+
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // Priority 1: Match by authenticated Supabase user
       if (user) {
-        const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'SKB User';
+        const email = user.email || '';
+        const metaName = user.user_metadata?.full_name;
+        const matched = DEFAULT_APPROVED_USERS.find(
+          u => u.email.toLowerCase() === email.toLowerCase() || (metaName && u.fullName.toLowerCase() === metaName.toLowerCase())
+        );
+
+        if (matched) {
+          setUserProfile({
+            name: matched.fullName,
+            role: matched.designation || matched.requestedRole,
+            initial: matched.fullName.charAt(0).toUpperCase(),
+            avatarUrl: matched.avatarUrl || getOfficialAvatar(matched)
+          });
+          setLoadingUser(false);
+          return;
+        }
+
+        const fullName = metaName || email.split('@')[0] || 'SKB Officer';
         const designation = user.user_metadata?.designation || 'Staff Member';
-        const initial = fullName.charAt(0).toUpperCase();
-        const avatarUrl = user.user_metadata?.avatar_url;
         setUserProfile({
           name: fullName,
           role: designation,
-          initial: initial,
-          avatarUrl: avatarUrl
+          initial: fullName.charAt(0).toUpperCase(),
+          avatarUrl: user.user_metadata?.avatar_url || getOfficialAvatar({ fullName, requestedRole: designation as any })
         });
+        setLoadingUser(false);
+        return;
       }
+
+      // Priority 2: Match by active local session
+      if (storedAuthor || storedEmail) {
+        const matched = DEFAULT_APPROVED_USERS.find(
+          u => (storedAuthor && u.fullName.toLowerCase() === storedAuthor.toLowerCase()) ||
+               (storedEmail && u.email.toLowerCase() === storedEmail.toLowerCase())
+        );
+        if (matched) {
+          setUserProfile({
+            name: matched.fullName,
+            role: matched.designation || matched.requestedRole,
+            initial: matched.fullName.charAt(0).toUpperCase(),
+            avatarUrl: matched.avatarUrl || getOfficialAvatar(matched)
+          });
+          setLoadingUser(false);
+          return;
+        }
+      }
+
+      // Default fallback
+      const defaultOfficer = DEFAULT_APPROVED_USERS[2]; // Daloyar Hassan (Super Admin / HR)
+      setUserProfile({
+        name: defaultOfficer.fullName,
+        role: defaultOfficer.designation || defaultOfficer.requestedRole,
+        initial: defaultOfficer.fullName.charAt(0).toUpperCase(),
+        avatarUrl: defaultOfficer.avatarUrl || getOfficialAvatar(defaultOfficer)
+      });
       setLoadingUser(false);
-    });
+    };
+
+    resolveUser();
   }, []);
 
   const isAdminUser = 
@@ -154,32 +209,70 @@ export default function StaffLayout({
                   </div>
                 </button>
 
-                {/* Profile Switcher Menu */}
+                {/* Real Officer Account Menu */}
                 {profileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 z-50 text-xs space-y-1 animate-in fade-in duration-150">
-                    <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-3 py-1">
-                      Switch Officer Profile
-                    </p>
-                    <button
-                      onClick={() => handleSelectOfficerProfile('Md. Abu Huraira', 'Executive Director')}
-                      className="w-full text-left p-2 hover:bg-slate-800 rounded-xl flex items-center gap-2 text-slate-200"
-                    >
-                      <div className="w-6 h-6 rounded-full bg-amber-600 text-white text-[10px] font-bold flex items-center justify-center">M</div>
-                      <div>
-                        <p className="font-bold text-slate-100 text-xs">Md. Abu Huraira</p>
-                        <p className="text-[10px] text-amber-400">Executive Director</p>
+                  <div className="absolute right-0 mt-2 w-72 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-3 z-50 text-xs space-y-2 animate-in fade-in duration-150">
+                    <div className="flex items-center gap-3 p-2 bg-slate-800/80 rounded-xl border border-slate-700/60">
+                      <img 
+                        src={userProfile.avatarUrl || getOfficialAvatar({ fullName: userProfile.name, requestedRole: userProfile.role as any })} 
+                        alt={userProfile.name} 
+                        className="w-10 h-10 rounded-full object-cover border border-emerald-500 shrink-0" 
+                      />
+                      <div className="min-w-0">
+                        <p className="font-extrabold text-slate-100 text-xs truncate">{userProfile.name}</p>
+                        <p className="text-[10px] text-blue-400 font-bold truncate">{userProfile.role}</p>
+                        <p className="text-[9px] text-emerald-400 flex items-center gap-1 mt-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Authenticated Officer
+                        </p>
                       </div>
-                    </button>
-                    <button
-                      onClick={() => handleSelectOfficerProfile('Mizbah Uddin', 'Program Officer (Assigned)', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80')}
-                      className="w-full text-left p-2 hover:bg-slate-800 rounded-xl flex items-center gap-2 text-slate-200"
-                    >
-                      <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Mizbah" className="w-6 h-6 rounded-full object-cover" />
-                      <div>
-                        <p className="font-bold text-slate-100 text-xs">Mizbah Uddin</p>
-                        <p className="text-[10px] text-blue-400">Program Officer (IGP)</p>
-                      </div>
-                    </button>
+                    </div>
+
+                    <div className="border-t border-slate-800 pt-1 space-y-0.5">
+                      <Link
+                        href="/me/profile"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="w-full text-left p-2 hover:bg-slate-800 rounded-xl flex items-center gap-2.5 text-slate-200 transition"
+                      >
+                        <User className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>My Official Profile & ID Badge</span>
+                      </Link>
+
+                      <Link
+                        href="/community"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="w-full text-left p-2 hover:bg-slate-800 rounded-xl flex items-center gap-2.5 text-slate-200 transition"
+                      >
+                        <MessageSquare className="w-4 h-4 text-blue-400 shrink-0" />
+                        <span>HQ Staff Community</span>
+                      </Link>
+
+                      <Link
+                        href="/dashboard"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="w-full text-left p-2 hover:bg-slate-800 rounded-xl flex items-center gap-2.5 text-slate-200 transition"
+                      >
+                        <LayoutDashboard className="w-4 h-4 text-purple-400 shrink-0" />
+                        <span>Staff Workspace Desk</span>
+                      </Link>
+                    </div>
+
+                    <div className="border-t border-slate-800 pt-1">
+                      <button
+                        onClick={async () => {
+                          if (typeof window !== 'undefined') {
+                            localStorage.removeItem('skb_current_community_author');
+                            localStorage.removeItem('skb_current_user_email');
+                          }
+                          const supabase = createClient();
+                          await supabase.auth.signOut();
+                          window.location.href = '/login';
+                        }}
+                        className="w-full text-left p-2 hover:bg-red-950/40 text-red-400 hover:text-red-300 rounded-xl flex items-center gap-2.5 font-bold transition"
+                      >
+                        <LogOut className="w-4 h-4 shrink-0" />
+                        <span>Sign Out of Portal</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

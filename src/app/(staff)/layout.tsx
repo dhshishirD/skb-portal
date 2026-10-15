@@ -136,15 +136,6 @@ export default function StaffLayout({
     ...(isAdminUser ? [{ href: '/admin/users', label: 'Admin & Governance', icon: ShieldCheck }] : []),
   ];
 
-  const handleSelectOfficerProfile = (name: string, role: string, avatarUrl?: string) => {
-    setUserProfile({
-      name,
-      role,
-      initial: name.charAt(0).toUpperCase(),
-      avatarUrl
-    });
-    setProfileDropdownOpen(false);
-  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">

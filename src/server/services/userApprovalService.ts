@@ -282,6 +282,48 @@ export class UserApprovalService {
     return newRecord;
   }
 
+  public static async registerOfficerRequest(data: {
+    fullName: string;
+    email: string;
+    phone?: string;
+    dutyStation?: string;
+    department?: string;
+    requestedRole: SystemRole;
+    designation?: string;
+    bio?: string;
+    avatarUrl?: string;
+  }): Promise<UserProfileRecord> {
+    const profiles = this.getStoredProfiles();
+    const existingIndex = profiles.findIndex((p) => p.email.toLowerCase() === data.email.toLowerCase());
+    if (existingIndex !== -1) {
+      return profiles[existingIndex];
+    }
+
+    const isPreApproved = 
+      data.email.toLowerCase() === 'daloyar.pro@gmail.com' || 
+      data.email.toLowerCase() === 'kindnessforbeauty@gmail.com' ||
+      DEFAULT_APPROVED_USERS.some(u => u.email.toLowerCase() === data.email.toLowerCase());
+
+    const newRecord: UserProfileRecord = {
+      id: `usr-${Date.now()}`,
+      fullName: data.fullName,
+      email: data.email,
+      phone: data.phone || '',
+      dutyStation: data.dutyStation || 'Dhaka HQ',
+      department: data.department || 'Operations & Projects',
+      designation: data.designation || data.requestedRole,
+      requestedRole: data.requestedRole || 'Program Officer',
+      avatarUrl: data.avatarUrl || getOfficialAvatar({ fullName: data.fullName, requestedRole: data.requestedRole }),
+      bio: data.bio || `Official ${data.requestedRole} profile awaiting onboarding review.`,
+      status: isPreApproved ? 'APPROVED' : 'PENDING_APPROVAL',
+      createdAt: new Date().toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }),
+    };
+
+    const updated = [newRecord, ...profiles];
+    this.saveProfiles(updated);
+    return newRecord;
+  }
+
   public static async updateFullProfile(
     userId: string,
     updates: Partial<Omit<UserProfileRecord, 'id' | 'email' | 'createdAt'>>

@@ -26,6 +26,7 @@ import {
   AlertTriangle, 
   X, 
   UserCheck,
+  UserPlus,
   Globe2,
   Lock,
   Eye,
@@ -58,20 +59,28 @@ import {
 } from '@/server/services/donorQueryService';
 import { CloudSyncService } from '@/server/services/cloudSyncService';
 import { formatCurrencyString } from '@/server/services/multiCurrency';
+import { ProjectAssignmentService, AssignableOfficer } from '@/server/services/projectAssignmentService';
+import { DEFAULT_APPROVED_USERS } from '@/server/services/userApprovalService';
 
 export default function StaffDashboardPage() {
-  const [designation, setDesignation] = useState<string>('Staff Workspace');
+  const [designation, setDesignation] = useState<string>('Program Officer');
   const [currentUserEmail, setCurrentUserEmail] = useState('');
   const [currentUserName, setCurrentUserName] = useState('');
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   // Separated Desk Tabs
-  const [activeDeskTab, setActiveDeskTab] = useState<'EXECUTIVE_DESK' | 'PROGRAMS_DESK' | 'DONOR_QUERIES' | 'ALL_MODULES'>('EXECUTIVE_DESK');
+  const [activeDeskTab, setActiveDeskTab] = useState<'EXECUTIVE_DESK' | 'PROGRAMS_DESK' | 'DONOR_QUERIES' | 'ALL_MODULES'>('PROGRAMS_DESK');
 
-  // Executive Publication Gate State
+  // Projects State
   const [projects, setProjects] = useState<SKBDonorGrantProject[]>(DEFAULT_PARTNER_PROJECTS);
   const [partnerFilter, setPartnerFilter] = useState<'ALL' | PartnerWorkspaceKey>('ALL');
   const [publicationStatusFilter, setPublicationStatusFilter] = useState<'ALL' | 'DRAFT' | 'PUBLISHED'>('ALL');
   const [searchDocQuery, setSearchDocQuery] = useState('');
+
+  // Executive Officer Assignment Modal State
+  const [assigningProject, setAssigningProject] = useState<SKBDonorGrantProject | null>(null);
+  const [selectedOfficerNames, setSelectedOfficerNames] = useState<string[]>([]);
+  const [availableOfficers, setAvailableOfficers] = useState<AssignableOfficer[]>([]);
 
   // Donor Objections & Query State
   const [donorTickets, setDonorTickets] = useState<DonorQueryTicket[]>(INITIAL_DONOR_QUERIES);
@@ -81,34 +90,72 @@ export default function StaffDashboardPage() {
   const [successToast, setSuccessToast] = useState('');
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    setAvailableOfficers(ProjectAssignmentService.getAssignableOfficers());
+
+    const resolveAuthUser = async () => {
+      const storedAuthor = typeof window !== 'undefined' ? localStorage.getItem('skb_current_community_author') : null;
+      const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('skb_current_user_email') : null;
+
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      let matchedUser = undefined;
       if (user) {
-        if (user.user_metadata?.designation) {
-          setDesignation(user.user_metadata.designation);
-        }
-        setCurrentUserEmail(user.email || '');
-        setCurrentUserName(user.user_metadata?.full_name || '');
-      } else {
-        const storedAuthor = localStorage.getItem('skb_current_community_author');
-        if (storedAuthor) {
-          setCurrentUserName(storedAuthor);
-        }
+        const email = user.email || '';
+        const metaName = user.user_metadata?.full_name;
+        matchedUser = DEFAULT_APPROVED_USERS.find(
+          u => u.email.toLowerCase() === email.toLowerCase() || (metaName && u.fullName.toLowerCase() === metaName.toLowerCase())
+        );
       }
-    });
+
+      if (!matchedUser && (storedAuthor || storedEmail)) {
+        matchedUser = DEFAULT_APPROVED_USERS.find(
+          u => (storedAuthor && u.fullName.toLowerCase() === storedAuthor.toLowerCase()) ||
+               (storedEmail && u.email.toLowerCase() === storedEmail.toLowerCase())
+        );
+      }
+
+      if (matchedUser) {
+        setCurrentUserName(matchedUser.fullName);
+        setCurrentUserEmail(matchedUser.email);
+        setDesignation(matchedUser.designation || matchedUser.requestedRole || 'Program Officer');
+        
+        // Determine initial desk based on role
+        const isExec = matchedUser.fullName.toLowerCase().includes('huraira') || 
+                       matchedUser.email.toLowerCase() === 'kindnessforbeauty@gmail.com' ||
+                       (matchedUser.designation || '').toLowerCase().includes('executive director') ||
+                       matchedUser.fullName.toLowerCase().includes('orakatul');
+        setActiveDeskTab(isExec ? 'EXECUTIVE_DESK' : 'PROGRAMS_DESK');
+      } else {
+        // Fallback default
+        const fallback = DEFAULT_APPROVED_USERS[2]; // Daloyar Hassan (Program Officer / HR)
+        setCurrentUserName(fallback.fullName);
+        setCurrentUserEmail(fallback.email);
+        setDesignation(fallback.designation || fallback.requestedRole || 'Program Officer');
+        setActiveDeskTab('PROGRAMS_DESK');
+      }
+
+      setIsLoadingAuth(false);
+    };
+
+    resolveAuthUser();
   }, []);
 
-  // Merge any local uploaded project documents on mount
+  // Merge any local uploaded project documents & assignments on mount
   useEffect(() => {
-    const loadProjectsWithDocs = () => {
+    const loadProjectsWithDocsAndAssignments = () => {
       const updatedProjects = DEFAULT_PARTNER_PROJECTS.map((proj) => {
+        // 1. Sync assignments from ProjectAssignmentService
+        const currentAssigned = ProjectAssignmentService.getAssignedOfficers(proj.pid, proj.assignedOfficer);
+
+        // 2. Sync documents
+        let mergedDocs = [...proj.primaryDocs];
         if (typeof window !== 'undefined') {
           const storedDocs = localStorage.getItem(`skb_documents_${proj.pid}`);
           if (storedDocs) {
             try {
               const parsed = JSON.parse(storedDocs);
               if (Array.isArray(parsed) && parsed.length > 0) {
-                const mergedDocs = [...proj.primaryDocs];
                 for (const d of parsed) {
                   const idx = mergedDocs.findIndex((md) => md.id === d.id || md.name === d.name);
                   if (idx >= 0) {
@@ -117,32 +164,72 @@ export default function StaffDashboardPage() {
                     mergedDocs.push(d);
                   }
                 }
-                return { ...proj, primaryDocs: mergedDocs };
               }
             } catch (err) {
               console.warn('Failed parsing stored docs', err);
             }
           }
         }
-        return proj;
+
+        return { 
+          ...proj, 
+          assignedOfficers: currentAssigned,
+          primaryDocs: mergedDocs 
+        };
       });
+
       setProjects(updatedProjects);
     };
 
-    loadProjectsWithDocs();
+    loadProjectsWithDocsAndAssignments();
+
+    // Listen for cross-component assignment updates
+    const handleAssignmentsChanged = () => {
+      loadProjectsWithDocsAndAssignments();
+    };
+    window.addEventListener('skb_assignments_changed', handleAssignmentsChanged);
+    return () => {
+      window.removeEventListener('skb_assignments_changed', handleAssignmentsChanged);
+    };
   }, []);
 
-  const isProgramOfficer = designation.toLowerCase().includes('program') || designation.toLowerCase().includes('officer');
-  const isExecutive = designation.toLowerCase().includes('director') || designation.toLowerCase().includes('executive');
-  const isExecutiveOrAdmin =
-    currentUserEmail.toLowerCase() === 'kindnessforbeauty@gmail.com' ||
-    currentUserEmail.toLowerCase() === 'daloyar.pro@gmail.com' ||
+  // Role Checks
+  const isExecutiveDirector = 
     currentUserName.toLowerCase().includes('huraira') ||
-    currentUserName.toLowerCase().includes('daloyar');
+    currentUserEmail.toLowerCase() === 'kindnessforbeauty@gmail.com' ||
+    designation.toLowerCase().includes('executive director');
 
-  const pendingTicketsCount = donorTickets.filter((t) => t.status === 'Pending Officer Review').length;
+  const isChairman = 
+    currentUserName.toLowerCase().includes('orakatul') ||
+    designation.toLowerCase().includes('chairman');
 
-  // Flatten all documents for the Quality Control Gate
+  const canManageExecutiveGate = isExecutiveDirector || isChairman;
+  const isProgramOfficer = !canManageExecutiveGate;
+
+  // Filtered Projects for Current User
+  // Program Officers ONLY see their assigned projects!
+  const displayedProjects = useMemo(() => {
+    if (canManageExecutiveGate) {
+      return projects;
+    }
+    return projects.filter(p => 
+      ProjectAssignmentService.isUserAssigned(p.pid, currentUserName, currentUserEmail, p.assignedOfficer)
+    );
+  }, [projects, canManageExecutiveGate, currentUserName, currentUserEmail]);
+
+  // Filtered Donor Tickets for Current User
+  const relevantDonorTickets = useMemo(() => {
+    if (canManageExecutiveGate) return donorTickets;
+    const myPids = new Set(displayedProjects.map(p => p.pid));
+    return donorTickets.filter(t => 
+      myPids.has(t.pid) || 
+      (currentUserName && t.assignedOfficerName.toLowerCase().includes(currentUserName.toLowerCase()))
+    );
+  }, [donorTickets, displayedProjects, canManageExecutiveGate, currentUserName]);
+
+  const pendingTicketsCount = relevantDonorTickets.filter((t) => t.status === 'Pending Officer Review').length;
+
+  // Flatten all documents for the Quality Control Gate (Executive View)
   const allDocumentsList = useMemo(() => {
     const list: Array<ProjectDocument & { projectId: string; projectTitle: string; partner: string; partnerKey: PartnerWorkspaceKey; currency: string }> = [];
     projects.forEach((p) => {
@@ -178,6 +265,11 @@ export default function StaffDashboardPage() {
 
   // Executive Director Quality Gate: Publish / Recall Toggle
   const handleTogglePublication = async (projectId: string, docId: string, docName: string, publish: boolean) => {
+    if (!canManageExecutiveGate) {
+      alert('Permission Denied: Only the Executive Director (Md. Abu Huraira) has signatory authority to publish files to foreign donor workspaces.');
+      return;
+    }
+
     const signatory = currentUserName || 'Md. Abu Huraira (Executive Director)';
     await CloudSyncService.togglePublicationToDonor(projectId, docId, publish, signatory);
 
@@ -209,14 +301,65 @@ export default function StaffDashboardPage() {
     setTimeout(() => setSuccessToast(''), 5000);
   };
 
+  // Open Officer Assignment Modal (Executive Director Only)
+  const handleOpenAssignModal = (project: SKBDonorGrantProject) => {
+    if (!canManageExecutiveGate) {
+      alert('Only the Executive Director can assign officers to projects.');
+      return;
+    }
+    setAssigningProject(project);
+    const current = ProjectAssignmentService.getAssignedOfficers(project.pid, project.assignedOfficer);
+    setSelectedOfficerNames(current);
+  };
+
+  const handleToggleOfficerSelection = (officerName: string) => {
+    setSelectedOfficerNames((prev) => {
+      if (prev.includes(officerName)) {
+        return prev.filter(n => n !== officerName);
+      } else {
+        return [...prev, officerName];
+      }
+    });
+  };
+
+  const handleSaveAssignments = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assigningProject) return;
+
+    if (selectedOfficerNames.length === 0) {
+      alert('Please select at least one officer to be assigned to this project.');
+      return;
+    }
+
+    ProjectAssignmentService.setAssignedOfficers(assigningProject.pid, selectedOfficerNames);
+
+    setProjects((prev) => prev.map((p) => {
+      if (p.pid === assigningProject.pid) {
+        return {
+          ...p,
+          assignedOfficers: selectedOfficerNames,
+          assignedOfficer: selectedOfficerNames[0] || p.assignedOfficer
+        };
+      }
+      return p;
+    }));
+
+    setSuccessToast(`Officers assigned to "${assigningProject.title}": ${selectedOfficerNames.join(', ')}`);
+    setAssigningProject(null);
+    setTimeout(() => setSuccessToast(''), 4500);
+  };
+
   const handlePostClarification = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeResponseTicket || !responseText.trim()) return;
 
+    const responderName = currentUserName || 'Program Officer';
+    const responderRole = designation || 'Program Officer (Assigned)';
+
     const updatedTicket = respondToDonorQuery(
       activeResponseTicket,
-      isProgramOfficer ? 'Mizbah Uddin' : 'Md. Abu Huraira',
-      isProgramOfficer ? 'Program Officer (Assigned)' : 'Executive Director',
+      responderName,
+      responderRole,
       responseText,
       attachmentName.trim() || undefined
     );
@@ -244,13 +387,15 @@ export default function StaffDashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 mb-1">
-            <Building2 className="w-3.5 h-3.5" /> SKB Operations • {designation}
+            <Building2 className="w-3.5 h-3.5" /> SKB Operations Desk • {designation}
           </div>
-          <h1 className="text-2xl font-black text-slate-900">
-            {isProgramOfficer ? 'Program Officer Operations Desk' : 'Executive Directorate & Staff Workspace'}
+          <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
+            <span>{isProgramOfficer ? `${currentUserName} — Assigned Projects Workspace` : 'Executive Directorate & Staff Workspace'}</span>
           </h1>
           <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-            Separated functional desks for Executive Director sign-off, field programs execution, donor compliance audit, and HQ gateways.
+            {isProgramOfficer
+              ? `Focused operational workspace. You only see and manage the projects assigned to your desk by the Executive Director.`
+              : `Executive directorate oversight, bilateral partner quality control sign-offs, and officer project assignments.`}
           </p>
         </div>
 
@@ -269,30 +414,55 @@ export default function StaffDashboardPage() {
             className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition"
           >
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Officer ID Desk</span>
+            <span>My Profile &amp; ID Desk</span>
           </Link>
         </div>
       </div>
 
+      {/* Role Notice Banner for Program Officers */}
+      {isProgramOfficer && (
+        <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-emerald-50 border border-blue-200 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm font-black">
+              🎯
+            </div>
+            <div>
+              <p className="font-extrabold text-blue-950">
+                Assigned Operational Focus: Showing {displayedProjects.length} Project{displayedProjects.length === 1 ? '' : 's'} Assigned to You
+              </p>
+              <p className="text-blue-800 text-[11px] mt-0.5">
+                Per executive governance, you are focused strictly on your assigned deliverables. Project officer assignments are managed exclusively by Executive Director Md. Abu Huraira.
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-mono font-bold bg-white/80 border border-blue-200 text-blue-900 px-3 py-1 rounded-xl shrink-0 self-start sm:self-auto">
+            OFFICER: {currentUserName}
+          </span>
+        </div>
+      )}
+
       {/* SEPARATED DESKS SELECTOR TABS */}
       <div className="bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/80 flex flex-wrap items-center gap-1.5">
-        <button
-          type="button"
-          onClick={() => setActiveDeskTab('EXECUTIVE_DESK')}
-          className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-2 ${
-            activeDeskTab === 'EXECUTIVE_DESK'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/60'
-          }`}
-        >
-          <ShieldCheck className={`w-4 h-4 ${activeDeskTab === 'EXECUTIVE_DESK' ? 'text-emerald-300' : 'text-blue-600'}`} />
-          <span>Executive Directorate Desk &amp; Publication Gate</span>
-          <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full font-bold ${
-            activeDeskTab === 'EXECUTIVE_DESK' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-          }`}>
-            QC Gate
-          </span>
-        </button>
+        {/* Executive Director Desk Tab (ONLY for Executive Director / Chairman) */}
+        {canManageExecutiveGate && (
+          <button
+            type="button"
+            onClick={() => setActiveDeskTab('EXECUTIVE_DESK')}
+            className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-2 ${
+              activeDeskTab === 'EXECUTIVE_DESK'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/60'
+            }`}
+          >
+            <ShieldCheck className={`w-4 h-4 ${activeDeskTab === 'EXECUTIVE_DESK' ? 'text-emerald-300' : 'text-blue-600'}`} />
+            <span>Executive Directorate Desk &amp; Publication Gate</span>
+            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full font-bold ${
+              activeDeskTab === 'EXECUTIVE_DESK' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+            }`}>
+              QC Gate
+            </span>
+          </button>
+        )}
 
         <button
           type="button"
@@ -304,7 +474,7 @@ export default function StaffDashboardPage() {
           }`}
         >
           <FolderKanban className={`w-4 h-4 ${activeDeskTab === 'PROGRAMS_DESK' ? 'text-amber-300' : 'text-amber-500'}`} />
-          <span>Programs &amp; Field Operations Desk ({projects.length})</span>
+          <span>{isProgramOfficer ? 'My Assigned Projects & Deliverables' : 'All Programs & Operations'} ({displayedProjects.length})</span>
         </button>
 
         <button
@@ -317,7 +487,7 @@ export default function StaffDashboardPage() {
           }`}
         >
           <AlertTriangle className={`w-4 h-4 ${activeDeskTab === 'DONOR_QUERIES' ? 'text-amber-300' : 'text-amber-600'}`} />
-          <span>Donor Objections &amp; Audit Desk ({donorTickets.length})</span>
+          <span>{isProgramOfficer ? 'My Project Donor Queries' : 'All Donor Objections & Inquiries'} ({relevantDonorTickets.length})</span>
           {pendingTicketsCount > 0 && (
             <span className="text-[10px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.2 rounded-full">
               {pendingTicketsCount}
@@ -340,10 +510,10 @@ export default function StaffDashboardPage() {
       </div>
 
       {/* ========================================================================= */}
-      {/* DESK 1: EXECUTIVE DIRECTORATE DESK & PUBLICATION GATE                     */}
+      {/* DESK 1: EXECUTIVE DIRECTORATE DESK & PUBLICATION GATE (Executive Only)    */}
       {/* ========================================================================= */}
-      {activeDeskTab === 'EXECUTIVE_DESK' && (
-        <div className="space-y-6">
+      {canManageExecutiveGate && activeDeskTab === 'EXECUTIVE_DESK' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
           {/* Executive Overview Telemetry */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-2">
@@ -613,93 +783,182 @@ export default function StaffDashboardPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* DESK 2: PROGRAMS & FIELD OPERATIONS DESK                                 */}
+      {/* DESK 2: PROGRAMS & FIELD OPERATIONS DESK (FOCUSED OPERATIONAL VIEW)       */}
       {/* ========================================================================= */}
       {activeDeskTab === 'PROGRAMS_DESK' && (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-150">
           <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
                 <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
                   <FolderKanban className="w-5 h-5 text-blue-600" />
-                  Active Program Portfolio &amp; Field Workspaces ({projects.length})
+                  <span>{isProgramOfficer ? 'My Responsible Assigned Project Charters' : 'Organization Project Portfolio'}</span>
+                  <span className="text-xs bg-blue-100 text-blue-800 font-bold px-2.5 py-0.5 rounded-full">
+                    {displayedProjects.length} Project{displayedProjects.length === 1 ? '' : 's'}
+                  </span>
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Select a project to access its Form-3 Master Charter, Compliance Documents, Kanban Task Board, and Closing Audits.
+                  {isProgramOfficer
+                    ? 'Execute Form-3 charters, field vouchers, biometric beneficiary registers, and donor milestones for your assigned portfolio.'
+                    : 'Executive overview of all registered projects. Assign one or more operational officers to each charter.'}
                 </p>
               </div>
 
-              <Link
-                href="/projects"
-                className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
-              >
-                <span>View Full Projects Register</span> &rarr;
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {projects.map((project) => (
-                <div
-                  key={project.pid}
-                  className="bg-slate-50/70 hover:bg-slate-50 rounded-2xl border border-slate-200 p-5 space-y-3 transition shadow-xs"
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/projects"
+                  className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
                 >
-                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-2.5">
-                    <span className="font-mono text-xs font-black text-blue-700 bg-blue-100/70 px-2.5 py-0.5 rounded-lg border border-blue-200">
-                      {project.pid}
-                    </span>
-                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
-                      project.statusCategory === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-blue-100 text-blue-800 border-blue-300'
-                    }`}>
-                      {project.statusLabel}
-                    </span>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-black text-slate-900 line-clamp-2 leading-snug">{project.title}</h3>
-                    <p className="text-xs text-slate-500 font-semibold mt-1">{project.partner}</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-slate-200/80">
-                    <div>
-                      <span className="text-slate-400">Budget:</span>
-                      <p className="font-bold text-emerald-700 font-mono">
-                        {formatCurrencyString(project.budgetAmount, project.currency)}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-slate-400">Beneficiaries:</span>
-                      <p className="font-bold text-slate-800">{project.beneficiariesCount} Target</p>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-slate-400">Field Desk:</span>
-                      <p className="font-medium text-slate-700 truncate">{project.location}</p>
-                    </div>
-                  </div>
-
-                  {/* Operational Action Shortcuts */}
-                  <div className="grid grid-cols-3 gap-2 pt-1 text-[11px]">
-                    <Link
-                      href={`/projects/${project.pid}/documents`}
-                      className="py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg border border-blue-200 text-center transition flex items-center justify-center gap-1"
-                    >
-                      <FileCheck2 className="w-3.5 h-3.5" /> Docs ({project.primaryDocs.length})
-                    </Link>
-                    <Link
-                      href={`/projects/${project.pid}/charter`}
-                      className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg border border-slate-200 text-center transition flex items-center justify-center gap-1"
-                    >
-                      <FileText className="w-3.5 h-3.5" /> Form-3
-                    </Link>
-                    <Link
-                      href={`/projects/${project.pid}/closing-report`}
-                      className="py-1.5 px-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold rounded-lg border border-purple-200 text-center transition flex items-center justify-center gap-1"
-                    >
-                      <Award className="w-3.5 h-3.5" /> Audit Sign-off
-                    </Link>
-                  </div>
-                </div>
-              ))}
+                  <span>Open Full Projects Register</span> &rarr;
+                </Link>
+              </div>
             </div>
+
+            {displayedProjects.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {displayedProjects.map((project) => {
+                  const assignedList = project.assignedOfficers && project.assignedOfficers.length > 0
+                    ? project.assignedOfficers
+                    : [project.assignedOfficer];
+
+                  return (
+                    <div
+                      key={project.pid}
+                      className="bg-slate-50/70 hover:bg-slate-50 rounded-2xl border border-slate-200 p-5 space-y-3.5 transition shadow-xs flex flex-col justify-between"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between border-b border-slate-200/60 pb-2.5">
+                          <span className="font-mono text-xs font-black text-blue-700 bg-blue-100/70 px-2.5 py-0.5 rounded-lg border border-blue-200">
+                            {project.pid}
+                          </span>
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
+                            project.statusCategory === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-blue-100 text-blue-800 border-blue-300'
+                          }`}>
+                            {project.statusLabel}
+                          </span>
+                        </div>
+
+                        <div>
+                          <h3 className="text-sm font-black text-slate-900 line-clamp-2 leading-snug">{project.title}</h3>
+                          <p className="text-xs text-slate-500 font-semibold mt-0.5">{project.partner}</p>
+                        </div>
+
+                        {/* Assigned Officers Bar */}
+                        <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                              <Users className="w-3 h-3 text-blue-600" /> Assigned:
+                            </span>
+                            {assignedList.map((officerName) => {
+                              const isMe = currentUserName && officerName.toLowerCase().includes(currentUserName.toLowerCase());
+                              return (
+                                <span
+                                  key={officerName}
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                                    isMe
+                                      ? 'bg-blue-600 text-white border-blue-700 shadow-2xs'
+                                      : 'bg-slate-100 text-slate-800 border-slate-200'
+                                  }`}
+                                >
+                                  {officerName} {isMe ? '(You)' : ''}
+                                </span>
+                              );
+                            })}
+                          </div>
+
+                          {/* Executive Director Can Reassign Officers */}
+                          {canManageExecutiveGate && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenAssignModal(project)}
+                              className="text-[10px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                              title="Assign or reassign operational officers"
+                            >
+                              <UserPlus className="w-3 h-3" />
+                              <span>Assign Officers</span>
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-slate-200/80">
+                          <div>
+                            <span className="text-slate-400">Approved Budget:</span>
+                            <p className="font-bold text-emerald-700 font-mono">
+                              {formatCurrencyString(project.budgetAmount, project.currency)}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Target Beneficiaries:</span>
+                            <p className="font-bold text-slate-800">{project.beneficiariesCount} Target</p>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-slate-400">Official Field Station:</span>
+                            <p className="font-medium text-slate-700 truncate">{project.location}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Operational Action Shortcuts */}
+                      <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-200/60 text-[11px]">
+                        <Link
+                          href={`/projects/${project.pid}/documents`}
+                          className="py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg border border-blue-200 text-center transition flex items-center justify-center gap-1"
+                        >
+                          <FileCheck2 className="w-3.5 h-3.5" /> Docs ({project.primaryDocs.length})
+                        </Link>
+                        <Link
+                          href={`/projects/${project.pid}/charter`}
+                          className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg border border-slate-200 text-center transition flex items-center justify-center gap-1"
+                        >
+                          <FileText className="w-3.5 h-3.5" /> Form-3
+                        </Link>
+                        <Link
+                          href={`/projects/${project.pid}/beneficiaries`}
+                          className="py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg border border-emerald-200 text-center transition flex items-center justify-center gap-1"
+                        >
+                          <Users className="w-3.5 h-3.5" /> Beneficiaries
+                        </Link>
+                        <Link
+                          href={`/projects/${project.pid}/kanban`}
+                          className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg border border-slate-200 text-center transition flex items-center justify-center gap-1"
+                        >
+                          <CheckSquare className="w-3.5 h-3.5" /> Kanban
+                        </Link>
+                        <Link
+                          href={`/projects/${project.pid}/logframe`}
+                          className="py-1.5 px-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg border border-indigo-200 text-center transition flex items-center justify-center gap-1"
+                        >
+                          <Layers className="w-3.5 h-3.5" /> Logframe
+                        </Link>
+                        <Link
+                          href={`/projects/${project.pid}/closing-report`}
+                          className="py-1.5 px-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold rounded-lg border border-purple-200 text-center transition flex items-center justify-center gap-1"
+                        >
+                          <Award className="w-3.5 h-3.5" /> Audit Sign-off
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-12 text-center space-y-3">
+                <FolderKanban className="w-10 h-10 text-slate-300 mx-auto" />
+                <h3 className="text-base font-bold text-slate-900">No Projects Currently Assigned to Your Desk</h3>
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  You are logged in as <strong className="text-slate-800">{currentUserName}</strong> ({designation}).
+                  Only the Executive Director (Md. Abu Huraira) assigns officers to project charters. Once an assignment is made, your project workspace will appear here automatically.
+                </p>
+                <div className="pt-2">
+                  <Link
+                    href="/community"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" /> Contact Executive Director in Community
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -708,16 +967,18 @@ export default function StaffDashboardPage() {
       {/* DESK 3: DONOR OBJECTIONS & AUDIT CLARIFICATION DESK                       */}
       {/* ========================================================================= */}
       {activeDeskTab === 'DONOR_QUERIES' && (
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4 animate-in fade-in duration-150">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-amber-600" />
               <div>
                 <h2 className="text-base font-black text-slate-900">
-                  Donor Objections &amp; Special Document Requests ({donorTickets.length})
+                  {isProgramOfficer ? 'My Project Donor Queries & Clarification Requests' : 'All Donor Objections & Special Document Requests'} ({relevantDonorTickets.length})
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Realtime inquiries and compliance clarification tickets submitted by foreign donors on /donor-dashboard.
+                  {isProgramOfficer 
+                    ? 'Compliance inquiries submitted by foreign donors for your assigned projects.' 
+                    : 'Realtime inquiries and compliance clarification tickets submitted across all partner portals.'}
                 </p>
               </div>
             </div>
@@ -737,9 +998,9 @@ export default function StaffDashboardPage() {
           </div>
 
           {/* Ticket List */}
-          {donorTickets.length > 0 ? (
+          {relevantDonorTickets.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {donorTickets.map((ticket) => (
+              {relevantDonorTickets.map((ticket) => (
                 <div 
                   key={ticket.id}
                   className={`p-4 rounded-2xl border space-y-3 transition-all ${
@@ -815,7 +1076,7 @@ export default function StaffDashboardPage() {
       {/* DESK 4: HQ CORE OPERATIONAL GATEWAYS                                      */}
       {/* ========================================================================= */}
       {activeDeskTab === 'ALL_MODULES' && (
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4 animate-in fade-in duration-150">
           <h2 className="text-base font-black text-slate-900">Core Portal Functional Desks</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link 
@@ -913,6 +1174,90 @@ export default function StaffDashboardPage() {
                 Official staff ID card, QR code verification, duty station management, and designation presets.
               </p>
             </Link>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: EXECUTIVE DIRECTOR PROJECT OFFICER ASSIGNMENT                      */}
+      {/* ========================================================================= */}
+      {assigningProject && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-blue-600">Executive Governance Mandate</span>
+                <h3 className="text-base font-extrabold text-slate-900">Assign Officers to Project</h3>
+                <p className="text-xs text-slate-500 font-mono mt-0.5">{assigningProject.pid}</p>
+              </div>
+              <button 
+                onClick={() => setAssigningProject(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 p-3 rounded-2xl text-xs space-y-1">
+              <p className="font-bold text-blue-900 truncate">{assigningProject.title}</p>
+              <p className="text-blue-800 text-[11px]">
+                Select one or more officers to execute this project charter. Only assigned officers can view and work on this project in their desk.
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveAssignments} className="space-y-4">
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                <span className="text-xs font-bold text-slate-700 block">Available SKB Personnel:</span>
+                {availableOfficers.map((officer) => {
+                  const isChecked = selectedOfficerNames.includes(officer.name);
+                  return (
+                    <label
+                      key={officer.id}
+                      className={`flex items-center justify-between p-3 rounded-xl border text-xs cursor-pointer transition ${
+                        isChecked 
+                          ? 'bg-blue-50/80 border-blue-300 text-blue-950 font-bold' 
+                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleToggleOfficerSelection(officer.name)}
+                          className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                        />
+                        <div>
+                          <p className="text-xs font-bold">{officer.name}</p>
+                          <p className="text-[10px] text-slate-500 font-normal">{officer.role} • {officer.department}</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-400">{officer.dutyStation}</span>
+                    </label>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                <span className="text-[11px] text-slate-500 font-medium">
+                  {selectedOfficerNames.length} Officer{selectedOfficerNames.length === 1 ? '' : 's'} Selected
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAssigningProject(null)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
+                  >
+                    <Check className="w-4 h-4" /> Save Assignments
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}

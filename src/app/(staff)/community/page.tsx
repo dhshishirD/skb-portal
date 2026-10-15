@@ -38,6 +38,7 @@ import {
   Clock,
   Sparkles
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import { CommunityRealtimeService } from '@/server/services/communityRealtimeService';
 import { 
   UserApprovalService, 
@@ -296,12 +297,40 @@ export default function StaffCommunityPage() {
       const users = await UserApprovalService.getAllUsers();
       setAllOfficers(users);
 
-      // Check stored author or default to Dr. Orakatul Jannat (Chairman)
-      const storedAuthor = localStorage.getItem('skb_current_community_author');
-      const activeUser = (storedAuthor && users.find(u => u.fullName === storedAuthor)) || users[0];
+      // Check authenticated Supabase user or active session
+      const storedAuthor = typeof window !== 'undefined' ? localStorage.getItem('skb_current_community_author') : null;
+      const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('skb_current_user_email') : null;
+
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      let activeUser: UserProfileRecord | undefined;
+      if (user) {
+        const email = user.email || '';
+        const metaName = user.user_metadata?.full_name;
+        activeUser = users.find(
+          u => u.email.toLowerCase() === email.toLowerCase() || (metaName && u.fullName.toLowerCase() === metaName.toLowerCase())
+        );
+      }
+
+      if (!activeUser && (storedAuthor || storedEmail)) {
+        activeUser = users.find(
+          u => (storedAuthor && u.fullName.toLowerCase() === storedAuthor.toLowerCase()) ||
+               (storedEmail && u.email.toLowerCase() === storedEmail.toLowerCase())
+        );
+      }
+
+      if (!activeUser) {
+        activeUser = users[2] || users[0]; // Daloyar Hassan (Super Admin / HR)
+      }
+
       if (activeUser) {
         setCurrentAuthor(activeUser.fullName);
         setCurrentRole(activeUser.designation || activeUser.requestedRole);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('skb_current_community_author', activeUser.fullName);
+          localStorage.setItem('skb_current_user_email', activeUser.email);
+        }
       }
 
       // Convert officers to contacts
@@ -700,6 +729,9 @@ SKB Operations Portal - https://skbportal.online
 
   const activeThread = directMessages[selectedContact.name] || [];
 
+  const activeOfficer = allOfficers.find(o => o.fullName.toLowerCase() === currentAuthor.toLowerCase());
+  const currentUserAvatar = activeOfficer?.avatarUrl || getOfficialAvatar(activeOfficer || { fullName: currentAuthor, requestedRole: currentRole as any });
+
   return (
     <div className="space-y-6 pb-10 max-w-6xl mx-auto">
       {/* Hidden Real File Inputs */}
@@ -776,36 +808,47 @@ SKB Operations Portal - https://skbportal.online
         {/* Horizontal interactive rail of all 7 officers */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 pt-1">
           {allOfficers.map((officer) => {
+            const isMe = officer.fullName.trim().toLowerCase() === currentAuthor.trim().toLowerCase();
             const isOnline = isOfficerOnline(officer.fullName);
             return (
               <button
                 key={officer.id}
                 type="button"
                 onClick={() => handleOpenOfficerProfile(officer)}
-                className="bg-white/5 hover:bg-white/15 border border-white/10 hover:border-blue-400/60 rounded-2xl p-2.5 text-left transition flex flex-col items-center text-center group cursor-pointer"
+                className={`border rounded-2xl p-2.5 text-left transition flex flex-col items-center text-center group cursor-pointer relative ${
+                  isMe
+                    ? 'bg-emerald-950/50 border-emerald-500/80 ring-2 ring-emerald-500/40 shadow-md'
+                    : isOnline
+                    ? 'bg-white/10 hover:bg-white/15 border-emerald-500/40 hover:border-emerald-400'
+                    : 'bg-white/5 hover:bg-white/10 border-white/10 opacity-75'
+                }`}
               >
                 <div className="relative mb-2">
                   <img
                     src={getOfficialAvatar(officer)}
                     alt={officer.fullName}
-                    className="w-11 h-11 rounded-2xl object-cover border-2 border-white/20 group-hover:border-blue-400 shadow-md bg-white shrink-0"
+                    className={`w-11 h-11 rounded-2xl object-cover border-2 shadow-md bg-white shrink-0 transition ${
+                      isMe ? 'border-emerald-400' : isOnline ? 'border-emerald-400/80' : 'border-white/20'
+                    }`}
                   />
                   <span className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-slate-900 ${
-                    isOnline ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.9)] animate-pulse' : 'bg-slate-500'
+                    isMe || isOnline ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.9)] animate-pulse' : 'bg-slate-500'
                   }`} />
                 </div>
-                <span className="text-[11px] font-black text-white group-hover:text-blue-300 truncate w-full">
+                <span className={`text-[11px] font-black truncate w-full ${isMe ? 'text-emerald-300' : 'text-white group-hover:text-blue-300'}`}>
                   {officer.fullName.split(' ')[0]} {officer.fullName.split(' ')[1] || ''}
                 </span>
                 <span className="text-[9px] text-slate-400 truncate w-full mt-0.5">
                   {officer.designation || officer.requestedRole}
                 </span>
                 <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full mt-1.5 ${
-                  isOnline 
+                  isMe
+                    ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/50'
+                    : isOnline 
                     ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
                     : 'bg-slate-700 text-slate-400'
                 }`}>
-                  {isOnline ? 'Active Now' : 'Available'}
+                  {isMe ? 'You (Active)' : isOnline ? 'Active Now' : 'Available'}
                 </span>
               </button>
             );
@@ -820,26 +863,32 @@ SKB Operations Portal - https://skbportal.online
             <Building2 className="w-4 h-4" /> SKB Operations • HQ Staff Community
           </div>
 
-          {/* Active User Switcher */}
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-400 font-medium">Logged in as:</span>
-            <select
-              value={currentAuthor}
-              onChange={(e) => {
-                const found = allOfficers.find(o => o.fullName === e.target.value);
-                if (found) {
-                  setCurrentAuthor(found.fullName);
-                  setCurrentRole(found.designation || found.requestedRole);
-                }
-              }}
-              className="bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-black px-3 py-1.5 outline-none focus:border-blue-500 cursor-pointer shadow-sm"
+          {/* Authenticated Officer Badge (Strict Personal Identity - No Switcher) */}
+          <div className="flex items-center gap-3 bg-slate-50 hover:bg-slate-100/90 border border-slate-200/90 px-3.5 py-1.5 rounded-2xl shadow-xs transition-colors">
+            <div className="relative">
+              <img
+                src={currentUserAvatar}
+                alt={currentAuthor}
+                className="w-8 h-8 rounded-full object-cover border-2 border-emerald-500 shadow-xs"
+              />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white animate-pulse" />
+            </div>
+            <div className="text-left leading-tight">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-black text-slate-900">{currentAuthor}</span>
+                <span className="text-[9px] font-extrabold uppercase bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full border border-emerald-300">
+                  You • Online
+                </span>
+              </div>
+              <p className="text-[10px] text-blue-700 font-bold">{currentRole}</p>
+            </div>
+            <Link
+              href="/me/profile"
+              className="ml-1 text-[10px] text-slate-500 hover:text-blue-600 font-semibold px-2 py-1 rounded-lg hover:bg-white border border-transparent hover:border-slate-200 transition"
+              title="Open My Profile"
             >
-              {allOfficers.map(o => (
-                <option key={o.id} value={o.fullName}>
-                  {o.fullName} ({o.designation || o.requestedRole})
-                </option>
-              ))}
-            </select>
+              My Desk &rsaquo;
+            </Link>
           </div>
         </div>
 

@@ -1,9 +1,19 @@
+export interface DonorMessageItem {
+  id: string;
+  sender: 'donor' | 'officer';
+  senderName: string;
+  senderRole?: string;
+  text: string;
+  attachmentName?: string;
+  createdAt: string;
+}
+
 export interface DonorQueryTicket {
   id: string;
   pid: string;
   donorName: string;
   donorEmail: string;
-  queryType: 
+  queryType?: 
     | 'Beneficiary Verification Query'
     | 'Underage Beneficiary Query' 
     | 'Budget Discrepancy' 
@@ -12,12 +22,14 @@ export interface DonorQueryTicket {
     | 'Special Document Request'
     | 'Logframe Question' 
     | 'General Feedback'
-    | 'General Project Inquiry';
+    | 'General Project Inquiry'
+    | string;
   message: string;
   status: 'Pending Officer Review' | 'Officer Clarification Posted' | 'Resolved';
   assignedOfficerName: string;
   assignedOfficerEmail: string;
   createdAt: string;
+  messages?: DonorMessageItem[];
   officerResponse?: {
     responderName: string;
     responderRole: string;
@@ -29,6 +41,66 @@ export interface DonorQueryTicket {
 
 export const INITIAL_DONOR_QUERIES: DonorQueryTicket[] = [];
 
+/**
+ * Normalize and retrieve all messages from a ticket
+ */
+export function getTicketMessages(ticket: DonorQueryTicket): DonorMessageItem[] {
+  if (Array.isArray(ticket.messages) && ticket.messages.length > 0) {
+    return ticket.messages;
+  }
+  const initialList: DonorMessageItem[] = [];
+  if (ticket.message) {
+    initialList.push({
+      id: `msg-${ticket.id}-1`,
+      sender: 'donor',
+      senderName: ticket.donorName || 'Donor Partner',
+      text: ticket.message,
+      createdAt: ticket.createdAt,
+    });
+  }
+  if (ticket.officerResponse) {
+    initialList.push({
+      id: `msg-${ticket.id}-2`,
+      sender: 'officer',
+      senderName: ticket.officerResponse.responderName,
+      senderRole: ticket.officerResponse.responderRole,
+      text: ticket.officerResponse.responseText,
+      attachmentName: ticket.officerResponse.attachmentName,
+      createdAt: ticket.officerResponse.respondedAt,
+    });
+  }
+  return initialList;
+}
+
+/**
+ * Play a gentle, crisp audio notification chime for incoming messages
+ */
+export function playNotificationSound() {
+  try {
+    if (typeof window === 'undefined') return;
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = 'sine';
+    const now = ctx.currentTime;
+    osc.frequency.setValueAtTime(659.25, now); // E5
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
+    
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.45);
+  } catch {
+    // Ignore audio restrictions
+  }
+}
+
 export function createDonorQuery(
   pid: string,
   donorName: string,
@@ -38,6 +110,15 @@ export function createDonorQuery(
   assignedOfficerName = 'Mizbah Uddin',
   assignedOfficerEmail = 'uddinmizbah902@gmail.com'
 ): DonorQueryTicket {
+  const timeStr = new Date().toLocaleString();
+  const initialMsg: DonorMessageItem = {
+    id: `msg-${Date.now()}-1`,
+    sender: 'donor',
+    senderName: donorName,
+    text: message,
+    createdAt: timeStr,
+  };
+
   return {
     id: `TICKET-2026-${Math.floor(100 + Math.random() * 900)}`,
     pid,
@@ -48,8 +129,53 @@ export function createDonorQuery(
     status: 'Pending Officer Review',
     assignedOfficerName,
     assignedOfficerEmail,
-    createdAt: new Date().toLocaleString(),
+    createdAt: timeStr,
+    messages: [initialMsg],
   };
+}
+
+export function addMessageToTicket(
+  ticket: DonorQueryTicket,
+  sender: 'donor' | 'officer',
+  senderName: string,
+  text: string,
+  senderRole?: string,
+  attachmentName?: string
+): DonorQueryTicket {
+  const currentMessages = getTicketMessages(ticket);
+  const newMsg: DonorMessageItem = {
+    id: `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    sender,
+    senderName,
+    senderRole,
+    text,
+    attachmentName,
+    createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  };
+
+  const updatedMessages = [...currentMessages, newMsg];
+
+  if (sender === 'officer') {
+    return {
+      ...ticket,
+      status: 'Officer Clarification Posted',
+      messages: updatedMessages,
+      officerResponse: {
+        responderName: senderName,
+        responderRole: senderRole || 'Program Officer',
+        responseText: text,
+        attachmentName,
+        respondedAt: new Date().toLocaleString(),
+      },
+    };
+  } else {
+    return {
+      ...ticket,
+      status: 'Pending Officer Review',
+      message: text,
+      messages: updatedMessages,
+    };
+  }
 }
 
 export function respondToDonorQuery(
@@ -59,17 +185,14 @@ export function respondToDonorQuery(
   responseText: string,
   attachmentName?: string
 ): DonorQueryTicket {
-  return {
-    ...ticket,
-    status: 'Officer Clarification Posted',
-    officerResponse: {
-      responderName,
-      responderRole,
-      responseText,
-      attachmentName,
-      respondedAt: new Date().toLocaleString(),
-    },
-  };
+  return addMessageToTicket(
+    ticket,
+    'officer',
+    responderName,
+    responseText,
+    responderRole,
+    attachmentName
+  );
 }
 
 export class DonorQueryService {

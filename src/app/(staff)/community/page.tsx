@@ -36,7 +36,9 @@ import {
   ExternalLink,
   Radio,
   Clock,
-  Sparkles
+  Sparkles,
+  Bell,
+  Volume2
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { CommunityRealtimeService } from '@/server/services/communityRealtimeService';
@@ -193,6 +195,115 @@ const INITIAL_DIRECT_MESSAGES: Record<string, DirectMessage[]> = {};
 
 const INITIAL_COMMUNITY_POSTS: CommunityPost[] = [];
 
+// Synthesized Corporate Bell Chime using Web Audio API (Zero external MP3 dependencies)
+function playNotificationChime() {
+  try {
+    if (typeof window === 'undefined') return;
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const now = ctx.currentTime;
+
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(659.25, now); // E5
+    osc1.frequency.exponentialRampToValueAtTime(987.77, now + 0.15); // B5
+
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(329.63, now); // E4 harmonic
+    osc2.frequency.exponentialRampToValueAtTime(493.88, now + 0.15);
+
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 0.65);
+    osc2.stop(now + 0.65);
+  } catch (err) {
+    // Handled gracefully if browser blocks audio prior to user gesture
+  }
+}
+
+// Browser Desktop Push Notification
+function sendDesktopNotification(senderName: string, text: string) {
+  try {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+    if (Notification.permission === 'granted') {
+      new Notification(`SKB Portal • Message from ${senderName}`, {
+        body: text || 'Sent an attachment',
+        icon: '/icon.png',
+      });
+    }
+  } catch {}
+}
+
+// Helper to group and map DMs cleanly for the current logged-in officer
+function groupDmsForUser(
+  rawDms: DirectMessage[],
+  authorName: string,
+  contacts: StaffContact[]
+): Record<string, DirectMessage[]> {
+  const map: Record<string, DirectMessage[]> = {};
+  const cleanAuthor = (authorName || '').split('(')[0].trim().toLowerCase();
+
+  rawDms.forEach((dm) => {
+    if (!dm || !dm.senderName || !dm.recipientName) return;
+
+    const sClean = dm.senderName.split('(')[0].trim().toLowerCase();
+    const rClean = dm.recipientName.split('(')[0].trim().toLowerCase();
+
+    let otherPartyName = '';
+    let isMine = false;
+
+    if (cleanAuthor && (sClean === cleanAuthor || sClean.includes(cleanAuthor) || cleanAuthor.includes(sClean))) {
+      isMine = true;
+      otherPartyName = dm.recipientName;
+    } else if (cleanAuthor && (rClean === cleanAuthor || rClean.includes(cleanAuthor) || cleanAuthor.includes(rClean))) {
+      isMine = false;
+      otherPartyName = dm.senderName;
+    } else {
+      return;
+    }
+
+    // Match otherPartyName to official contact name in staffContacts
+    const matchedContact = contacts.find((c) => {
+      const cClean = c.name.split('(')[0].trim().toLowerCase();
+      const oClean = otherPartyName.split('(')[0].trim().toLowerCase();
+      return (
+        cClean === oClean ||
+        cClean.includes(oClean) ||
+        oClean.includes(cClean) ||
+        (cClean.includes('daloyar') && oClean.includes('daloyar')) ||
+        (cClean.includes('emran') && oClean.includes('emran')) ||
+        (cClean.includes('mizbah') && oClean.includes('mizbah')) ||
+        (cClean.includes('huraira') && oClean.includes('huraira')) ||
+        (cClean.includes('orakatul') && oClean.includes('orakatul'))
+      );
+    });
+
+    const key = matchedContact ? matchedContact.name : otherPartyName;
+    if (!map[key]) map[key] = [];
+
+    // Avoid duplicate message IDs
+    if (!map[key].some((existing) => existing.id === dm.id)) {
+      map[key].push({
+        ...dm,
+        isMine,
+      });
+    }
+  });
+
+  return map;
+}
+
 export default function StaffCommunityPage() {
   const [activeTab, setActiveTab] = useState<'PUBLIC_FEED' | 'PERSONAL_CHAT'>('PUBLIC_FEED');
   const [posts, setPosts] = useState<CommunityPost[]>([]);
@@ -211,6 +322,10 @@ export default function StaffCommunityPage() {
   const [dmInputText, setDmInputText] = useState('');
   const [dmAttachment, setDmAttachment] = useState<AttachmentFile | null>(null);
   const [dmContactSearch, setDmContactSearch] = useState('');
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(false);
+  const knownDmIdsRef = useRef<Set<string>>(new Set());
+  const hasInitialDmsLoadedRef = useRef<boolean>(false);
 
   // New Post Form State
   const [newTitle, setNewTitle] = useState('');
@@ -307,6 +422,7 @@ export default function StaffCommunityPage() {
     const foundContact = staffContacts.find(c => c.name.toLowerCase() === targetName.toLowerCase());
     if (foundContact) {
       setSelectedContact(foundContact);
+      setUnreadCounts((prev) => ({ ...prev, [foundContact.name]: 0 }));
     }
     setInspectingOfficer(null);
     setActiveTab('PERSONAL_CHAT');
@@ -407,6 +523,52 @@ export default function StaffCommunityPage() {
           }
         }
       }
+
+      // 3. Load direct messages from server sync API
+      try {
+        const allDms = await CommunityRealtimeService.fetchAllDirectMessages();
+        if (allDms && allDms.length > 0) {
+          allDms.forEach((dm) => {
+            if (dm && dm.id) knownDmIdsRef.current.add(dm.id);
+          });
+          const currentName = activeUser?.fullName || currentAuthor;
+          const grouped = groupDmsForUser(allDms, currentName, contacts);
+          setDirectMessages(grouped);
+          localStorage.setItem('skb_hq_direct_messages', JSON.stringify(grouped));
+
+          // Update contacts with last message and timestamp snippets
+          setStaffContacts((prevContacts) =>
+            prevContacts.map((c) => {
+              const thread = grouped[c.name] || [];
+              if (thread.length > 0) {
+                const last = thread[thread.length - 1];
+                return {
+                  ...c,
+                  lastMessage: last.text || (last.attachment ? `Attached: ${last.attachment.name}` : ''),
+                  lastMessageTime: last.timestamp || '',
+                };
+              }
+              return c;
+            })
+          );
+        } else {
+          const storedDms = localStorage.getItem('skb_hq_direct_messages');
+          if (storedDms) {
+            try {
+              const parsed = JSON.parse(storedDms);
+              setDirectMessages(parsed);
+            } catch {}
+          }
+        }
+      } catch (err) {
+        console.warn('Initial DMs loading error:', err);
+      }
+      hasInitialDmsLoadedRef.current = true;
+
+      // Check notification permission state
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        setNotificationsEnabled(Notification.permission === 'granted');
+      }
     };
 
     loadCommunityData();
@@ -498,24 +660,109 @@ export default function StaffCommunityPage() {
       }
     );
 
-    // 4. Subscribe to Realtime DMs
-    const dmChannel = CommunityRealtimeService.subscribeRealtimeDms((incomingDm: DirectMessage) => {
-      if (!incomingDm) return;
-      const isMine = incomingDm.senderName === currentAuthor;
-      const otherParty = isMine ? incomingDm.recipientName : incomingDm.senderName;
+    // 4. Central Incoming DM Processor (Handles Realtime WebSocket, BroadcastChannel & Server Sync Loop)
+    const handleIncomingDm = (incomingDm: DirectMessage) => {
+      if (!incomingDm || !incomingDm.id) return;
+      if (knownDmIdsRef.current.has(incomingDm.id)) return;
+      knownDmIdsRef.current.add(incomingDm.id);
+
+      const cleanAuthor = (currentAuthor || '').split('(')[0].trim().toLowerCase();
+      const sClean = (incomingDm.senderName || '').split('(')[0].trim().toLowerCase();
+      const rClean = (incomingDm.recipientName || '').split('(')[0].trim().toLowerCase();
+
+      const isMine = cleanAuthor && (sClean === cleanAuthor || sClean.includes(cleanAuthor) || cleanAuthor.includes(sClean));
+      const isForMe = cleanAuthor && (rClean === cleanAuthor || rClean.includes(cleanAuthor) || cleanAuthor.includes(rClean));
+
+      // Resolve thread key from staff contacts
+      const targetParty = isMine ? incomingDm.recipientName : incomingDm.senderName;
+      const matchedContact = staffContacts.find((c) => {
+        const cClean = c.name.split('(')[0].trim().toLowerCase();
+        const oClean = targetParty.split('(')[0].trim().toLowerCase();
+        return (
+          cClean === oClean ||
+          cClean.includes(oClean) ||
+          oClean.includes(cClean) ||
+          (cClean.includes('daloyar') && oClean.includes('daloyar')) ||
+          (cClean.includes('emran') && oClean.includes('emran')) ||
+          (cClean.includes('mizbah') && oClean.includes('mizbah')) ||
+          (cClean.includes('huraira') && oClean.includes('huraira'))
+        );
+      });
+      const threadKey = matchedContact ? matchedContact.name : targetParty;
+
+      // If message is incoming to ME from another colleague (and initial page load has finished):
+      if (isForMe && !isMine && hasInitialDmsLoadedRef.current) {
+        // 1. Play audible chime
+        playNotificationChime();
+
+        // 2. Dispatch desktop notification if window is in background
+        sendDesktopNotification(incomingDm.senderName, incomingDm.text);
+
+        // 3. Show in-app animated toast preview
+        const previewText = incomingDm.text
+          ? (incomingDm.text.length > 40 ? incomingDm.text.slice(0, 40) + '...' : incomingDm.text)
+          : (incomingDm.attachment ? `Attached file: ${incomingDm.attachment.name}` : 'Sent an attachment');
+        showToast(`💬 New message from ${incomingDm.senderName}: "${previewText}"`);
+
+        // 4. Update unread counter if not currently in this chat thread
+        if (!(activeTab === 'PERSONAL_CHAT' && selectedContact.name === threadKey)) {
+          setUnreadCounts((prev) => ({
+            ...prev,
+            [threadKey]: (prev[threadKey] || 0) + 1,
+          }));
+        }
+      }
 
       setDirectMessages((prevMap) => {
-        const thread = prevMap[otherParty] || [];
+        const thread = prevMap[threadKey] || [];
         if (thread.some((m) => m.id === incomingDm.id)) return prevMap;
-        const updatedThread = [...thread, incomingDm];
-        const updatedMap = { ...prevMap, [otherParty]: updatedThread };
+        const updatedThread = [...thread, { ...incomingDm, isMine: !!isMine }];
+        const updatedMap = { ...prevMap, [threadKey]: updatedThread };
         localStorage.setItem('skb_hq_direct_messages', JSON.stringify(updatedMap));
         return updatedMap;
       });
+
+      // Update contacts list last message snippet
+      setStaffContacts((prev) =>
+        prev.map((c) => {
+          if (c.name === threadKey) {
+            return {
+              ...c,
+              lastMessage: incomingDm.text || (incomingDm.attachment ? `Attached: ${incomingDm.attachment.name}` : ''),
+              lastMessageTime: incomingDm.timestamp,
+            };
+          }
+          return c;
+        })
+      );
+    };
+
+    // 5. Subscribe to Multi-Channel Realtime DMs (BroadcastChannel + Supabase WebSockets)
+    const dmChannel = CommunityRealtimeService.subscribeRealtimeDms((incomingDm: DirectMessage) => {
+      handleIncomingDm(incomingDm);
     });
+
+    // 6. Server-backed continuous message sync loop (every 2.5s) for cross-browser / cross-device reliability
+    const syncRealtimeDms = async () => {
+      try {
+        const res = await fetch('/api/community/sync');
+        if (!res.ok) return;
+        const json = await res.json();
+        if (json.success && Array.isArray(json.directMessages)) {
+          json.directMessages.forEach((dm: DirectMessage) => {
+            handleIncomingDm(dm);
+          });
+        }
+      } catch (err) {
+        console.warn('Sync DMs poll warning:', err);
+      }
+    };
+
+    const dmPollInterval = setInterval(syncRealtimeDms, 2500);
 
     return () => {
       clearInterval(pollInterval);
+      clearInterval(dmPollInterval);
       if (presenceChannel && typeof (presenceChannel as any).unsubscribe === 'function') {
         (presenceChannel as any).unsubscribe();
       }
@@ -642,6 +889,7 @@ export default function StaffCommunityPage() {
       isMine: true,
     };
 
+    knownDmIdsRef.current.add(newDm.id);
     const currentThread = directMessages[selectedContact.name] || [];
     const updatedThread = [...currentThread, newDm];
     const updatedMap = { ...directMessages, [selectedContact.name]: updatedThread };
@@ -663,6 +911,28 @@ export default function StaffCommunityPage() {
     CommunityRealtimeService.insertDirectMessage(newDm);
     setDmInputText('');
     setDmAttachment(null);
+  };
+
+  // Toggle / Request Desktop & Audio Notification Alerts
+  const handleToggleNotifications = async () => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'granted') {
+        playNotificationChime();
+        showToast('🔔 Sound & notification alerts are active!');
+      } else {
+        const perm = await Notification.requestPermission();
+        if (perm === 'granted') {
+          setNotificationsEnabled(true);
+          playNotificationChime();
+          showToast('🔔 Desktop & sound notifications enabled!');
+        } else {
+          showToast('⚠️ Desktop notifications permission was declined.');
+        }
+      }
+    } else {
+      playNotificationChime();
+      showToast('🔔 Sound chime alert played!');
+    }
   };
 
   // Download File & Trigger Document Viewer
@@ -808,6 +1078,8 @@ SKB Operations Portal - https://skbportal.online
     );
   });
   const currentUserAvatar = activeOfficer?.avatarUrl || getOfficialAvatar(activeOfficer || { fullName: currentAuthor || 'Staff Officer', requestedRole: (currentRole || 'Program Officer') as any });
+
+  const totalUnreadCount = Object.values(unreadCounts).reduce((acc, count) => acc + count, 0);
 
   return (
     <div className="space-y-6 pb-10 max-w-6xl mx-auto">
@@ -1005,15 +1277,25 @@ SKB Operations Portal - https://skbportal.online
             Public Announcements & Feed ({posts.length})
           </button>
           <button
-            onClick={() => setActiveTab('PERSONAL_CHAT')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
+            onClick={() => {
+              setActiveTab('PERSONAL_CHAT');
+              if (selectedContact) {
+                setUnreadCounts((prev) => ({ ...prev, [selectedContact.name]: 0 }));
+              }
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition relative ${
               activeTab === 'PERSONAL_CHAT'
                 ? 'bg-slate-900 text-white shadow-sm'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
             <User className="w-4 h-4 text-emerald-400" />
-            Direct Messages (Personal Chat)
+            <span>Direct Messages (Personal Chat)</span>
+            {totalUnreadCount > 0 && (
+              <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full animate-pulse shadow-sm">
+                {totalUnreadCount}
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -1388,12 +1670,22 @@ SKB Operations Portal - https://skbportal.online
 
                     <button
                       type="button"
-                      onClick={() => setSelectedContact(contact)}
+                      onClick={() => {
+                        setSelectedContact(contact);
+                        setUnreadCounts((prev) => ({ ...prev, [contact.name]: 0 }));
+                      }}
                       className="flex-1 min-w-0 text-left focus:outline-none cursor-pointer"
                     >
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-bold text-slate-900 truncate group-hover:text-blue-600 transition">{contact.name}</p>
-                        <span className="text-[10px] text-slate-400">{lastTime}</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {unreadCounts[contact.name] ? (
+                            <span className="bg-emerald-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full animate-pulse shadow-sm">
+                              {unreadCounts[contact.name]} new
+                            </span>
+                          ) : null}
+                          <span className="text-[10px] text-slate-400">{lastTime}</span>
+                        </div>
                       </div>
                       <p className="text-[11px] text-slate-500 font-medium truncate">{contact.role}</p>
                       <p className="text-[11px] text-slate-600 truncate mt-0.5 italic">{lastMsg || 'No messages yet'}</p>
@@ -1448,6 +1740,19 @@ SKB Operations Portal - https://skbportal.online
 
               {/* Direct Quick Contact Buttons */}
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleToggleNotifications}
+                  className={`px-2.5 py-1.5 border rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer ${
+                    notificationsEnabled
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                      : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+                  }`}
+                  title={notificationsEnabled ? 'Alerts active • Click to test audio chime' : 'Click to enable audio chime & desktop alerts'}
+                >
+                  <Bell className={`w-3.5 h-3.5 ${notificationsEnabled ? 'text-emerald-600 fill-emerald-600' : 'text-indigo-600'}`} />
+                  <span className="hidden sm:inline">{notificationsEnabled ? 'Alerts: On' : 'Alerts'}</span>
+                </button>
                 {selectedContact.phone && (
                   <a
                     href={`https://wa.me/${selectedContact.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Assalamu Alaikum ${selectedContact.name}, contacting from SKB Operations Portal.`)}`}

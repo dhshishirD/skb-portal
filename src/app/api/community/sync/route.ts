@@ -77,10 +77,14 @@ export async function GET() {
       }
     });
 
+    // Sort DMs chronologically (oldest to newest for chat timeline)
+    const chronologicalDms = [...dms].reverse();
+
     return NextResponse.json({
       success: true,
       posts: postsWithComments,
-      directMessages: directMessagesMap,
+      directMessages: chronologicalDms,
+      directMessagesMap,
     });
   } catch (err: any) {
     console.error('Community sync GET exception:', err);

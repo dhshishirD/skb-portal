@@ -91,6 +91,7 @@ export default function StaffDashboardPage() {
   const prevTicketsRef = useRef<DonorQueryTicket[]>([]);
   const [replyTextMap, setReplyTextMap] = useState<Record<string, string>>({});
   const [replyAttachmentMap, setReplyAttachmentMap] = useState<Record<string, string>>({});
+  const [replyFileMap, setReplyFileMap] = useState<Record<string, { name: string; url: string; type: 'image' | 'file'; size?: string } | null>>({});
   const [showAttachmentInput, setShowAttachmentInput] = useState<Record<string, boolean>>({});
   const [activeResponseTicket, setActiveResponseTicket] = useState<DonorQueryTicket | null>(null);
   const [responseText, setResponseText] = useState('');
@@ -419,21 +420,75 @@ export default function StaffDashboardPage() {
     setTimeout(() => setSuccessToast(''), 4500);
   };
 
+  const handleStaffFileSelect = (ticketId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isImg = file.type.startsWith('image/');
+    const fileName = file.name;
+
+    const reader = new FileReader();
+    reader.onload = async (readEvt) => {
+      const dataUrl = readEvt.target?.result as string;
+      setReplyFileMap(prev => ({
+        ...prev,
+        [ticketId]: {
+          name: fileName,
+          url: dataUrl,
+          type: isImg ? 'image' : 'file',
+          size: `${(file.size / 1024).toFixed(0)} KB`,
+        }
+      }));
+
+      // Background upload
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('projectId', 'GENERAL');
+        formData.append('docName', fileName);
+
+        const res = await fetch('/api/storage/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.fileUrl) {
+            setReplyFileMap(prev => ({
+              ...prev,
+              [ticketId]: prev[ticketId] ? { ...prev[ticketId]!, url: json.fileUrl } : null,
+            }));
+          }
+        }
+      } catch (err) {
+        console.warn('Storage upload fallback to Data URL', err);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
   const handleSendInlineReply = (ticket: DonorQueryTicket) => {
     const text = replyTextMap[ticket.id]?.trim();
-    if (!text) return;
+    const attached = replyFileMap[ticket.id];
+    if (!text && !attached) return;
 
     const responderName = currentUserName || 'Program Officer';
     const responderRole = designation || 'Program Officer (Assigned)';
-    const att = replyAttachmentMap[ticket.id]?.trim();
+    const attName = attached?.name || replyAttachmentMap[ticket.id]?.trim() || undefined;
+    const attUrl = attached?.url || undefined;
+    const attType = attached?.type || undefined;
 
     const updatedTicket = addMessageToTicket(
       ticket,
       'officer',
       responderName,
-      text,
+      text || (attName ? `Attached: ${attName}` : 'Response'),
       responderRole,
-      att || undefined
+      attName,
+      attUrl,
+      attType
     );
 
     setDonorTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
@@ -441,6 +496,7 @@ export default function StaffDashboardPage() {
     setSuccessToast(`Reply sent to ${ticket.donorName}!`);
     setReplyTextMap(prev => ({ ...prev, [ticket.id]: '' }));
     setReplyAttachmentMap(prev => ({ ...prev, [ticket.id]: '' }));
+    setReplyFileMap(prev => ({ ...prev, [ticket.id]: null }));
     setTimeout(() => setSuccessToast(''), 4000);
   };
 
@@ -1128,14 +1184,44 @@ export default function StaffDashboardPage() {
                                 }`}
                               >
                                 <p>{msg.text}</p>
-                                {msg.attachmentName && (
+                                {msg.attachmentUrl ? (
+                                  msg.attachmentType === 'image' || msg.attachmentName?.match(/\.(png|jpe?g|webp|gif|svg)$/i) || msg.attachmentUrl.startsWith('data:image/') ? (
+                                    <div className="mt-2 rounded-xl overflow-hidden border border-slate-200/80 bg-white max-w-[260px]">
+                                      <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="block cursor-zoom-in">
+                                        <img
+                                          src={msg.attachmentUrl}
+                                          alt={msg.attachmentName || 'Screenshot attachment'}
+                                          className="max-h-40 w-full object-cover hover:opacity-95 transition"
+                                        />
+                                      </a>
+                                      <div className="bg-slate-50 px-2 py-1 text-[10px] text-slate-600 flex items-center justify-between border-t border-slate-100">
+                                        <span className="truncate max-w-[150px] font-medium">{msg.attachmentName || 'Screenshot'}</span>
+                                        <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-bold hover:underline flex items-center gap-0.5">
+                                          <span>View</span>
+                                          <ExternalLink className="w-2.5 h-2.5" />
+                                        </a>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <a
+                                      href={msg.attachmentUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1.5 mt-2 bg-white text-blue-700 px-2.5 py-1.5 rounded-xl border border-blue-200 text-[11px] font-bold hover:bg-blue-50 transition shadow-2xs"
+                                    >
+                                      <Paperclip className="w-3.5 h-3.5 text-blue-600" />
+                                      <span className="truncate max-w-[170px]">{msg.attachmentName || 'Document'}</span>
+                                      <ExternalLink className="w-3 h-3 text-slate-400" />
+                                    </a>
+                                  )
+                                ) : msg.attachmentName ? (
                                   <div className={`mt-1.5 pt-1 border-t text-[10px] font-bold flex items-center gap-1 ${
                                     isOfficer ? 'border-blue-400/50 text-blue-100' : 'border-slate-200 text-blue-700'
                                   }`}>
                                     <Paperclip className="w-3 h-3" />
                                     <span>{msg.attachmentName}</span>
                                   </div>
-                                )}
+                                ) : null}
                               </div>
                             </div>
                           );
@@ -1145,6 +1231,32 @@ export default function StaffDashboardPage() {
 
                     {/* Inline Quick Reply Box */}
                     <div className="pt-2 border-t border-slate-200/70 space-y-2">
+                      {replyFileMap[ticket.id] && (
+                        <div className="px-2.5 py-1.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between gap-2 text-xs">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {replyFileMap[ticket.id]?.type === 'image' ? (
+                              <img
+                                src={replyFileMap[ticket.id]?.url}
+                                alt="Attachment"
+                                className="w-8 h-8 object-cover rounded-lg border border-blue-200 shrink-0"
+                              />
+                            ) : (
+                              <Paperclip className="w-4 h-4 text-blue-600 shrink-0" />
+                            )}
+                            <span className="font-bold text-slate-900 truncate text-[11px]">
+                              {replyFileMap[ticket.id]?.name}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setReplyFileMap(prev => ({ ...prev, [ticket.id]: null }))}
+                            className="text-slate-400 hover:text-slate-700"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+
                       <form
                         onSubmit={(e) => {
                           e.preventDefault();
@@ -1154,6 +1266,23 @@ export default function StaffDashboardPage() {
                       >
                         <div className="flex items-center gap-2">
                           <input
+                            type="file"
+                            id={`file_input_${ticket.id}`}
+                            onChange={(e) => handleStaffFileSelect(ticket.id, e)}
+                            accept="image/*,.pdf,.doc,.docx,.xlsx,.txt"
+                            className="hidden"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() => document.getElementById(`file_input_${ticket.id}`)?.click()}
+                            className="p-2 bg-slate-100 hover:bg-blue-50 text-slate-500 hover:text-blue-700 rounded-xl border border-slate-200 transition shrink-0 cursor-pointer"
+                            title="Attach screenshot or file"
+                          >
+                            <Paperclip className="w-3.5 h-3.5" />
+                          </button>
+
+                          <input
                             type="text"
                             value={replyTextMap[ticket.id] || ''}
                             onChange={(e) => setReplyTextMap(prev => ({ ...prev, [ticket.id]: e.target.value }))}
@@ -1161,38 +1290,14 @@ export default function StaffDashboardPage() {
                             className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 transition"
                           />
                           <button
-                            type="button"
-                            onClick={() => setShowAttachmentInput(prev => ({ ...prev, [ticket.id]: !prev[ticket.id] }))}
-                            className={`p-2 rounded-xl border text-xs font-bold transition flex items-center justify-center cursor-pointer ${
-                              showAttachmentInput[ticket.id] || replyAttachmentMap[ticket.id]
-                                ? 'bg-blue-50 border-blue-300 text-blue-700'
-                                : 'bg-slate-100 border-slate-200 text-slate-500 hover:text-slate-800'
-                            }`}
-                            title="Attach Document Name"
-                          >
-                            <Paperclip className="w-3.5 h-3.5" />
-                          </button>
-                          <button
                             type="submit"
-                            disabled={!replyTextMap[ticket.id]?.trim()}
+                            disabled={!replyTextMap[ticket.id]?.trim() && !replyFileMap[ticket.id]}
                             className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 shrink-0 cursor-pointer"
                           >
                             <Send className="w-3 h-3" />
                             <span>Reply</span>
                           </button>
                         </div>
-
-                        {showAttachmentInput[ticket.id] && (
-                          <div className="animate-in fade-in duration-150">
-                            <input
-                              type="text"
-                              value={replyAttachmentMap[ticket.id] || ''}
-                              onChange={(e) => setReplyAttachmentMap(prev => ({ ...prev, [ticket.id]: e.target.value }))}
-                              placeholder="Attachment name (e.g., Beneficiary_Signed_Register.pdf)"
-                              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-mono text-slate-800 placeholder:text-slate-400 outline-none focus:border-blue-500"
-                            />
-                          </div>
-                        )}
                       </form>
                     </div>
                   </div>

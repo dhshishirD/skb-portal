@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { 
   Lock, 
   FileText, 
@@ -50,6 +50,9 @@ import {
   DonorQueryTicket, 
   INITIAL_DONOR_QUERIES, 
   createDonorQuery,
+  addMessageToTicket,
+  getTicketMessages,
+  playNotificationSound,
   DonorQueryService
 } from '@/server/services/donorQueryService';
 import { CloudSyncService } from '@/server/services/cloudSyncService';
@@ -68,6 +71,7 @@ export default function DonorDashboardPage() {
   const [projects, setProjects] = useState<SKBDonorGrantProject[]>(DEFAULT_PARTNER_PROJECTS);
   const [activeTab, setActiveTab] = useState<'ALL' | 'RUNNING' | 'ATTENTION' | 'COMPLETED'>('ALL');
   const [tickets, setTickets] = useState<DonorQueryTicket[]>(INITIAL_DONOR_QUERIES);
+  const prevTicketsRef = useRef<DonorQueryTicket[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -182,12 +186,37 @@ export default function DonorDashboardPage() {
     DonorQueryService.fetchTickets().then((loaded) => {
       if (loaded && loaded.length > 0) {
         setTickets(loaded);
+        prevTicketsRef.current = loaded;
       }
     });
 
     const ticketPoll = setInterval(async () => {
       const latest = await DonorQueryService.fetchTickets();
       if (latest && latest.length > 0) {
+        // Automatic notification chime & toast if new message arrived from officer
+        if (prevTicketsRef.current.length > 0) {
+          for (const newT of latest) {
+            const oldT = prevTicketsRef.current.find(p => p.id === newT.id);
+            const newMsgs = getTicketMessages(newT);
+            const oldMsgs = oldT ? getTicketMessages(oldT) : [];
+            const lastNew = newMsgs[newMsgs.length - 1];
+            const lastOld = oldMsgs[oldMsgs.length - 1];
+            if (
+              lastNew && 
+              lastNew.sender === 'officer' && 
+              (!lastOld || lastNew.id !== lastOld.id || lastNew.text !== lastOld.text)
+            ) {
+              playNotificationSound();
+              setLiveActivityToast({
+                message: `New message from ${lastNew.senderName}: "${lastNew.text}"`,
+                timestamp: new Date().toLocaleTimeString(),
+              });
+              setTimeout(() => setLiveActivityToast(null), 6000);
+              break;
+            }
+          }
+        }
+        prevTicketsRef.current = latest;
         setTickets(latest);
       }
     }, 4000);
@@ -318,31 +347,44 @@ export default function DonorDashboardPage() {
   const handleOpenQueryModal = (project: SKBDonorGrantProject) => {
     setActiveModalProject(project);
     setDonorEmail(currentPartnerInfo.focalEmail);
-    setQueryType('Beneficiary Verification Query');
+    setQueryType('General Project Inquiry');
     setQueryMessage('');
     setSubmitSuccessMsg('');
   };
 
-  const handleSendQueryTicket = (e: React.FormEvent) => {
+  const handleSendChatMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeModalProject || !queryMessage.trim()) return;
 
-    const newTicket = createDonorQuery(
-      activeModalProject.pid,
-      activeModalProject.partner,
-      donorEmail,
-      queryType,
-      queryMessage,
-      activeModalProject.assignedOfficer,
-      activeModalProject.assignedOfficerEmail
-    );
+    const projectTickets = tickets.filter(t => t.pid === activeModalProject.pid);
+    let updatedTicket: DonorQueryTicket;
 
-    setTickets((prev) => [newTicket, ...prev]);
-    DonorQueryService.saveTicket(newTicket);
-    setSubmitSuccessMsg(`Clarification request #${newTicket.id} transmitted directly to Program Officer ${activeModalProject.assignedOfficer}!`);
-    setTimeout(() => {
-      setActiveModalProject(null);
-    }, 2500);
+    if (projectTickets.length > 0) {
+      const mainTicket = projectTickets[0];
+      updatedTicket = addMessageToTicket(
+        mainTicket,
+        'donor',
+        currentPartnerInfo.shortName || activeModalProject.partner,
+        queryMessage.trim()
+      );
+    } else {
+      updatedTicket = createDonorQuery(
+        activeModalProject.pid,
+        currentPartnerInfo.shortName || activeModalProject.partner,
+        donorEmail || currentPartnerInfo.focalEmail,
+        queryType || 'General Project Inquiry',
+        queryMessage.trim(),
+        activeModalProject.assignedOfficer,
+        activeModalProject.assignedOfficerEmail
+      );
+    }
+
+    DonorQueryService.saveTicket(updatedTicket);
+    setTickets((prev) => {
+      const exists = prev.some(t => t.id === updatedTicket.id);
+      return exists ? prev.map(t => t.id === updatedTicket.id ? updatedTicket : t) : [updatedTicket, ...prev];
+    });
+    setQueryMessage('');
   };
 
   const [showHqSwitcher, setShowHqSwitcher] = useState(false);
@@ -718,10 +760,15 @@ export default function DonorDashboardPage() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleOpenQueryModal(project)}
-                        className="py-2 px-3.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-black text-xs rounded-xl border border-blue-200 transition flex items-center gap-1.5"
+                        className="py-2 px-3.5 bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs rounded-xl border border-blue-200 transition flex items-center gap-1.5"
                       >
                         <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
-                        Query Officer ({projectTickets.length})
+                        <span>Message Officer</span>
+                        {projectTickets.length > 0 && (
+                          <span className="ml-0.5 px-1.5 py-0.2 bg-blue-600 text-white text-[10px] rounded-full font-bold">
+                            {projectTickets.length}
+                          </span>
+                        )}
                       </button>
 
                       {!isApproved ? (
@@ -859,134 +906,106 @@ export default function DonorDashboardPage() {
         </div>
       )}
 
-      {/* 7. DIRECT OFFICER CLARIFICATION TICKET MODAL */}
+      {/* 7. DIRECT OFFICER CHAT & MESSAGE THREAD MODAL */}
       {activeModalProject && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full p-6 shadow-2xl space-y-5">
+          <div className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full p-6 shadow-2xl flex flex-col max-h-[85vh] space-y-4">
+            {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-blue-600" />
-                  Direct Officer Clarification Channel
-                </h2>
-                <p className="text-[11px] text-slate-500">
-                  Transmit inquiries directly to assigned Program Officer <strong>{activeModalProject.assignedOfficer}</strong>.
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white font-extrabold text-sm flex items-center justify-center shadow-xs shrink-0">
+                  {activeModalProject.assignedOfficer.split(' ').map(n => n[0]).slice(0, 2).join('')}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-bold text-slate-900">
+                      {activeModalProject.assignedOfficer}
+                    </h2>
+                    <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      Assigned Focal Person
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-mono">
+                    {activeModalProject.pid} • {activeModalProject.assignedOfficerEmail}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setActiveModalProject(null)}
-                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {submitSuccessMsg ? (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-950 rounded-2xl text-xs font-black flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                <span>{submitSuccessMsg}</span>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Existing Inquiries on this project */}
-                {tickets.filter(t => t.pid === activeModalProject.pid).length > 0 && (
-                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    <p className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
-                      Active Inquiries ({tickets.filter(t => t.pid === activeModalProject.pid).length})
-                    </p>
-                    {tickets.filter(t => t.pid === activeModalProject.pid).map(t => (
-                      <div key={t.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 text-xs">
-                        <div className="flex justify-between items-center text-[10px]">
-                          <span className="font-mono font-bold text-blue-700">{t.id}</span>
-                          <span className={`px-2 py-0.5 rounded-full font-bold ${
-                            t.status === 'Officer Clarification Posted' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
-                          }`}>{t.status}</span>
-                        </div>
-                        <p className="font-semibold text-slate-800 text-[11px]">{t.queryType}</p>
-                        <p className="text-slate-600 italic text-[11px]">&ldquo;{t.message}&rdquo;</p>
-                        {t.officerResponse && (
-                          <div className="mt-1.5 p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-[11px] text-emerald-900">
-                            <span className="font-bold">Official Response from {t.officerResponse.responderName}:</span>
-                            <p className="mt-0.5">{t.officerResponse.responseText}</p>
-                            {t.officerResponse.attachmentName && (
-                              <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded mt-1">
-                                📎 {t.officerResponse.attachmentName}
-                              </span>
-                            )}
+            {/* Conversation Messages Thread */}
+            <div className="flex-1 overflow-y-auto py-3 space-y-3 min-h-[220px] max-h-[360px] pr-1">
+              {(() => {
+                const projectTickets = tickets.filter(t => t.pid === activeModalProject.pid);
+                const allMessages = projectTickets.flatMap(t => getTicketMessages(t));
+
+                if (allMessages.length === 0) {
+                  return (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-2 text-slate-400">
+                      <MessageCircle className="w-10 h-10 text-slate-300 stroke-[1.5]" />
+                      <p className="text-xs font-bold text-slate-700">Direct message thread with {activeModalProject.assignedOfficer}</p>
+                      <p className="text-[11px] text-slate-400 max-w-xs leading-relaxed">
+                        Send a message regarding project progress, beneficiary lists, or compliance records. Responses will sync here in real time.
+                      </p>
+                    </div>
+                  );
+                }
+
+                return allMessages.map((msg) => {
+                  const isDonor = msg.sender === 'donor';
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`flex flex-col ${isDonor ? 'items-end' : 'items-start'}`}
+                    >
+                      <span className="text-[10px] text-slate-400 mb-1 px-1">
+                        {isDonor ? 'You (Partner Desk)' : msg.senderName} • {msg.createdAt}
+                      </span>
+                      <div
+                        className={`p-3 rounded-2xl text-xs max-w-[85%] leading-relaxed ${
+                          isDonor
+                            ? 'bg-slate-900 text-white rounded-tr-xs shadow-xs'
+                            : 'bg-slate-100 border border-slate-200 text-slate-900 rounded-tl-xs shadow-xs'
+                        }`}
+                      >
+                        <p>{msg.text}</p>
+                        {msg.attachmentName && (
+                          <div className="mt-2 pt-1.5 border-t border-slate-200/50 flex items-center gap-1.5 text-[11px] font-bold text-blue-700">
+                            <Paperclip className="w-3.5 h-3.5" />
+                            <span>{msg.attachmentName}</span>
                           </div>
                         )}
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  );
+                });
+              })()}
+            </div>
 
-                <form onSubmit={handleSendQueryTicket} className="space-y-4 text-xs">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Target Project</label>
-                  <input
-                    type="text"
-                    value={`${activeModalProject.pid} - ${activeModalProject.title}`}
-                    readOnly
-                    className="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-600 font-bold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Donor Email Address (For Responses)</label>
-                  <input
-                    type="email"
-                    value={donorEmail}
-                    onChange={(e) => setDonorEmail(e.target.value)}
-                    required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-mono text-slate-900 outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Clarification Subject / Query Type</label>
-                  <select
-                    value={queryType}
-                    onChange={(e) => setQueryType(e.target.value as any)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-bold text-slate-900 outline-none focus:border-blue-500"
-                  >
-                    <option value="Beneficiary Verification Query">Beneficiary Verification / List Clarification</option>
-                    <option value="Underage Beneficiary Query">Underage / Guardian Identification Verification</option>
-                    <option value="Receipt / Voucher Clarification">Receipt / Financial Voucher Clarification</option>
-                    <option value="Special Document Request">Request Additional Geotagged Photos or Video</option>
-                    <option value="General Project Inquiry">General Milestone & Progress Inquiry</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Query Message & Specific Requirements *</label>
-                  <textarea
-                    rows={4}
-                    value={queryMessage}
-                    onChange={(e) => setQueryMessage(e.target.value)}
-                    placeholder="Provide specific document references or beneficiary numbers needing clarification..."
-                    required
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-900 outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setActiveModalProject(null)}
-                    className="py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="py-2 px-5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md flex items-center gap-1.5"
-                  >
-                    <Send className="w-3.5 h-3.5" /> Submit Clarification Ticket
-                  </button>
-                </div>
-              </form>
-              </div>
-            )}
+            {/* Chat Input Bar */}
+            <form onSubmit={handleSendChatMessage} className="pt-3 border-t border-slate-100 flex items-center gap-2">
+              <input
+                type="text"
+                value={queryMessage}
+                onChange={(e) => setQueryMessage(e.target.value)}
+                placeholder={`Type a message to ${activeModalProject.assignedOfficer}...`}
+                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 focus:bg-white transition"
+              />
+              <button
+                type="submit"
+                disabled={!queryMessage.trim()}
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Send</span>
+              </button>
+            </form>
           </div>
         </div>
       )}

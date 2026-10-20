@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { 
@@ -25,7 +25,7 @@ import {
   FileCheck2, 
   AlertTriangle, 
   X, 
-  UserCheck,
+  UserCheck, 
   UserPlus,
   Globe2,
   Lock,
@@ -56,6 +56,9 @@ import {
   DonorQueryTicket, 
   INITIAL_DONOR_QUERIES, 
   respondToDonorQuery,
+  addMessageToTicket,
+  getTicketMessages,
+  playNotificationSound,
   DonorQueryService
 } from '@/server/services/donorQueryService';
 import { CloudSyncService } from '@/server/services/cloudSyncService';
@@ -85,6 +88,10 @@ export default function StaffDashboardPage() {
 
   // Donor Objections & Query State
   const [donorTickets, setDonorTickets] = useState<DonorQueryTicket[]>(INITIAL_DONOR_QUERIES);
+  const prevTicketsRef = useRef<DonorQueryTicket[]>([]);
+  const [replyTextMap, setReplyTextMap] = useState<Record<string, string>>({});
+  const [replyAttachmentMap, setReplyAttachmentMap] = useState<Record<string, string>>({});
+  const [showAttachmentInput, setShowAttachmentInput] = useState<Record<string, boolean>>({});
   const [activeResponseTicket, setActiveResponseTicket] = useState<DonorQueryTicket | null>(null);
   const [responseText, setResponseText] = useState('');
   const [attachmentName, setAttachmentName] = useState('');
@@ -188,12 +195,34 @@ export default function StaffDashboardPage() {
     DonorQueryService.fetchTickets().then((loaded) => {
       if (loaded && loaded.length > 0) {
         setDonorTickets(loaded);
+        prevTicketsRef.current = loaded;
       }
     });
 
     const ticketPoll = setInterval(async () => {
       const latest = await DonorQueryService.fetchTickets();
       if (latest && latest.length > 0) {
+        // Automatic notification chime & toast if new donor message arrived
+        if (prevTicketsRef.current.length > 0) {
+          for (const newT of latest) {
+            const oldT = prevTicketsRef.current.find(p => p.id === newT.id);
+            const newMsgs = getTicketMessages(newT);
+            const oldMsgs = oldT ? getTicketMessages(oldT) : [];
+            const lastNew = newMsgs[newMsgs.length - 1];
+            const lastOld = oldMsgs[oldMsgs.length - 1];
+            if (
+              lastNew && 
+              lastNew.sender === 'donor' && 
+              (!lastOld || lastNew.id !== lastOld.id || lastNew.text !== lastOld.text)
+            ) {
+              playNotificationSound();
+              setSuccessToast(`🔔 New message from ${lastNew.senderName} (${newT.pid}): "${lastNew.text}"`);
+              setTimeout(() => setSuccessToast(''), 6000);
+              break;
+            }
+          }
+        }
+        prevTicketsRef.current = latest;
         setDonorTickets(latest);
       }
     }, 4000);
@@ -390,6 +419,31 @@ export default function StaffDashboardPage() {
     setTimeout(() => setSuccessToast(''), 4500);
   };
 
+  const handleSendInlineReply = (ticket: DonorQueryTicket) => {
+    const text = replyTextMap[ticket.id]?.trim();
+    if (!text) return;
+
+    const responderName = currentUserName || 'Program Officer';
+    const responderRole = designation || 'Program Officer (Assigned)';
+    const att = replyAttachmentMap[ticket.id]?.trim();
+
+    const updatedTicket = addMessageToTicket(
+      ticket,
+      'officer',
+      responderName,
+      text,
+      responderRole,
+      att || undefined
+    );
+
+    setDonorTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
+    DonorQueryService.saveTicket(updatedTicket);
+    setSuccessToast(`Reply sent to ${ticket.donorName}!`);
+    setReplyTextMap(prev => ({ ...prev, [ticket.id]: '' }));
+    setReplyAttachmentMap(prev => ({ ...prev, [ticket.id]: '' }));
+    setTimeout(() => setSuccessToast(''), 4000);
+  };
+
   return (
     <div className="space-y-6 pb-12 font-sans max-w-7xl mx-auto">
       {/* Toast Notification */}
@@ -436,24 +490,24 @@ export default function StaffDashboardPage() {
         </div>
       </div>
 
-      {/* Role Notice Banner for Program Officers */}
+      {/* Officer Operational Workspace Bar */}
       {isProgramOfficer && (
-        <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-emerald-50 border border-blue-200 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm font-black">
-              🎯
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 font-bold border border-blue-100">
+              <FolderKanban className="w-4 h-4 text-blue-600" />
             </div>
             <div>
-              <p className="font-extrabold text-blue-950">
-                Assigned Operational Focus: Showing {displayedProjects.length} Project{displayedProjects.length === 1 ? '' : 's'} Assigned to You
+              <p className="font-bold text-slate-900">
+                Assigned Projects: {displayedProjects.length} Active Charters
               </p>
-              <p className="text-blue-800 text-[11px] mt-0.5">
-                Per executive governance, you are focused strictly on your assigned deliverables. Project officer assignments are managed exclusively by Executive Director Md. Abu Huraira.
+              <p className="text-slate-500 text-[11px]">
+                Assigned to your desk by Executive Director Md. Abu Huraira.
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-mono font-bold bg-white/80 border border-blue-200 text-blue-900 px-3 py-1 rounded-xl shrink-0 self-start sm:self-auto">
-            OFFICER: {currentUserName}
+          <span className="text-[11px] font-semibold bg-slate-50 border border-slate-200 text-slate-700 px-3 py-1 rounded-xl shrink-0 self-start sm:self-auto">
+            Officer: <strong className="text-slate-900">{currentUserName}</strong>
           </span>
         </div>
       )}
@@ -497,16 +551,16 @@ export default function StaffDashboardPage() {
         <button
           type="button"
           onClick={() => setActiveDeskTab('DONOR_QUERIES')}
-          className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-2 ${
+          className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
             activeDeskTab === 'DONOR_QUERIES'
               ? 'bg-blue-600 text-white shadow-sm'
               : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/60'
           }`}
         >
-          <AlertTriangle className={`w-4 h-4 ${activeDeskTab === 'DONOR_QUERIES' ? 'text-amber-300' : 'text-amber-600'}`} />
-          <span>{isProgramOfficer ? 'My Project Donor Queries' : 'All Donor Objections & Inquiries'} ({relevantDonorTickets.length})</span>
+          <MessageSquare className={`w-4 h-4 ${activeDeskTab === 'DONOR_QUERIES' ? 'text-blue-200' : 'text-blue-600'}`} />
+          <span>{isProgramOfficer ? 'Partner Messages' : 'All Partner Messages'} ({relevantDonorTickets.length})</span>
           {pendingTicketsCount > 0 && (
-            <span className="text-[10px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.2 rounded-full">
+            <span className="text-[10px] bg-amber-400 text-slate-950 font-bold px-1.5 py-0.2 rounded-full">
               {pendingTicketsCount}
             </span>
           )}
@@ -981,28 +1035,28 @@ export default function StaffDashboardPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* DESK 3: DONOR OBJECTIONS & AUDIT CLARIFICATION DESK                       */}
+      {/* DESK 3: PARTNER MESSAGES & INQUIRIES DESK                                  */}
       {/* ========================================================================= */}
       {activeDeskTab === 'DONOR_QUERIES' && (
         <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4 animate-in fade-in duration-150">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-600" />
+              <MessageSquare className="w-5 h-5 text-blue-600" />
               <div>
-                <h2 className="text-base font-black text-slate-900">
-                  {isProgramOfficer ? 'My Project Donor Queries & Clarification Requests' : 'All Donor Objections & Special Document Requests'} ({relevantDonorTickets.length})
+                <h2 className="text-base font-bold text-slate-900">
+                  {isProgramOfficer ? 'Partner Conversations & Messages' : 'All Donor Messages & Inquiries'} ({relevantDonorTickets.length})
                 </h2>
                 <p className="text-xs text-slate-500">
                   {isProgramOfficer 
-                    ? 'Compliance inquiries submitted by foreign donors for your assigned projects.' 
-                    : 'Realtime inquiries and compliance clarification tickets submitted across all partner portals.'}
+                    ? 'Direct communication with international donors for your assigned projects.' 
+                    : 'Real-time messages and inquiries across all foreign partner desks.'}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold bg-amber-100 text-amber-900 px-3 py-1 rounded-full border border-amber-300">
-                {pendingTicketsCount} Pending Officer Response
+              <span className="text-xs font-bold bg-blue-50 text-blue-800 px-3 py-1 rounded-full border border-blue-200">
+                {pendingTicketsCount} Pending Reply
               </span>
               <Link 
                 href="/donor-dashboard" 
@@ -1014,75 +1068,143 @@ export default function StaffDashboardPage() {
             </div>
           </div>
 
-          {/* Ticket List */}
+          {/* Conversations List */}
           {relevantDonorTickets.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {relevantDonorTickets.map((ticket) => (
-                <div 
-                  key={ticket.id}
-                  className={`p-4 rounded-2xl border space-y-3 transition-all ${
-                    ticket.status === 'Pending Officer Review'
-                      ? 'bg-amber-50/50 border-amber-300 shadow-sm'
-                      : 'bg-slate-50 border-slate-200'
-                  }`}
-                >
-                  <div className="flex justify-between items-center border-b border-slate-200/60 pb-2 text-xs">
-                    <span className="font-mono font-extrabold text-blue-700">{ticket.id} • {ticket.pid}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      ticket.status === 'Officer Clarification Posted' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
-                    }`}>
-                      {ticket.status}
-                    </span>
-                  </div>
+              {relevantDonorTickets.map((ticket) => {
+                const threadMessages = getTicketMessages(ticket);
+                const hasPendingReply = ticket.status === 'Pending Officer Review';
 
-                  <div>
-                    <p className="text-xs font-bold text-slate-900">{ticket.queryType}</p>
-                    <p className="text-[11px] text-slate-500">From: {ticket.donorName} ({ticket.donorEmail})</p>
-                  </div>
-
-                  <p className="text-xs text-slate-700 italic bg-white p-2.5 rounded-xl border border-slate-200/80">
-                    &ldquo;{ticket.message}&rdquo;
-                  </p>
-
-                  <div className="flex justify-between items-center text-[11px] text-slate-500 pt-1">
-                    <span>Assigned: <strong>{ticket.assignedOfficerName}</strong></span>
-                    <span>{ticket.createdAt}</span>
-                  </div>
-
-                  {ticket.officerResponse ? (
-                    <div className="bg-blue-50/80 p-3 rounded-xl border border-blue-200 text-xs space-y-1">
-                      <p className="font-bold text-blue-900 text-[11px]">
-                        Posted Response ({ticket.officerResponse.responderName}):
-                      </p>
-                      <p className="text-blue-800 text-[11px]">{ticket.officerResponse.responseText}</p>
-                      {ticket.officerResponse.attachmentName && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded mt-1">
-                          <Paperclip className="w-3 h-3" /> {ticket.officerResponse.attachmentName}
+                return (
+                  <div 
+                    key={ticket.id}
+                    className={`p-5 rounded-2xl border space-y-3.5 transition-all flex flex-col justify-between ${
+                      hasPendingReply
+                        ? 'bg-blue-50/20 border-blue-200 shadow-xs'
+                        : 'bg-slate-50/70 border-slate-200'
+                    }`}
+                  >
+                    <div>
+                      {/* Card Header */}
+                      <div className="flex justify-between items-center border-b border-slate-200/60 pb-2.5 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
+                            {ticket.pid}
+                          </span>
+                          <span className="text-slate-500 font-mono text-[11px]">{ticket.id}</span>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                          ticket.status === 'Officer Clarification Posted'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            : 'bg-amber-100 text-amber-900 border border-amber-200'
+                        }`}>
+                          {ticket.status === 'Officer Clarification Posted' ? '● Replied' : '● Needs Reply'}
                         </span>
-                      )}
+                      </div>
+
+                      {/* Partner Info */}
+                      <div className="pt-2">
+                        <p className="text-xs font-bold text-slate-900">{ticket.donorName}</p>
+                        <p className="text-[11px] text-slate-500 font-mono">{ticket.donorEmail}</p>
+                      </div>
+
+                      {/* Messages Thread */}
+                      <div className="mt-3 space-y-2 max-h-56 overflow-y-auto pr-1">
+                        {threadMessages.map((msg) => {
+                          const isOfficer = msg.sender === 'officer';
+                          return (
+                            <div
+                              key={msg.id}
+                              className={`flex flex-col ${isOfficer ? 'items-end' : 'items-start'}`}
+                            >
+                              <span className="text-[10px] text-slate-400 mb-0.5 px-1">
+                                {isOfficer ? `${msg.senderName} (You)` : msg.senderName} • {msg.createdAt}
+                              </span>
+                              <div
+                                className={`p-2.5 rounded-2xl text-xs max-w-[90%] leading-relaxed ${
+                                  isOfficer
+                                    ? 'bg-blue-600 text-white rounded-tr-xs shadow-2xs'
+                                    : 'bg-white border border-slate-200 text-slate-900 rounded-tl-xs shadow-2xs'
+                                }`}
+                              >
+                                <p>{msg.text}</p>
+                                {msg.attachmentName && (
+                                  <div className={`mt-1.5 pt-1 border-t text-[10px] font-bold flex items-center gap-1 ${
+                                    isOfficer ? 'border-blue-400/50 text-blue-100' : 'border-slate-200 text-blue-700'
+                                  }`}>
+                                    <Paperclip className="w-3 h-3" />
+                                    <span>{msg.attachmentName}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveResponseTicket(ticket);
-                        setResponseText('');
-                        setAttachmentName('');
-                      }}
-                      className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Send className="w-3.5 h-3.5" /> Post Officer Clarification Response
-                    </button>
-                  )}
-                </div>
-              ))}
+
+                    {/* Inline Quick Reply Box */}
+                    <div className="pt-2 border-t border-slate-200/70 space-y-2">
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleSendInlineReply(ticket);
+                        }}
+                        className="space-y-1.5"
+                      >
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={replyTextMap[ticket.id] || ''}
+                            onChange={(e) => setReplyTextMap(prev => ({ ...prev, [ticket.id]: e.target.value }))}
+                            placeholder={`Reply to ${ticket.donorName}...`}
+                            className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 transition"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowAttachmentInput(prev => ({ ...prev, [ticket.id]: !prev[ticket.id] }))}
+                            className={`p-2 rounded-xl border text-xs font-bold transition flex items-center justify-center cursor-pointer ${
+                              showAttachmentInput[ticket.id] || replyAttachmentMap[ticket.id]
+                                ? 'bg-blue-50 border-blue-300 text-blue-700'
+                                : 'bg-slate-100 border-slate-200 text-slate-500 hover:text-slate-800'
+                            }`}
+                            title="Attach Document Name"
+                          >
+                            <Paperclip className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={!replyTextMap[ticket.id]?.trim()}
+                            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+                          >
+                            <Send className="w-3 h-3" />
+                            <span>Reply</span>
+                          </button>
+                        </div>
+
+                        {showAttachmentInput[ticket.id] && (
+                          <div className="animate-in fade-in duration-150">
+                            <input
+                              type="text"
+                              value={replyAttachmentMap[ticket.id] || ''}
+                              onChange={(e) => setReplyAttachmentMap(prev => ({ ...prev, [ticket.id]: e.target.value }))}
+                              placeholder="Attachment name (e.g., Beneficiary_Signed_Register.pdf)"
+                              className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] font-mono text-slate-800 placeholder:text-slate-400 outline-none focus:border-blue-500"
+                            />
+                          </div>
+                        )}
+                      </form>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
-            <div className="bg-white border border-slate-200 rounded-xl p-8 text-center space-y-2">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-8 text-center space-y-2">
               <MessageSquare className="w-8 h-8 text-slate-300 mx-auto" />
-              <p className="text-xs font-bold text-slate-700">No Pending Donor Audit Clarification Queries</p>
+              <p className="text-xs font-bold text-slate-700">No Active Partner Conversations</p>
               <p className="text-[11px] text-slate-400">
-                Clarification requests sent by donors in the Partner Command Portal will appear here in real-time.
+                Messages sent by donors in the Partner Portal will appear here in real time.
               </p>
             </div>
           )}

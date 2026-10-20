@@ -530,11 +530,8 @@ export default function DonorDashboardPage() {
       {(selectedPartnerKey === 'ALL' || showHqSwitcher) && (
         <div className="bg-white p-3 rounded-2xl border border-slate-200/90 shadow-sm space-y-2 animate-in fade-in duration-200">
           <div className="flex items-center justify-between px-2 pt-1">
-            <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <Globe2 className="w-3.5 h-3.5 text-blue-600" /> HQ Directorate Console — All 6 International Partner Desks:
-            </span>
-            <span className="text-[10px] text-slate-400 font-semibold hidden sm:inline">
-              Internal Governance View • Select desk to inspect
+            <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1.5">
+              <Globe2 className="w-3.5 h-3.5 text-slate-500" /> Select Partner Desk:
             </span>
           </div>
 
@@ -570,174 +567,150 @@ export default function DonorDashboardPage() {
         </div>
       )}
 
-      {/* 2. DEDICATED PARTNER HERO BANNER (Isolated to this Partner) */}
-      <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <span className="text-xs bg-slate-900 text-white px-3 py-1 rounded-full font-black flex items-center gap-1.5 shadow-sm">
-              <span>{currentPartnerInfo.flag}</span> {currentPartnerInfo.shortName}
-            </span>
-            <span className="text-xs bg-blue-50 text-blue-900 border border-blue-200 px-3 py-1 rounded-full font-bold flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-blue-600" /> {currentPartnerInfo.accreditationBadge}
-            </span>
-            <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-full font-bold flex items-center gap-1">
-              <Lock className="w-3 h-3 text-emerald-600" /> Private Partner Workspace
-            </span>
-            <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-full font-bold flex items-center gap-1.5">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span>Realtime Live Sync Active</span>
-            </span>
+      {/* 2. DEDICATED PARTNER HERO BANNER */}
+      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-base">{currentPartnerInfo.flag}</span>
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{currentPartnerInfo.shortName}</span>
+              <span className="text-slate-300">•</span>
+              <span className="text-xs text-slate-500 font-medium">{currentPartnerInfo.focalEmail}</span>
+            </div>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              {currentPartnerInfo.name}
+            </h1>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowHqSwitcher(!showHqSwitcher)}
-              className="text-[11px] text-slate-500 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 font-bold transition flex items-center gap-1.5"
-              title="Toggle HQ Internal Directorate Switcher"
+              className="text-xs text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 font-medium transition flex items-center gap-1.5 cursor-pointer"
+              title="Toggle Desk Switcher"
             >
-              <Building2 className="w-3.5 h-3.5 text-slate-600" />
-              <span>{showHqSwitcher ? 'Hide HQ Switcher' : 'HQ Switcher (Staff)'}</span>
+              <Building2 className="w-3.5 h-3.5 text-slate-500" />
+              <span>{showHqSwitcher ? 'Hide Switcher' : 'Switch Desk'}</span>
             </button>
 
             <button
               onClick={handleCopyShareLink}
-              className="inline-flex items-center gap-1.5 text-xs font-black text-slate-800 bg-slate-100 hover:bg-blue-600 hover:text-white px-3.5 py-1.5 rounded-xl border border-slate-200 shadow-sm transition-all"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg border border-slate-200 transition cursor-pointer"
             >
-              {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-blue-600" />}
-              {copiedLink ? 'Direct Link Copied!' : `Share ${currentPartnerInfo.shortName} Link`}
+              {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5 text-slate-500" />}
+              {copiedLink ? 'Link Copied' : 'Share Link'}
             </button>
           </div>
         </div>
 
-        <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">
-            {currentPartnerInfo.name}
-          </h1>
-          <p className="text-xs text-slate-600 leading-relaxed mt-1 max-w-4xl">
-            {currentPartnerInfo.mandate}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-500 pt-1 border-t border-slate-100">
-          <span>Official Desk: <strong className="text-slate-800">{currentPartnerInfo.focalDesk}</strong></span>
-          <span>•</span>
-          <span>Bilateral Channel: <strong className="text-blue-700 font-mono">{currentPartnerInfo.focalEmail}</strong></span>
-          <span>•</span>
-          <span>Host Implementing Entity: <strong className="text-slate-800">Small Kindness Bangladesh (Govt FDSR-Reg)</strong></span>
-        </div>
+        <p className="text-xs text-slate-600 leading-relaxed max-w-3xl">
+          {currentPartnerInfo.mandate}
+        </p>
       </div>
 
-      {/* 3. EXECUTIVE KPI OVERVIEW BAR */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm space-y-1">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-            <span>Allocated Grants</span>
-            <Briefcase className="w-4 h-4 text-blue-600" />
+      {/* 3. EXECUTIVE KPI METRICS */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+            <span>Active Projects</span>
+            <Briefcase className="w-4 h-4 text-slate-400" />
           </div>
-          <p className="text-2xl font-black text-slate-900">{totalProjectsCount} Projects</p>
-          <p className="text-[11px] text-blue-600 font-bold">
-            {selectedPartnerKey === 'ALL' ? 'Combined Portfolio' : 'Isolated Desk Allocation'}
-          </p>
+          <p className="text-2xl font-bold text-slate-900">{totalProjectsCount}</p>
+          <p className="text-[11px] text-slate-500">Funded in portfolio</p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm space-y-1">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-            <span>Funding Committed</span>
-            <DollarSign className="w-4 h-4 text-emerald-600" />
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+            <span>Committed Funding</span>
+            <DollarSign className="w-4 h-4 text-slate-400" />
           </div>
-          <p className="text-2xl font-black text-slate-900">
+          <p className="text-2xl font-bold text-slate-900">
             {formatCurrencyString(totalBudgetVal, primaryCurrency)}
           </p>
-          <p className="text-[11px] text-emerald-600 font-bold">100% Tracked & Reconciled</p>
+          <p className="text-[11px] text-slate-500">Total grant allocation</p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm space-y-1">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-            <span>Beneficiaries Reached</span>
-            <Users className="w-4 h-4 text-purple-600" />
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+            <span>Beneficiaries</span>
+            <Users className="w-4 h-4 text-slate-400" />
           </div>
-          <p className="text-2xl font-black text-purple-950">
-            {totalBeneficiaries.toLocaleString()} People
+          <p className="text-2xl font-bold text-slate-900">
+            {totalBeneficiaries.toLocaleString()}
           </p>
-          <p className="text-[11px] text-purple-700 font-bold">Verified on Form-7 Registry</p>
+          <p className="text-[11px] text-slate-500">Recipients reached</p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm space-y-1">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-            <span>Audit & Compliance</span>
-            <ShieldCheck className="w-4 h-4 text-amber-600" />
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-xs font-medium text-slate-500">
+            <span>Compliance Dossier</span>
+            <ShieldCheck className="w-4 h-4 text-slate-400" />
           </div>
-          <p className="text-2xl font-black text-slate-900">
-            {expectedPrimaryFiles === 0 ? '100% Verified' : `${totalPrimaryFiles} / ${expectedPrimaryFiles} Files`}
+          <p className="text-2xl font-bold text-slate-900">
+            {expectedPrimaryFiles === 0 ? 'Verified' : `${totalPrimaryFiles} / ${expectedPrimaryFiles}`}
           </p>
-          <p className="text-[11px] text-amber-700 font-bold">
-            {tickets.filter(t => partnerFilteredProjects.some(p => p.pid === t.pid)).length} Queries Logged
-          </p>
+          <p className="text-[11px] text-slate-500">Required files submitted</p>
         </div>
       </div>
 
       {downloadToast && (
-        <div className="bg-blue-50 border border-blue-300 text-blue-950 p-4 rounded-2xl text-xs font-black flex items-center gap-3 shadow-md animate-in fade-in">
-          <CheckCircle2 className="w-5 h-5 text-blue-600 shrink-0" />
+        <div className="bg-blue-50 border border-blue-200 text-blue-900 p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 shadow-xs animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
           <span>{downloadToast}</span>
         </div>
       )}
 
-      {/* 4. LOGICAL TAB FILTER & SEARCH BAR */}
-      <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-sm space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-          <div className="flex flex-wrap gap-2">
+      {/* 4. TAB FILTER & SEARCH BAR */}
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="flex flex-wrap gap-1.5">
             <button
               onClick={() => setActiveTab('ALL')}
-              className={`px-3.5 py-2 text-xs font-black rounded-xl transition ${
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer ${
                 activeTab === 'ALL'
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              All Projects ({partnerFilteredProjects.length})
+              All ({partnerFilteredProjects.length})
             </button>
 
             <button
               onClick={() => setActiveTab('RUNNING')}
-              className={`px-3.5 py-2 text-xs font-black rounded-xl transition ${
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer ${
                 activeTab === 'RUNNING'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              Running / In Progress ({partnerFilteredProjects.filter(p => p.statusCategory === 'RUNNING').length})
+              In Progress ({partnerFilteredProjects.filter(p => p.statusCategory === 'RUNNING').length})
             </button>
 
             <button
               onClick={() => setActiveTab('COMPLETED')}
-              className={`px-3.5 py-2 text-xs font-black rounded-xl transition flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition flex items-center gap-1.5 cursor-pointer ${
                 activeTab === 'COMPLETED'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              <CheckCircle2 className="w-3.5 h-3.5" /> Completed & Audited ({partnerFilteredProjects.filter(p => p.statusCategory === 'COMPLETED').length})
+              Completed ({partnerFilteredProjects.filter(p => p.statusCategory === 'COMPLETED').length})
             </button>
           </div>
 
-          <div className="w-full sm:w-72 relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <div className="w-full sm:w-64 relative">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by code, title, officer..."
-              className="w-full bg-slate-50 border border-slate-200 text-xs text-slate-900 font-bold rounded-xl pl-9 pr-3 py-2 outline-none focus:border-blue-500 focus:bg-white transition"
+              placeholder="Search projects..."
+              className="w-full bg-slate-50 border border-slate-200 text-xs text-slate-800 rounded-lg pl-8 pr-3 py-1.5 outline-none focus:border-slate-400 focus:bg-white transition"
             />
           </div>
         </div>
 
         {/* 5. PROJECT CARDS */}
-        <div className="grid grid-cols-1 gap-5">
+        <div className="grid grid-cols-1 gap-4">
           {displayedProjects.length > 0 ? (
             displayedProjects.map((project) => {
               const projectTickets = tickets.filter((t) => t.pid === project.pid);
@@ -747,71 +720,66 @@ export default function DonorDashboardPage() {
               return (
                 <div 
                   key={project.pid}
-                  className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all space-y-4"
+                  className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs hover:border-slate-300 transition-all space-y-3.5"
                 >
                   {/* Card Top Header */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-xs font-black text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
                         {project.pid}
                       </span>
-                      <span className="text-xs font-extrabold text-slate-800">{project.partner}</span>
-                      <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">
+                      <span className="text-[11px] text-slate-500 font-medium">
                         {project.category}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {isApproved && (
-                        <span className="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full font-black flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Package Verified & Approved
+                      {isApproved ? (
+                        <span className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                          <Check className="w-3 h-3 text-emerald-600" /> Dossier Approved
+                        </span>
+                      ) : (
+                        <span className="text-xs text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full font-semibold">
+                          {project.statusLabel}
                         </span>
                       )}
-                      <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full border ${
-                        project.statusCategory === 'COMPLETED' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
-                        'bg-blue-50 text-blue-800 border-blue-200'
-                      }`}>
-                        {project.statusLabel}
-                      </span>
                     </div>
                   </div>
 
-                  {/* Project Title & Meta */}
-                  <div className="space-y-1.5">
-                    <h3 className="text-sm font-black text-slate-900 leading-snug">{project.title}</h3>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 font-medium pt-0.5">
-                      <span>Location: <strong className="text-slate-800">{project.location}</strong></span>
-                      <span>•</span>
-                      <span>Beneficiaries: <strong className="text-slate-800">{project.beneficiariesCount} Individuals</strong></span>
-                      <span>•</span>
-                      <span>Grant: <strong className="text-emerald-700 font-mono font-bold">{formatCurrencyString(project.budgetAmount, project.currency)}</strong></span>
+                  {/* Project Title & Core Metrics */}
+                  <div className="space-y-1">
+                    <h3 className="text-base font-bold text-slate-900 leading-snug">{project.title}</h3>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
+                      <span>Location: <strong className="text-slate-800 font-medium">{project.location}</strong></span>
+                      <span className="text-slate-300">•</span>
+                      <span>Beneficiaries: <strong className="text-slate-800 font-medium">{project.beneficiariesCount.toLocaleString()}</strong></span>
+                      <span className="text-slate-300">•</span>
+                      <span>Grant: <strong className="text-slate-900 font-mono font-semibold">{formatCurrencyString(project.budgetAmount, project.currency)}</strong></span>
                     </div>
                   </div>
 
-                  {/* Assigned Officer Bilateral Focal Bar */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-slate-50 via-blue-50/30 to-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
+                  {/* Assigned Officer Focal Bar */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50/80 p-3 rounded-xl border border-slate-200/60">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center shadow-xs shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-slate-800 text-white font-bold text-xs flex items-center justify-center shrink-0">
                         {project.assignedOfficer.split(' ').map(n => n[0]).slice(0, 2).join('')}
                       </div>
                       <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-black text-slate-900">{project.assignedOfficer}</span>
-                          <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
-                            ● Assigned Focal Person
-                          </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-900">{project.assignedOfficer}</span>
+                          <span className="text-[10px] text-slate-500 font-medium">Assigned Officer</span>
                         </div>
                         <p className="text-[11px] text-slate-500 font-mono">{project.assignedOfficerEmail}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5">
                       <a
                         href={`https://wa.me/8801711000001?text=${encodeURIComponent(`Hello ${project.assignedOfficer}, inquiring from partner desk regarding funded project [${project.pid}] "${project.title}".`)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 transition flex items-center gap-1 shadow-2xs"
-                        title="Chat directly on WhatsApp with the assigned officer"
+                        className="px-2.5 py-1 text-slate-700 hover:text-emerald-700 bg-white hover:bg-emerald-50 font-semibold text-xs rounded-lg border border-slate-200 transition flex items-center gap-1 cursor-pointer"
+                        title="Chat on WhatsApp"
                       >
                         <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
                         <span>WhatsApp</span>
@@ -819,69 +787,50 @@ export default function DonorDashboardPage() {
 
                       <a
                         href={`mailto:${project.assignedOfficerEmail}?subject=${encodeURIComponent(`[SKB Portal] Donor Inquiry: ${project.pid} - ${project.title}`)}`}
-                        className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition flex items-center gap-1 shadow-2xs"
-                        title="Send email directly to assigned officer"
+                        className="px-2.5 py-1 text-slate-700 hover:text-blue-700 bg-white hover:bg-blue-50 font-semibold text-xs rounded-lg border border-slate-200 transition flex items-center gap-1 cursor-pointer"
+                        title="Send email"
                       >
                         <Mail className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Email Desk</span>
-                      </a>
-
-                      <a
-                        href="tel:+8801711000001"
-                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition flex items-center gap-1 shadow-2xs"
-                        title="Call the assigned officer hotline"
-                      >
-                        <Phone className="w-3.5 h-3.5 text-slate-600" />
-                        <span>Hotline</span>
+                        <span>Email</span>
                       </a>
                     </div>
                   </div>
 
-                  {/* Baseline Documents Status Summary */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <FileCheck2 className="w-4 h-4 text-blue-600 shrink-0" />
-                      <span className="text-slate-700 font-semibold">
-                        Mandatory Compliance Dossier: <strong className="text-slate-900">{submittedCount} / 7 Files Submitted ✓</strong>
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-slate-500 text-[11px]">
-                      <span>NGOAB Ref: <strong>FD-6/2938</strong></span>
-                      <span>•</span>
-                      <span>Audit Status: <strong className="text-emerald-600">Reconciled</strong></span>
-                    </div>
-                  </div>
-
-                  {/* Card Action Controls */}
+                  {/* Compliance & Card Action Controls */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                    <div className="flex items-center gap-2 text-xs text-slate-600">
+                      <FileCheck2 className="w-4 h-4 text-slate-500 shrink-0" />
+                      <span>Compliance Dossier: <strong className="text-slate-900 font-semibold">{submittedCount} / 7 verified</strong></span>
+                      <span className="text-slate-300">•</span>
+                      <span className="text-[11px] text-slate-500">NGOAB FD-6/2938</span>
+                    </div>
+
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setInspectingProject(project)}
-                        className="py-2 px-4 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
+                        className="py-1.5 px-3 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg border border-slate-200 transition flex items-center gap-1.5 cursor-pointer"
                       >
-                        <Eye className="w-3.5 h-3.5 text-blue-400" />
-                        Inspect Complete Audit Package
+                        <Eye className="w-3.5 h-3.5 text-slate-500" />
+                        <span>View Documents ({project.primaryDocs.length})</span>
                       </button>
 
                       <button
                         onClick={() => handleDownloadAllZip(project)}
-                        className="py-2 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl border border-slate-200 transition flex items-center gap-1.5"
+                        className="py-1.5 px-2.5 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs rounded-lg border border-slate-200 transition flex items-center gap-1 cursor-pointer"
+                        title="Download All Files (ZIP)"
                       >
-                        <Download className="w-3.5 h-3.5 text-slate-600" />
-                        Download All (ZIP)
+                        <Download className="w-3.5 h-3.5 text-slate-500" />
+                        <span>ZIP</span>
                       </button>
-                    </div>
 
-                    <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleOpenQueryModal(project)}
-                        className="py-2 px-3.5 bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold text-xs rounded-xl border border-blue-200 transition flex items-center gap-1.5"
+                        className="py-1.5 px-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                       >
-                        <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Message Officer</span>
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>Message</span>
                         {projectTickets.length > 0 && (
-                          <span className="ml-0.5 px-1.5 py-0.2 bg-blue-600 text-white text-[10px] rounded-full font-bold">
+                          <span className="ml-0.5 px-1.5 py-0.2 bg-white/25 text-white text-[10px] rounded-full font-bold">
                             {projectTickets.length}
                           </span>
                         )}
@@ -890,27 +839,23 @@ export default function DonorDashboardPage() {
                       {!isApproved ? (
                         <button
                           onClick={() => handleApprovePackage(project.pid)}
-                          className="py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
+                          className="py-1.5 px-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg shadow-xs transition flex items-center gap-1.5 cursor-pointer"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          Officially Approve Dossier
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Approve</span>
                         </button>
-                      ) : (
-                        <span className="py-2 px-3 text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-black flex items-center gap-1">
-                          <Check className="w-3.5 h-3.5 text-emerald-600" /> Approved
-                        </span>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </div>
               );
             })
           ) : (
-            <div className="bg-slate-50 border border-slate-200 rounded-3xl p-12 text-center space-y-3">
-              <FolderArchive className="w-10 h-10 text-slate-400 mx-auto" />
-              <h3 className="text-sm font-black text-slate-800">No Projects Found for This Workspace Filter</h3>
-              <p className="text-xs text-slate-500 max-w-md mx-auto">
-                No active project records matched your search query in the <strong>{currentPartnerInfo.shortName}</strong> workspace.
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-10 text-center space-y-2">
+              <FolderArchive className="w-8 h-8 text-slate-400 mx-auto" />
+              <h3 className="text-sm font-bold text-slate-800">No Projects Found</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                No active project records matched your search query in this workspace.
               </p>
             </div>
           )}
@@ -924,21 +869,21 @@ export default function DonorDashboardPage() {
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
-                <span className="text-[10px] font-black uppercase text-blue-600 tracking-wider">
-                  Official Audit Dossier Inspection
+                <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">
+                  Compliance Dossier
                 </span>
-                <h2 className="text-base font-black text-slate-900 mt-0.5">
+                <h2 className="text-base font-bold text-slate-900 mt-0.5">
                   {inspectingProject.title}
                 </h2>
                 <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
-                  <span>PID: <strong className="font-mono text-slate-800">{inspectingProject.pid}</strong></span>
+                  <span>Project: <strong className="font-mono text-slate-800">{inspectingProject.pid}</strong></span>
                   <span>•</span>
-                  <span>Lead: <strong className="text-slate-800">{inspectingProject.assignedOfficer}</strong></span>
+                  <span>Officer: <strong className="text-slate-800">{inspectingProject.assignedOfficer}</strong></span>
                 </div>
               </div>
               <button
                 onClick={() => setInspectingProject(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -946,34 +891,32 @@ export default function DonorDashboardPage() {
 
             {/* Document Checklist Grid */}
             <div className="space-y-3">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-500">
-                Mandatory Primary Compliance Checklist (7/7 Required Files)
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Required Project Documents (7 Files)
               </h3>
 
               <div className="space-y-2">
                 {inspectingProject.primaryDocs.map((doc, idx) => (
                   <div
                     key={doc.id}
-                    className="p-3.5 bg-slate-50 hover:bg-slate-100 rounded-2xl border border-slate-200 flex items-center justify-between gap-3 transition"
+                    className="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 flex items-center justify-between gap-3 transition"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-6 h-6 rounded-lg bg-blue-100 text-blue-800 font-black text-xs flex items-center justify-center shrink-0">
+                      <span className="w-6 h-6 rounded-md bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0">
                         {idx + 1}
                       </span>
                       <div className="min-w-0">
-                        <h4 className="text-xs font-black text-slate-900 truncate">{doc.name}</h4>
+                        <h4 className="text-xs font-bold text-slate-900 truncate">{doc.name}</h4>
                         <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
-                          <span>Size: {doc.fileSize}</span>
+                          <span>{doc.fileSize}</span>
                           <span>•</span>
                           {doc.publishedToDonorWorkspace !== false ? (
-                            <span className="text-emerald-700 font-extrabold flex items-center gap-1">
-                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                              Executive Directorate Vetted &amp; Approved (Live)
+                            <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Verified
                             </span>
                           ) : (
-                            <span className="text-amber-800 font-extrabold flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                              <Lock className="w-3.5 h-3.5 text-amber-600" />
-                              Under Final Executive Review (Internal Sign-off Pending)
+                            <span className="text-amber-800 font-medium flex items-center gap-1">
+                              Pending Review
                             </span>
                           )}
                         </div>
@@ -983,15 +926,15 @@ export default function DonorDashboardPage() {
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => setViewingDoc({ doc, pid: inspectingProject.pid, partner: inspectingProject.partner })}
-                        className="py-1 px-2.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition flex items-center gap-1.5"
+                        className="py-1 px-2.5 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-lg border border-slate-200 transition flex items-center gap-1.5 cursor-pointer"
                       >
-                        <Eye className="w-3.5 h-3.5" /> Preview
+                        <Eye className="w-3.5 h-3.5 text-slate-500" /> Preview
                       </button>
                       <button
                         onClick={() => handleDownloadFile(doc.name, doc.fileUrl)}
-                        className="py-1 px-3 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-300 shadow-sm transition flex items-center gap-1.5"
+                        className="py-1 px-2.5 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-lg border border-slate-200 transition flex items-center gap-1.5 cursor-pointer"
                       >
-                        <Download className="w-3.5 h-3.5" /> Download
+                        <Download className="w-3.5 h-3.5 text-slate-500" /> Download
                       </button>
                     </div>
                   </div>
@@ -1003,9 +946,9 @@ export default function DonorDashboardPage() {
             <div className="flex items-center justify-between pt-4 border-t border-slate-100">
               <button
                 onClick={() => handleDownloadAllZip(inspectingProject)}
-                className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs rounded-xl transition flex items-center gap-2"
+                className="py-2 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg transition flex items-center gap-1.5 cursor-pointer"
               >
-                <Download className="w-4 h-4 text-blue-600" /> Download Full Archive Package (ZIP)
+                <Download className="w-4 h-4 text-slate-500" /> Download All (ZIP)
               </button>
 
               <button
@@ -1013,9 +956,9 @@ export default function DonorDashboardPage() {
                   handleApprovePackage(inspectingProject.pid);
                   setInspectingProject(null);
                 }}
-                className="py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md transition flex items-center gap-2"
+                className="py-2 px-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg shadow-xs transition flex items-center gap-1.5 cursor-pointer"
               >
-                <CheckCircle2 className="w-4 h-4" /> Officially Certify & Sign Off
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Approve Package
               </button>
             </div>
           </div>

@@ -90,18 +90,17 @@ function DonorLayoutInner({ children }: { children: React.ReactNode }) {
   const partnerMeta = PARTNER_LAYOUT_MAP[partnerParam] || PARTNER_LAYOUT_MAP.IHH_ADAK_AQIQAH;
 
   const navItems = [
-    { href: `/donor-dashboard?partner=${partnerParam}`, label: 'Partner Command Overview', icon: Globe },
-    { href: `/donor-dashboard?partner=${partnerParam}#portfolio`, label: 'Grant Program Portfolio', icon: FolderKanban },
-    { href: `/donor-dashboard?partner=${partnerParam}#compliance`, label: 'Form-7 Compliance', icon: FileCheck2, badge: '7/7' },
-    { href: `/donor-dashboard?partner=${partnerParam}#clarifications`, label: 'Audit Clarification Threads', icon: MessageSquare, badge: 'Live' },
-    { href: `/donor-dashboard?partner=${partnerParam}#financials`, label: 'Multi-Currency Disbursal', icon: DollarSign },
-    { href: `/donor-dashboard?partner=${partnerParam}#security`, label: 'Partner Audit Verification', icon: ShieldCheck, badge: 'Verified' },
+    { href: `/donor-dashboard?partner=${partnerParam}`, label: 'Overview', icon: Globe },
+    { href: `/donor-dashboard?partner=${partnerParam}#portfolio`, label: 'Projects', icon: FolderKanban },
+    { href: `/donor-dashboard?partner=${partnerParam}#compliance`, label: 'Compliance & Form-7', icon: FileCheck2, badge: '7/7' },
+    { href: `/donor-dashboard?partner=${partnerParam}#clarifications`, label: 'Messages & Inquiries', icon: MessageSquare },
+    { href: `/donor-dashboard?partner=${partnerParam}#financials`, label: 'Financials', icon: DollarSign },
   ];
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
       {/* Top Dynamic Executive Navbar */}
-      <header className="bg-slate-900 text-white border-b border-slate-800 shadow-md px-4 sm:px-6 lg:px-8 py-3 sticky top-0 z-40">
+      <header className="bg-slate-900 text-white border-b border-slate-800 shadow-xs px-4 sm:px-6 lg:px-8 py-2.5 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -122,28 +121,24 @@ function DonorLayoutInner({ children }: { children: React.ReactNode }) {
                 className="w-8 h-8 object-contain filter drop-shadow transition-transform group-hover:scale-105"
               />
               <span className="hidden sm:inline tracking-tight font-extrabold text-slate-100">SKB Works Portal</span>
-              <span className="text-[10px] bg-blue-500/20 text-blue-300 font-bold px-2.5 py-0.5 rounded-full border border-blue-400/30 flex items-center gap-1">
+              <span className="text-[10px] bg-slate-800 text-slate-300 font-bold px-2.5 py-0.5 rounded-full border border-slate-700 flex items-center gap-1">
                 <span>{partnerMeta.flag}</span> {partnerMeta.shortName}
               </span>
             </Link>
           </div>
 
           {/* Right Top Header Actions */}
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-2 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700/70 text-xs">
-              <div className="w-6 h-6 rounded-full bg-blue-600 text-white font-black text-[10px] flex items-center justify-center">
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2.5 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700/60 text-xs">
+              <div className="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-[10px] flex items-center justify-center">
                 {partnerMeta.shortName.charAt(0)}
               </div>
               <div className="text-left leading-tight">
-                <p className="font-bold text-slate-100 flex items-center gap-1">
-                  {partnerMeta.auditName}
+                <p className="font-bold text-slate-200">
+                  {partnerMeta.shortName}
                 </p>
-                <p className="text-[10px] text-blue-400 font-medium">{partnerMeta.auditRole}</p>
+                <p className="text-[10px] text-slate-400 font-medium">{partnerMeta.auditRole}</p>
               </div>
-            </div>
-
-            <div className="hidden lg:flex items-center gap-1.5 text-xs text-emerald-300 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 font-bold">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" /> Audit Clearance Seal
             </div>
 
             <LanguageSwitcher />
@@ -163,12 +158,12 @@ function DonorLayoutInner({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex max-w-7xl w-full mx-auto">
         {/* Navigation Sidebar (Desktop & Mobile Drawer) */}
         <aside className={`
-          fixed md:static inset-y-0 left-0 z-30 w-64 bg-white border-r border-slate-200 p-4 space-y-6 transform transition-transform duration-200 ease-in-out shrink-0
+          fixed md:static inset-y-0 left-0 z-30 w-60 bg-white border-r border-slate-200/80 p-4 space-y-6 transform transition-transform duration-200 ease-in-out shrink-0
           ${mobileMenuOpen ? 'translate-x-0 pt-20 md:pt-4' : '-translate-x-full md:translate-x-0'}
         `}>
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-3 mb-3">
-              Partner Workspace & Audit Tools
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 mb-2.5">
+              Partner Portal
             </p>
             <nav className="space-y-1">
               {navItems.map((item) => {
@@ -181,19 +176,19 @@ function DonorLayoutInner({ children }: { children: React.ReactNode }) {
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
                     className={`
-                      flex items-center justify-between px-3 py-2.5 text-xs font-semibold rounded-xl transition-all
+                      flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-xl transition-all
                       ${isActive 
-                        ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30' 
+                        ? 'bg-slate-900 text-white shadow-xs' 
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}
                     `}
                   >
-                    <div className="flex items-center gap-3">
-                      <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+                    <div className="flex items-center gap-2.5">
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
                       <span>{item.label}</span>
                     </div>
                     {item.badge && (
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                        isActive ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+                        isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'
                       }`}>
                         {item.badge}
                       </span>
@@ -204,24 +199,9 @@ function DonorLayoutInner({ children }: { children: React.ReactNode }) {
             </nav>
           </div>
 
-          <div className="pt-4 border-t border-slate-100 space-y-3">
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-1.5">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-800">
-                <Building2 className="w-3.5 h-3.5 text-blue-600" /> Isolated Workspace
-              </div>
-              <p className="text-[10px] text-slate-500 leading-tight">
-                {partnerMeta.operationsText}
-              </p>
-            </div>
-
-            <div className="bg-emerald-50/80 p-3 rounded-xl border border-emerald-200 text-emerald-950 space-y-1">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Audit Trust Rating
-              </div>
-              <p className="text-[10px] text-emerald-800 font-semibold">
-                100% NGO Bureau Compliance Rating
-              </p>
-            </div>
+          <div className="pt-4 border-t border-slate-100 px-3 text-[11px] text-slate-400 space-y-0.5">
+            <p className="font-bold text-slate-700">Small Kindness Bangladesh</p>
+            <p className="text-[10px] text-slate-400">NGO Affairs Bureau Reg. #2938</p>
           </div>
         </aside>
 

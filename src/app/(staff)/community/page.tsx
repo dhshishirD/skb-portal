@@ -423,15 +423,15 @@ export default function StaffCommunityPage() {
       setInspectingOfficer(nameOrOfficer);
       return;
     }
-    const clean = String(nameOrOfficer).trim().toLowerCase();
+    const clean = String(nameOrOfficer || '').trim().toLowerCase();
     const foundOfficer = 
-      allOfficers.find(o => o.fullName.trim().toLowerCase() === clean) ||
-      allOfficers.find(o => o.fullName.toLowerCase().includes(clean) || clean.includes(o.fullName.toLowerCase()));
+      allOfficers.find(o => (o.fullName || '').trim().toLowerCase() === clean) ||
+      allOfficers.find(o => (o.fullName || '').toLowerCase().includes(clean) || clean.includes((o.fullName || '').toLowerCase()));
     
     if (foundOfficer) {
       setInspectingOfficer(foundOfficer);
     } else {
-      const contact = staffContacts.find(c => c.name.toLowerCase().includes(clean));
+      const contact = staffContacts.find(c => (c.name || '').toLowerCase().includes(clean));
       if (contact) {
         setInspectingOfficer(contact);
       }
@@ -439,8 +439,9 @@ export default function StaffCommunityPage() {
   };
 
   const handleStartDirectChat = (officer: UserProfileRecord | StaffContact) => {
-    const targetName = 'fullName' in officer ? officer.fullName : officer.name;
-    const foundContact = staffContacts.find(c => c.name.toLowerCase() === targetName.toLowerCase());
+    const rawTargetName = officer ? ('fullName' in officer ? officer.fullName : officer.name) : '';
+    const targetName = (rawTargetName || '').trim().toLowerCase();
+    const foundContact = staffContacts.find(c => (c.name || '').trim().toLowerCase() === targetName);
     if (foundContact) {
       setSelectedContact(foundContact);
       setUnreadCounts((prev) => ({ ...prev, [foundContact.name]: 0 }));
@@ -1096,24 +1097,29 @@ SKB Operations Portal - https://skbportal.online
   };
 
   const filteredPosts = posts.filter((p) => {
+    if (!p) return false;
     const matchesCategory = activeCategory === 'ALL' || p.category === activeCategory;
-    const matchesSearch = 
-      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.authorName.toLowerCase().includes(searchQuery.toLowerCase());
+    const searchLower = (searchQuery || '').toLowerCase();
+    const matchesSearch = !searchLower ||
+      (p.title || '').toLowerCase().includes(searchLower) ||
+      (p.content || '').toLowerCase().includes(searchLower) ||
+      (p.authorName || '').toLowerCase().includes(searchLower);
     return matchesCategory && matchesSearch;
   });
 
-  const filteredContacts = staffContacts.filter(
-    (c) =>
-      c.name.toLowerCase().includes(dmContactSearch.toLowerCase()) ||
-      c.role.toLowerCase().includes(dmContactSearch.toLowerCase())
-  );
+  const filteredContacts = staffContacts.filter((c) => {
+    if (!c) return false;
+    const searchLower = (dmContactSearch || '').toLowerCase();
+    return !searchLower ||
+      (c.name || '').toLowerCase().includes(searchLower) ||
+      (c.role || '').toLowerCase().includes(searchLower);
+  });
 
-  const activeThread = directMessages[selectedContact.name] || [];
+  const activeThread = (selectedContact && selectedContact.name && directMessages[selectedContact.name]) || [];
 
   const cleanAuthName = (currentAuthor || '').split('(')[0].trim().toLowerCase();
   const activeOfficer = allOfficers.find(o => {
+    if (!o || !o.fullName) return false;
     const oName = o.fullName.split('(')[0].trim().toLowerCase();
     return cleanAuthName && (
       oName === cleanAuthName ||

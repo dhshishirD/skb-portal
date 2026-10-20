@@ -88,13 +88,14 @@ function DonorLayoutInner({ children }: { children: React.ReactNode }) {
 
   const partnerParam = (searchParams.get('partner') || 'IHH_ADAK_AQIQAH').toUpperCase();
   const partnerMeta = PARTNER_LAYOUT_MAP[partnerParam] || PARTNER_LAYOUT_MAP.IHH_ADAK_AQIQAH;
+  const sectionParam = (searchParams.get('section') || 'overview').toLowerCase();
 
   const navItems = [
-    { href: `/donor-dashboard?partner=${partnerParam}`, label: 'Overview', icon: Globe },
-    { href: `/donor-dashboard?partner=${partnerParam}#portfolio`, label: 'Projects', icon: FolderKanban },
-    { href: `/donor-dashboard?partner=${partnerParam}#compliance`, label: 'Compliance & Form-7', icon: FileCheck2, badge: '7/7' },
-    { href: `/donor-dashboard?partner=${partnerParam}#clarifications`, label: 'Messages & Inquiries', icon: MessageSquare },
-    { href: `/donor-dashboard?partner=${partnerParam}#financials`, label: 'Financials', icon: DollarSign },
+    { key: 'overview', href: `/donor-dashboard?partner=${partnerParam}&section=overview`, label: 'Overview', icon: Globe },
+    { key: 'projects', href: `/donor-dashboard?partner=${partnerParam}&section=projects`, label: 'Projects', icon: FolderKanban },
+    { key: 'compliance', href: `/donor-dashboard?partner=${partnerParam}&section=compliance`, label: 'Compliance & Form-7', icon: FileCheck2, badge: '7/7' },
+    { key: 'messages', href: `/donor-dashboard?partner=${partnerParam}&section=messages`, label: 'Messages & Inquiries', icon: MessageSquare },
+    { key: 'financials', href: `/donor-dashboard?partner=${partnerParam}&section=financials`, label: 'Financials', icon: DollarSign },
   ];
 
   return (
@@ -167,12 +168,12 @@ function DonorLayoutInner({ children }: { children: React.ReactNode }) {
             </p>
             <nav className="space-y-1">
               {navItems.map((item) => {
-                const isActive = pathname === item.href || (item.href.includes('#') && typeof window !== 'undefined' && window.location.hash && item.href.endsWith(window.location.hash));
+                const isActive = sectionParam === item.key;
                 const Icon = item.icon;
 
                 return (
                   <Link
-                    key={item.href}
+                    key={item.key}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
                     className={`

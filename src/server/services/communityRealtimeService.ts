@@ -151,6 +151,26 @@ export class CommunityRealtimeService {
   }
 
   /**
+   * Fetch all Direct Messages from server sync API
+   */
+  static async fetchAllDirectMessages(): Promise<DirectMessage[]> {
+    try {
+      if (typeof window !== 'undefined') {
+        const res = await fetch('/api/community/sync');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.directMessages)) {
+            return json.directMessages;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('API sync all DMs fetch error:', e);
+    }
+    return [];
+  }
+
+  /**
    * Fetch Direct Messages for a thread
    */
   static async fetchDirectMessages(user1: string, user2: string): Promise<DirectMessage[] | null> {
@@ -185,9 +205,21 @@ export class CommunityRealtimeService {
   }
 
   /**
-   * Insert Direct Message into Supabase & Broadcast via WebSocket
+   * Insert Direct Message into Supabase & Broadcast via Multi-Channel (BroadcastChannel + WebSocket)
    */
   static async insertDirectMessage(dm: DirectMessage): Promise<boolean> {
+    // 1. Channel 1: Native HTML5 BroadcastChannel for instantaneous same-device cross-tab delivery (0ms)
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        const bc = new BroadcastChannel('skb_hq_direct_messages');
+        bc.postMessage({ type: 'NEW_DM', dm });
+        bc.close();
+      } catch (err) {
+        console.warn('BroadcastChannel DM error:', err);
+      }
+    }
+
+    // 2. Channel 2: Server Persistence to Supabase DB via /api/community/sync
     try {
       if (typeof window !== 'undefined') {
         fetch('/api/community/sync', {
@@ -200,7 +232,7 @@ export class CommunityRealtimeService {
       console.warn('DM persist exception:', e);
     }
 
-    // Realtime Broadcast
+    // 3. Channel 3: Supabase Realtime WebSocket broadcast
     const supabase = this.getSupabaseClient();
     if (supabase) {
       try {
@@ -255,25 +287,48 @@ export class CommunityRealtimeService {
   }
 
   /**
-   * Subscribe to Supabase Realtime changes for Direct Messages
+   * Subscribe to Realtime changes for Direct Messages across HTML5 BroadcastChannel and Supabase
    */
   static subscribeRealtimeDms(callback: (dm: DirectMessage) => void) {
-    const supabase = this.getSupabaseClient();
-    if (!supabase) return null;
-
-    try {
-      const channel = supabase
-        .channel('skb-community-sync')
-        .on('broadcast', { event: 'new-dm' }, (msg: any) => {
-          if (msg.payload) callback(msg.payload);
-        })
-        .subscribe();
-
-      return channel;
-    } catch (e) {
-      console.warn('Realtime DM subscribe failed:', e);
-      return null;
+    let bc: BroadcastChannel | null = null;
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        bc = new BroadcastChannel('skb_hq_direct_messages');
+        bc.onmessage = (event) => {
+          if (event.data?.type === 'NEW_DM' && event.data?.dm) {
+            callback(event.data.dm);
+          }
+        };
+      } catch (err) {
+        console.warn('BroadcastChannel listen error:', err);
+      }
     }
+
+    const supabase = this.getSupabaseClient();
+    let channel: any = null;
+    if (supabase) {
+      try {
+        channel = supabase
+          .channel('skb-community-sync')
+          .on('broadcast', { event: 'new-dm' }, (msg: any) => {
+            if (msg.payload) callback(msg.payload);
+          })
+          .subscribe();
+      } catch (e) {
+        console.warn('Realtime DM subscribe failed:', e);
+      }
+    }
+
+    return {
+      unsubscribe: () => {
+        if (bc) {
+          try { bc.close(); } catch {}
+        }
+        if (channel && typeof channel.unsubscribe === 'function') {
+          try { channel.unsubscribe(); } catch {}
+        }
+      },
+    };
   }
 
   /**

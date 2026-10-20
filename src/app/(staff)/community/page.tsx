@@ -345,6 +345,27 @@ export default function StaffCommunityPage() {
     return 'Program Officer';
   });
 
+  const selectedContactRef = useRef<StaffContact>(selectedContact);
+  const activeTabRef = useRef<'PUBLIC_FEED' | 'PERSONAL_CHAT'>(activeTab);
+  const staffContactsRef = useRef<StaffContact[]>(staffContacts);
+  const currentAuthorRef = useRef<string>(currentAuthor);
+
+  useEffect(() => {
+    selectedContactRef.current = selectedContact;
+  }, [selectedContact]);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  useEffect(() => {
+    staffContactsRef.current = staffContacts;
+  }, [staffContacts]);
+
+  useEffect(() => {
+    currentAuthorRef.current = currentAuthor;
+  }, [currentAuthor]);
+
   // Comment Input State map (postId -> text)
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -527,7 +548,7 @@ export default function StaffCommunityPage() {
       // 3. Load direct messages from server sync API
       try {
         const allDms = await CommunityRealtimeService.fetchAllDirectMessages();
-        if (allDms && allDms.length > 0) {
+        if (allDms !== null) {
           allDms.forEach((dm) => {
             if (dm && dm.id) knownDmIdsRef.current.add(dm.id);
           });
@@ -548,7 +569,11 @@ export default function StaffCommunityPage() {
                   lastMessageTime: last.timestamp || '',
                 };
               }
-              return c;
+              return {
+                ...c,
+                lastMessage: '',
+                lastMessageTime: '',
+              };
             })
           );
         } else {
@@ -664,18 +689,32 @@ export default function StaffCommunityPage() {
     const handleIncomingDm = (incomingDm: DirectMessage) => {
       if (!incomingDm || !incomingDm.id) return;
       if (knownDmIdsRef.current.has(incomingDm.id)) return;
-      knownDmIdsRef.current.add(incomingDm.id);
 
-      const cleanAuthor = (currentAuthor || '').split('(')[0].trim().toLowerCase();
+      const effectiveAuthor = currentAuthorRef.current || currentAuthor;
+      const cleanAuthor = (effectiveAuthor || '').split('(')[0].trim().toLowerCase();
+      if (!cleanAuthor) return; // Wait until current user identity is loaded
+
       const sClean = (incomingDm.senderName || '').split('(')[0].trim().toLowerCase();
       const rClean = (incomingDm.recipientName || '').split('(')[0].trim().toLowerCase();
 
-      const isMine = cleanAuthor && (sClean === cleanAuthor || sClean.includes(cleanAuthor) || cleanAuthor.includes(sClean));
-      const isForMe = cleanAuthor && (rClean === cleanAuthor || rClean.includes(cleanAuthor) || cleanAuthor.includes(rClean));
+      const isMine = sClean === cleanAuthor || sClean.includes(cleanAuthor) || cleanAuthor.includes(sClean);
+      const isForMe = rClean === cleanAuthor || rClean.includes(cleanAuthor) || cleanAuthor.includes(rClean);
 
-      // Resolve thread key from staff contacts
+      // If message does not involve current user, mark known and ignore
+      if (!isMine && !isForMe) {
+        knownDmIdsRef.current.add(incomingDm.id);
+        return;
+      }
+
+      knownDmIdsRef.current.add(incomingDm.id);
+
+      // Resolve thread key from staff contacts using live ref
       const targetParty = isMine ? incomingDm.recipientName : incomingDm.senderName;
-      const matchedContact = staffContacts.find((c) => {
+      const activeContacts = staffContactsRef.current && staffContactsRef.current.length > 0
+        ? staffContactsRef.current
+        : staffContacts;
+
+      const matchedContact = activeContacts.find((c) => {
         const cClean = c.name.split('(')[0].trim().toLowerCase();
         const oClean = targetParty.split('(')[0].trim().toLowerCase();
         return (
@@ -685,7 +724,10 @@ export default function StaffCommunityPage() {
           (cClean.includes('daloyar') && oClean.includes('daloyar')) ||
           (cClean.includes('emran') && oClean.includes('emran')) ||
           (cClean.includes('mizbah') && oClean.includes('mizbah')) ||
-          (cClean.includes('huraira') && oClean.includes('huraira'))
+          (cClean.includes('huraira') && oClean.includes('huraira')) ||
+          (cClean.includes('orakatul') && oClean.includes('orakatul')) ||
+          (cClean.includes('muktadir') && oClean.includes('muktadir')) ||
+          (cClean.includes('bulbul') && oClean.includes('bulbul'))
         );
       });
       const threadKey = matchedContact ? matchedContact.name : targetParty;
@@ -705,7 +747,9 @@ export default function StaffCommunityPage() {
         showToast(`💬 New message from ${incomingDm.senderName}: "${previewText}"`);
 
         // 4. Update unread counter if not currently in this chat thread
-        if (!(activeTab === 'PERSONAL_CHAT' && selectedContact.name === threadKey)) {
+        const currentActiveTab = activeTabRef.current;
+        const currentSelected = selectedContactRef.current;
+        if (!(currentActiveTab === 'PERSONAL_CHAT' && currentSelected?.name === threadKey)) {
           setUnreadCounts((prev) => ({
             ...prev,
             [threadKey]: (prev[threadKey] || 0) + 1,

@@ -45,6 +45,7 @@ export async function GET() {
         dms.push({
           ...payload,
           dbId: row.id,
+          createdAtIso: row.created_at,
         });
       }
     });
@@ -78,7 +79,9 @@ export async function GET() {
     });
 
     // Sort DMs chronologically (oldest to newest for chat timeline)
-    const chronologicalDms = [...dms].reverse();
+    const chronologicalDms = [...dms].sort(
+      (a, b) => new Date(a.createdAtIso || 0).getTime() - new Date(b.createdAtIso || 0).getTime()
+    );
 
     return NextResponse.json({
       success: true,
@@ -136,11 +139,16 @@ export async function POST(request: Request) {
 
     if (type === 'DM') {
       const { dm } = payload;
-      await (supabase.from('notifications') as any).insert({
+      const { error: insertError } = await (supabase.from('notifications') as any).insert({
         user_id: SYSTEM_PROFILE_ID,
         kind: 'community_dm',
         payload: dm,
       });
+
+      if (insertError) {
+        console.error('Error inserting DM:', insertError);
+        return NextResponse.json({ success: false, error: insertError.message }, { status: 500 });
+      }
 
       return NextResponse.json({ success: true });
     }

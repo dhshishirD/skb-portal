@@ -153,7 +153,7 @@ export class CommunityRealtimeService {
   /**
    * Fetch all Direct Messages from server sync API
    */
-  static async fetchAllDirectMessages(): Promise<DirectMessage[]> {
+  static async fetchAllDirectMessages(): Promise<DirectMessage[] | null> {
     try {
       if (typeof window !== 'undefined') {
         const res = await fetch('/api/community/sync');
@@ -167,7 +167,7 @@ export class CommunityRealtimeService {
     } catch (e) {
       console.warn('API sync all DMs fetch error:', e);
     }
-    return [];
+    return null;
   }
 
   /**

@@ -97,9 +97,13 @@ export default function NewFieldReportPage() {
           <textarea
             rows={3}
             value={summary}
-            onChange={(e) => setSummary(e.target.value)}
+            onChange={(e) => {
+              setSummary(e.target.value);
+              e.target.style.height = 'auto';
+              e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
+            }}
             placeholder="Describe field activity, community turnout, and challenges..."
-            className="w-full bg-emerald-950 border border-emerald-700 text-white text-xs rounded-lg p-2.5"
+            className="w-full bg-emerald-950 border border-emerald-700 text-white text-xs rounded-lg p-2.5 resize-none min-h-[72px] max-h-[200px] overflow-y-auto leading-relaxed whitespace-pre-wrap break-words [word-break:break-word] outline-none focus:border-emerald-400"
             required
           />
         </div>

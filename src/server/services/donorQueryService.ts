@@ -5,6 +5,8 @@ export interface DonorMessageItem {
   senderRole?: string;
   text: string;
   attachmentName?: string;
+  attachmentUrl?: string;
+  attachmentType?: 'image' | 'file';
   createdAt: string;
 }
 
@@ -108,7 +110,10 @@ export function createDonorQuery(
   queryType: DonorQueryTicket['queryType'],
   message: string,
   assignedOfficerName = 'Mizbah Uddin',
-  assignedOfficerEmail = 'uddinmizbah902@gmail.com'
+  assignedOfficerEmail = 'uddinmizbah902@gmail.com',
+  attachmentName?: string,
+  attachmentUrl?: string,
+  attachmentType?: 'image' | 'file'
 ): DonorQueryTicket {
   const timeStr = new Date().toLocaleString();
   const initialMsg: DonorMessageItem = {
@@ -116,6 +121,15 @@ export function createDonorQuery(
     sender: 'donor',
     senderName: donorName,
     text: message,
+    attachmentName,
+    attachmentUrl,
+    attachmentType: attachmentType || (
+      attachmentName?.match(/\.(png|jpe?g|webp|gif|svg)$/i) || attachmentUrl?.startsWith('data:image/')
+        ? 'image'
+        : attachmentName
+        ? 'file'
+        : undefined
+    ),
     createdAt: timeStr,
   };
 
@@ -140,7 +154,9 @@ export function addMessageToTicket(
   senderName: string,
   text: string,
   senderRole?: string,
-  attachmentName?: string
+  attachmentName?: string,
+  attachmentUrl?: string,
+  attachmentType?: 'image' | 'file'
 ): DonorQueryTicket {
   const currentMessages = getTicketMessages(ticket);
   const newMsg: DonorMessageItem = {
@@ -150,6 +166,14 @@ export function addMessageToTicket(
     senderRole,
     text,
     attachmentName,
+    attachmentUrl,
+    attachmentType: attachmentType || (
+      attachmentName?.match(/\.(png|jpe?g|webp|gif|svg)$/i) || attachmentUrl?.startsWith('data:image/')
+        ? 'image'
+        : attachmentName
+        ? 'file'
+        : undefined
+    ),
     createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
   };
 

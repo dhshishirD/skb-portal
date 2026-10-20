@@ -91,6 +91,16 @@ export default function DonorDashboardPage() {
   const [queryType, setQueryType] = useState<DonorQueryTicket['queryType']>('Beneficiary Verification Query');
   const [queryMessage, setQueryMessage] = useState('');
   const [submitSuccessMsg, setSubmitSuccessMsg] = useState('');
+  
+  // Attachment state for donor chat
+  const [chatAttachment, setChatAttachment] = useState<{
+    name: string;
+    url: string;
+    type: 'image' | 'file';
+    size?: string;
+  } | null>(null);
+  const [isUploadingChatFile, setIsUploadingChatFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Realtime Supabase Subscriptions State
   const [realtimeActive, setRealtimeActive] = useState(true);
@@ -349,13 +359,89 @@ export default function DonorDashboardPage() {
     setDonorEmail(currentPartnerInfo.focalEmail);
     setQueryType('General Project Inquiry');
     setQueryMessage('');
+    setChatAttachment(null);
     setSubmitSuccessMsg('');
+  };
+
+  const handleChatFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isImg = file.type.startsWith('image/');
+    const fileName = file.name;
+
+    // Fast local preview via FileReader
+    const reader = new FileReader();
+    reader.onload = async (readEvt) => {
+      const dataUrl = readEvt.target?.result as string;
+      setChatAttachment({
+        name: fileName,
+        url: dataUrl,
+        type: isImg ? 'image' : 'file',
+        size: `${(file.size / 1024).toFixed(0)} KB`,
+      });
+
+      // Background upload to Supabase storage
+      try {
+        setIsUploadingChatFile(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('projectId', activeModalProject?.pid || 'GENERAL');
+        formData.append('docName', fileName);
+
+        const res = await fetch('/api/storage/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.fileUrl) {
+            setChatAttachment((prev) =>
+              prev ? { ...prev, url: json.fileUrl } : null
+            );
+          }
+        }
+      } catch (err) {
+        console.warn('Storage upload fallback to Data URL', err);
+      } finally {
+        setIsUploadingChatFile(false);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleChatPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        const file = items[i].getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (readEvt) => {
+            const dataUrl = readEvt.target?.result as string;
+            setChatAttachment({
+              name: `Screenshot_${new Date().toISOString().slice(11, 19).replace(/:/g, '')}.png`,
+              url: dataUrl,
+              type: 'image',
+              size: `${(file.size / 1024).toFixed(0)} KB`,
+            });
+          };
+          reader.readAsDataURL(file);
+          break;
+        }
+      }
+    }
   };
 
   const handleSendChatMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeModalProject || !queryMessage.trim()) return;
+    if (!activeModalProject || (!queryMessage.trim() && !chatAttachment)) return;
 
+    const messageText = queryMessage.trim() || (chatAttachment ? `Attached: ${chatAttachment.name}` : '');
     const projectTickets = tickets.filter(t => t.pid === activeModalProject.pid);
     let updatedTicket: DonorQueryTicket;
 
@@ -365,7 +451,11 @@ export default function DonorDashboardPage() {
         mainTicket,
         'donor',
         currentPartnerInfo.shortName || activeModalProject.partner,
-        queryMessage.trim()
+        messageText,
+        undefined,
+        chatAttachment?.name,
+        chatAttachment?.url,
+        chatAttachment?.type
       );
     } else {
       updatedTicket = createDonorQuery(
@@ -373,9 +463,12 @@ export default function DonorDashboardPage() {
         currentPartnerInfo.shortName || activeModalProject.partner,
         donorEmail || currentPartnerInfo.focalEmail,
         queryType || 'General Project Inquiry',
-        queryMessage.trim(),
+        messageText,
         activeModalProject.assignedOfficer,
-        activeModalProject.assignedOfficerEmail
+        activeModalProject.assignedOfficerEmail,
+        chatAttachment?.name,
+        chatAttachment?.url,
+        chatAttachment?.type
       );
     }
 
@@ -385,6 +478,7 @@ export default function DonorDashboardPage() {
       return exists ? prev.map(t => t.id === updatedTicket.id ? updatedTicket : t) : [updatedTicket, ...prev];
     });
     setQueryMessage('');
+    setChatAttachment(null);
   };
 
   const [showHqSwitcher, setShowHqSwitcher] = useState(false);
@@ -975,12 +1069,42 @@ export default function DonorDashboardPage() {
                         }`}
                       >
                         <p>{msg.text}</p>
-                        {msg.attachmentName && (
+                        {msg.attachmentUrl ? (
+                          msg.attachmentType === 'image' || msg.attachmentName?.match(/\.(png|jpe?g|webp|gif|svg)$/i) || msg.attachmentUrl.startsWith('data:image/') ? (
+                            <div className="mt-2 rounded-xl overflow-hidden border border-slate-200/80 bg-white max-w-[280px]">
+                              <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="block cursor-zoom-in">
+                                <img
+                                  src={msg.attachmentUrl}
+                                  alt={msg.attachmentName || 'Screenshot attachment'}
+                                  className="max-h-48 w-full object-cover hover:opacity-95 transition"
+                                />
+                              </a>
+                              <div className="bg-slate-50 px-2.5 py-1 text-[10px] text-slate-600 flex items-center justify-between border-t border-slate-100">
+                                <span className="truncate max-w-[170px] font-medium">{msg.attachmentName || 'Screenshot'}</span>
+                                <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-bold hover:underline flex items-center gap-0.5">
+                                  <span>View</span>
+                                  <ExternalLink className="w-2.5 h-2.5" />
+                                </a>
+                              </div>
+                            </div>
+                          ) : (
+                            <a
+                              href={msg.attachmentUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 mt-2 bg-white text-blue-700 px-3 py-1.5 rounded-xl border border-blue-200 text-[11px] font-bold hover:bg-blue-50 transition shadow-2xs"
+                            >
+                              <Paperclip className="w-3.5 h-3.5 text-blue-600" />
+                              <span className="truncate max-w-[180px]">{msg.attachmentName || 'Document'}</span>
+                              <ExternalLink className="w-3 h-3 text-slate-400" />
+                            </a>
+                          )
+                        ) : msg.attachmentName ? (
                           <div className="mt-2 pt-1.5 border-t border-slate-200/50 flex items-center gap-1.5 text-[11px] font-bold text-blue-700">
                             <Paperclip className="w-3.5 h-3.5" />
                             <span>{msg.attachmentName}</span>
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   );
@@ -988,18 +1112,69 @@ export default function DonorDashboardPage() {
               })()}
             </div>
 
+            {/* Attachment Preview Chip */}
+            {chatAttachment && (
+              <div className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-2xl flex items-center justify-between gap-2 text-xs animate-in fade-in">
+                <div className="flex items-center gap-2 min-w-0">
+                  {chatAttachment.type === 'image' ? (
+                    <img
+                      src={chatAttachment.url}
+                      alt="Thumbnail preview"
+                      className="w-10 h-10 object-cover rounded-lg border border-blue-200 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                      <Paperclip className="w-4 h-4" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-bold text-slate-900 truncate text-xs">{chatAttachment.name}</p>
+                    <p className="text-[10px] text-slate-500 font-mono">
+                      {isUploadingChatFile ? 'Uploading to cloud...' : chatAttachment.size || 'Ready to send'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setChatAttachment(null)}
+                  className="w-6 h-6 rounded-full bg-slate-200/80 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-xs transition"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
             {/* Chat Input Bar */}
-            <form onSubmit={handleSendChatMessage} className="pt-3 border-t border-slate-100 flex items-center gap-2">
+            <form onSubmit={handleSendChatMessage} className="pt-2 border-t border-slate-100 flex items-center gap-2">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleChatFileSelect}
+                accept="image/*,.pdf,.doc,.docx,.xlsx,.txt"
+                className="hidden"
+              />
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="p-2.5 text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 rounded-xl border border-slate-200 transition shrink-0 cursor-pointer"
+                title="Attach screenshot or file (or paste Ctrl+V)"
+              >
+                <Paperclip className="w-4 h-4" />
+              </button>
+
               <input
                 type="text"
                 value={queryMessage}
                 onChange={(e) => setQueryMessage(e.target.value)}
-                placeholder={`Type a message to ${activeModalProject.assignedOfficer}...`}
+                onPaste={handleChatPaste}
+                placeholder={`Type a message (or paste screenshot Ctrl+V)...`}
                 className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 focus:bg-white transition"
               />
+
               <button
                 type="submit"
-                disabled={!queryMessage.trim()}
+                disabled={!queryMessage.trim() && !chatAttachment}
                 className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 shrink-0 cursor-pointer"
               >
                 <Send className="w-3.5 h-3.5" />

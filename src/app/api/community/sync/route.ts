@@ -26,6 +26,7 @@ export async function GET() {
       if (!payload) return;
 
       if (row.kind === 'community_post') {
+        if (!payload || !payload.id || !payload.title) return;
         posts.push({
           ...payload,
           dbId: row.id,
@@ -42,6 +43,7 @@ export async function GET() {
           });
         }
       } else if (row.kind === 'community_dm') {
+        if (!payload || !payload.id || !payload.senderName || !payload.recipientName) return;
         dms.push({
           ...payload,
           dbId: row.id,

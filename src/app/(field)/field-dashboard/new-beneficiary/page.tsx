@@ -289,9 +289,13 @@ export default function NewBeneficiaryRegistrationPage() {
           <textarea
             rows={3}
             value={summary}
-            onChange={(e) => setSummary(e.target.value)}
+            onChange={(e) => {
+              setSummary(e.target.value);
+              e.target.style.height = 'auto';
+              e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
+            }}
             placeholder="Field observations, vulnerability criteria, or comments..."
-            className="w-full bg-emerald-950 border border-emerald-700 text-white text-xs rounded-xl p-3 focus:border-emerald-400 outline-none"
+            className="w-full bg-emerald-950 border border-emerald-700 text-white text-xs rounded-xl p-3 focus:border-emerald-400 outline-none resize-none min-h-[72px] max-h-[200px] overflow-y-auto leading-relaxed whitespace-pre-wrap break-words [word-break:break-word]"
           />
         </div>
 

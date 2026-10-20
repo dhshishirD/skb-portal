@@ -721,8 +721,12 @@ export default function MasterProjectCharterPage({ params }: { params: { id: str
                     rows={3}
                     required
                     value={editSummary}
-                    onChange={(e) => setEditSummary(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
+                    onChange={(e) => {
+                      setEditSummary(e.target.value);
+                      e.target.style.height = 'auto';
+                      e.target.style.height = `${Math.min(e.target.scrollHeight, 220)}px`;
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition resize-none min-h-[72px] max-h-[220px] overflow-y-auto leading-relaxed whitespace-pre-wrap break-words [word-break:break-word]"
                   />
                 </div>
 

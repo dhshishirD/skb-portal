@@ -458,9 +458,13 @@ export default function MyProfilePage() {
               <textarea
                 rows={3}
                 value={bio}
-                onChange={(e) => setBio(e.target.value)}
+                onChange={(e) => {
+                  setBio(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
+                }}
                 placeholder="Brief summary of humanitarian responsibilities, field coordination, and operational experience..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none leading-relaxed"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none leading-relaxed resize-none min-h-[72px] max-h-[200px] overflow-y-auto whitespace-pre-wrap break-words [word-break:break-word]"
               />
             </div>
 

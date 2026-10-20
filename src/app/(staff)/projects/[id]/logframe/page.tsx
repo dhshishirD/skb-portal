@@ -277,8 +277,12 @@ export default function LogframeEditorPage({ params }: { params: { id: string } 
                   required
                   placeholder="State the objective, outcome statement, or specific activity..."
                   value={nodeTitle}
-                  onChange={(e) => setNodeTitle(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition"
+                  onChange={(e) => {
+                    setNodeTitle(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
+                  }}
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-2.5 outline-none focus:border-blue-500 focus:bg-white transition resize-none min-h-[72px] max-h-[200px] overflow-y-auto leading-relaxed whitespace-pre-wrap break-words [word-break:break-word]"
                 />
               </div>
 

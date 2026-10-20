@@ -101,6 +101,18 @@ export default function DonorDashboardPage() {
   } | null>(null);
   const [isUploadingChatFile, setIsUploadingChatFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const chatTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const adjustChatTextareaHeight = () => {
+    if (chatTextareaRef.current) {
+      chatTextareaRef.current.style.height = 'auto';
+      chatTextareaRef.current.style.height = `${Math.min(chatTextareaRef.current.scrollHeight, 160)}px`;
+    }
+  };
+
+  useEffect(() => {
+    adjustChatTextareaHeight();
+  }, [queryMessage]);
 
   // Realtime Supabase Subscriptions State
   const [realtimeActive, setRealtimeActive] = useState(true);
@@ -412,7 +424,7 @@ export default function DonorDashboardPage() {
     e.target.value = '';
   };
 
-  const handleChatPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+  const handleChatPaste = (e: React.ClipboardEvent<HTMLTextAreaElement | HTMLInputElement>) => {
     const items = e.clipboardData?.items;
     if (!items) return;
 
@@ -434,6 +446,13 @@ export default function DonorDashboardPage() {
           break;
         }
       }
+    }
+  };
+
+  const handleChatKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendChatMessage(e as any);
     }
   };
 
@@ -479,6 +498,9 @@ export default function DonorDashboardPage() {
     });
     setQueryMessage('');
     setChatAttachment(null);
+    if (chatTextareaRef.current) {
+      chatTextareaRef.current.style.height = 'auto';
+    }
   };
 
   const [showHqSwitcher, setShowHqSwitcher] = useState(false);
@@ -1068,7 +1090,7 @@ export default function DonorDashboardPage() {
                             : 'bg-slate-100 border border-slate-200 text-slate-900 rounded-tl-xs shadow-xs'
                         }`}
                       >
-                        <p>{msg.text}</p>
+                        <p className="whitespace-pre-wrap break-words [word-break:break-word] leading-relaxed">{msg.text}</p>
                         {msg.attachmentUrl ? (
                           msg.attachmentType === 'image' || msg.attachmentName?.match(/\.(png|jpe?g|webp|gif|svg)$/i) || msg.attachmentUrl.startsWith('data:image/') ? (
                             <div className="mt-2 rounded-xl overflow-hidden border border-slate-200/80 bg-white max-w-[280px]">
@@ -1145,7 +1167,7 @@ export default function DonorDashboardPage() {
             )}
 
             {/* Chat Input Bar */}
-            <form onSubmit={handleSendChatMessage} className="pt-2 border-t border-slate-100 flex items-center gap-2">
+            <form onSubmit={handleSendChatMessage} className="pt-2 border-t border-slate-100 flex items-end gap-2">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -1157,25 +1179,30 @@ export default function DonorDashboardPage() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2.5 text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 rounded-xl border border-slate-200 transition shrink-0 cursor-pointer"
+                className="h-[42px] w-[42px] flex items-center justify-center text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 rounded-xl border border-slate-200 transition shrink-0 cursor-pointer"
                 title="Attach screenshot or file (or paste Ctrl+V)"
               >
                 <Paperclip className="w-4 h-4" />
               </button>
 
-              <input
-                type="text"
+              <textarea
+                ref={chatTextareaRef}
+                rows={1}
                 value={queryMessage}
-                onChange={(e) => setQueryMessage(e.target.value)}
+                onChange={(e) => {
+                  setQueryMessage(e.target.value);
+                  adjustChatTextareaHeight();
+                }}
+                onKeyDown={handleChatKeyDown}
                 onPaste={handleChatPaste}
-                placeholder={`Type a message (or paste screenshot Ctrl+V)...`}
-                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 focus:bg-white transition"
+                placeholder="Type a message... (Enter to send, Shift+Enter for new line, Ctrl+V for screenshot)"
+                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 focus:bg-white transition resize-none min-h-[42px] max-h-[160px] overflow-y-auto leading-relaxed whitespace-pre-wrap break-words [word-break:break-word]"
               />
 
               <button
                 type="submit"
                 disabled={!queryMessage.trim() && !chatAttachment}
-                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+                className="h-[42px] px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 shrink-0 cursor-pointer"
               >
                 <Send className="w-3.5 h-3.5" />
                 <span>Send</span>

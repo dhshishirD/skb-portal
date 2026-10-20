@@ -469,6 +469,34 @@ export default function StaffDashboardPage() {
     e.target.value = '';
   };
 
+  const handleStaffPaste = (ticketId: string, e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        const file = items[i].getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (readEvt) => {
+            const dataUrl = readEvt.target?.result as string;
+            setReplyFileMap(prev => ({
+              ...prev,
+              [ticketId]: {
+                name: `Screenshot_${new Date().toISOString().slice(11, 19).replace(/:/g, '')}.png`,
+                url: dataUrl,
+                type: 'image',
+                size: `${(file.size / 1024).toFixed(0)} KB`,
+              },
+            }));
+          };
+          reader.readAsDataURL(file);
+          break;
+        }
+      }
+    }
+  };
+
   const handleSendInlineReply = (ticket: DonorQueryTicket) => {
     const text = replyTextMap[ticket.id]?.trim();
     const attached = replyFileMap[ticket.id];
@@ -497,6 +525,10 @@ export default function StaffDashboardPage() {
     setReplyTextMap(prev => ({ ...prev, [ticket.id]: '' }));
     setReplyAttachmentMap(prev => ({ ...prev, [ticket.id]: '' }));
     setReplyFileMap(prev => ({ ...prev, [ticket.id]: null }));
+    const textarea = document.getElementById(`reply_textarea_${ticket.id}`) as HTMLTextAreaElement | null;
+    if (textarea) {
+      textarea.style.height = 'auto';
+    }
     setTimeout(() => setSuccessToast(''), 4000);
   };
 
@@ -1183,7 +1215,7 @@ export default function StaffDashboardPage() {
                                     : 'bg-white border border-slate-200 text-slate-900 rounded-tl-xs shadow-2xs'
                                 }`}
                               >
-                                <p>{msg.text}</p>
+                                <p className="whitespace-pre-wrap break-words [word-break:break-word] leading-relaxed">{msg.text}</p>
                                 {msg.attachmentUrl ? (
                                   msg.attachmentType === 'image' || msg.attachmentName?.match(/\.(png|jpe?g|webp|gif|svg)$/i) || msg.attachmentUrl.startsWith('data:image/') ? (
                                     <div className="mt-2 rounded-xl overflow-hidden border border-slate-200/80 bg-white max-w-[260px]">
@@ -1264,7 +1296,7 @@ export default function StaffDashboardPage() {
                         }}
                         className="space-y-1.5"
                       >
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-end gap-2">
                           <input
                             type="file"
                             id={`file_input_${ticket.id}`}
@@ -1276,23 +1308,36 @@ export default function StaffDashboardPage() {
                           <button
                             type="button"
                             onClick={() => document.getElementById(`file_input_${ticket.id}`)?.click()}
-                            className="p-2 bg-slate-100 hover:bg-blue-50 text-slate-500 hover:text-blue-700 rounded-xl border border-slate-200 transition shrink-0 cursor-pointer"
-                            title="Attach screenshot or file"
+                            className="h-[38px] w-[38px] flex items-center justify-center bg-slate-100 hover:bg-blue-50 text-slate-500 hover:text-blue-700 rounded-xl border border-slate-200 transition shrink-0 cursor-pointer"
+                            title="Attach screenshot or file (or paste Ctrl+V)"
                           >
                             <Paperclip className="w-3.5 h-3.5" />
                           </button>
 
-                          <input
-                            type="text"
+                          <textarea
+                            id={`reply_textarea_${ticket.id}`}
+                            rows={1}
                             value={replyTextMap[ticket.id] || ''}
-                            onChange={(e) => setReplyTextMap(prev => ({ ...prev, [ticket.id]: e.target.value }))}
-                            placeholder={`Reply to ${ticket.donorName}...`}
-                            className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 transition"
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setReplyTextMap(prev => ({ ...prev, [ticket.id]: val }));
+                              e.target.style.height = 'auto';
+                              e.target.style.height = `${Math.min(e.target.scrollHeight, 140)}px`;
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendInlineReply(ticket);
+                              }
+                            }}
+                            onPaste={(e) => handleStaffPaste(ticket.id, e)}
+                            placeholder={`Reply to ${ticket.donorName}... (Enter to send, Shift+Enter for new line)`}
+                            className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 transition resize-none min-h-[38px] max-h-[140px] overflow-y-auto leading-relaxed whitespace-pre-wrap break-words [word-break:break-word]"
                           />
                           <button
                             type="submit"
                             disabled={!replyTextMap[ticket.id]?.trim() && !replyFileMap[ticket.id]}
-                            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+                            className="h-[38px] px-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 shrink-0 cursor-pointer"
                           >
                             <Send className="w-3 h-3" />
                             <span>Reply</span>
@@ -1534,9 +1579,13 @@ export default function StaffDashboardPage() {
                 <textarea
                   rows={4}
                   value={responseText}
-                  onChange={(e) => setResponseText(e.target.value)}
+                  onChange={(e) => {
+                    setResponseText(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = `${Math.min(e.target.scrollHeight, 240)}px`;
+                  }}
                   placeholder="Provide precise explanation or reference to attached clarification letter..."
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 outline-none focus:border-blue-500"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 outline-none focus:border-blue-500 resize-none min-h-[96px] max-h-[240px] overflow-y-auto leading-relaxed whitespace-pre-wrap break-words [word-break:break-word]"
                   required
                 />
               </div>

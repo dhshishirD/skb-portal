@@ -1403,9 +1403,13 @@ SKB Operations Portal - https://skbportal.online
                 <textarea
                   rows={3}
                   value={newContent}
-                  onChange={(e) => setNewContent(e.target.value)}
+                  onChange={(e) => {
+                    setNewContent(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = `${Math.min(e.target.scrollHeight, 220)}px`;
+                  }}
                   placeholder="Write update content for HQ team..."
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 outline-none focus:border-blue-500"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 outline-none focus:border-blue-500 resize-none min-h-[80px] max-h-[220px] overflow-y-auto leading-relaxed whitespace-pre-wrap break-words [word-break:break-word]"
                   required
                 />
               </div>

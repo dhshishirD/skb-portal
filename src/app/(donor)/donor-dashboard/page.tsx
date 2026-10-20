@@ -39,13 +39,18 @@ import {
   HelpCircle,
   ChevronRight,
   Award,
-  Radio
+  Radio,
+  Phone,
+  Mail,
+  MessageCircle,
+  User
 } from 'lucide-react';
 import { formatCurrencyString, SupportedCurrency } from '@/server/services/multiCurrency';
 import { 
   DonorQueryTicket, 
   INITIAL_DONOR_QUERIES, 
-  createDonorQuery 
+  createDonorQuery,
+  DonorQueryService
 } from '@/server/services/donorQueryService';
 import { CloudSyncService } from '@/server/services/cloudSyncService';
 
@@ -173,9 +178,24 @@ export default function DonorDashboardPage() {
       setTimeout(() => setLiveActivityToast(null), 5000);
     });
 
+    // 3. Load & Synchronize Donor Inquiry Tickets with HQ Staff Officers
+    DonorQueryService.fetchTickets().then((loaded) => {
+      if (loaded && loaded.length > 0) {
+        setTickets(loaded);
+      }
+    });
+
+    const ticketPoll = setInterval(async () => {
+      const latest = await DonorQueryService.fetchTickets();
+      if (latest && latest.length > 0) {
+        setTickets(latest);
+      }
+    }, 4000);
+
     return () => {
       docSub.unsubscribe();
       projSub.unsubscribe();
+      clearInterval(ticketPoll);
     };
   }, []);
 
@@ -317,11 +337,12 @@ export default function DonorDashboardPage() {
       activeModalProject.assignedOfficerEmail
     );
 
-    setTickets([newTicket, ...tickets]);
+    setTickets((prev) => [newTicket, ...prev]);
+    DonorQueryService.saveTicket(newTicket);
     setSubmitSuccessMsg(`Clarification request #${newTicket.id} transmitted directly to Program Officer ${activeModalProject.assignedOfficer}!`);
     setTimeout(() => {
       setActiveModalProject(null);
-    }, 2000);
+    }, 2500);
   };
 
   const [showHqSwitcher, setShowHqSwitcher] = useState(false);
@@ -603,11 +624,58 @@ export default function DonorDashboardPage() {
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 font-medium pt-0.5">
                       <span>Location: <strong className="text-slate-800">{project.location}</strong></span>
                       <span>•</span>
-                      <span>Assigned Officer: <strong className="text-slate-800">{project.assignedOfficer}</strong></span>
-                      <span>•</span>
                       <span>Beneficiaries: <strong className="text-slate-800">{project.beneficiariesCount} Individuals</strong></span>
                       <span>•</span>
                       <span>Grant: <strong className="text-emerald-700 font-mono font-bold">{formatCurrencyString(project.budgetAmount, project.currency)}</strong></span>
+                    </div>
+                  </div>
+
+                  {/* Assigned Officer Bilateral Focal Bar */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-slate-50 via-blue-50/30 to-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center shadow-xs shrink-0">
+                        {project.assignedOfficer.split(' ').map(n => n[0]).slice(0, 2).join('')}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-black text-slate-900">{project.assignedOfficer}</span>
+                          <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+                            ● Assigned Focal Person
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-mono">{project.assignedOfficerEmail}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <a
+                        href={`https://wa.me/8801711000001?text=${encodeURIComponent(`Hello ${project.assignedOfficer}, inquiring from partner desk regarding funded project [${project.pid}] "${project.title}".`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 transition flex items-center gap-1 shadow-2xs"
+                        title="Chat directly on WhatsApp with the assigned officer"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>WhatsApp</span>
+                      </a>
+
+                      <a
+                        href={`mailto:${project.assignedOfficerEmail}?subject=${encodeURIComponent(`[SKB Portal] Donor Inquiry: ${project.pid} - ${project.title}`)}`}
+                        className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition flex items-center gap-1 shadow-2xs"
+                        title="Send email directly to assigned officer"
+                      >
+                        <Mail className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Email Desk</span>
+                      </a>
+
+                      <a
+                        href="tel:+8801711000001"
+                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition flex items-center gap-1 shadow-2xs"
+                        title="Call the assigned officer hotline"
+                      >
+                        <Phone className="w-3.5 h-3.5 text-slate-600" />
+                        <span>Hotline</span>
+                      </a>
                     </div>
                   </div>
 
@@ -819,7 +887,40 @@ export default function DonorDashboardPage() {
                 <span>{submitSuccessMsg}</span>
               </div>
             ) : (
-              <form onSubmit={handleSendQueryTicket} className="space-y-4 text-xs">
+              <div className="space-y-4">
+                {/* Existing Inquiries on this project */}
+                {tickets.filter(t => t.pid === activeModalProject.pid).length > 0 && (
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    <p className="text-[11px] font-black text-slate-700 uppercase tracking-wider">
+                      Active Inquiries ({tickets.filter(t => t.pid === activeModalProject.pid).length})
+                    </p>
+                    {tickets.filter(t => t.pid === activeModalProject.pid).map(t => (
+                      <div key={t.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 text-xs">
+                        <div className="flex justify-between items-center text-[10px]">
+                          <span className="font-mono font-bold text-blue-700">{t.id}</span>
+                          <span className={`px-2 py-0.5 rounded-full font-bold ${
+                            t.status === 'Officer Clarification Posted' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
+                          }`}>{t.status}</span>
+                        </div>
+                        <p className="font-semibold text-slate-800 text-[11px]">{t.queryType}</p>
+                        <p className="text-slate-600 italic text-[11px]">&ldquo;{t.message}&rdquo;</p>
+                        {t.officerResponse && (
+                          <div className="mt-1.5 p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-[11px] text-emerald-900">
+                            <span className="font-bold">Official Response from {t.officerResponse.responderName}:</span>
+                            <p className="mt-0.5">{t.officerResponse.responseText}</p>
+                            {t.officerResponse.attachmentName && (
+                              <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded mt-1">
+                                📎 {t.officerResponse.attachmentName}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <form onSubmit={handleSendQueryTicket} className="space-y-4 text-xs">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Target Project</label>
                   <input
@@ -884,6 +985,7 @@ export default function DonorDashboardPage() {
                   </button>
                 </div>
               </form>
+              </div>
             )}
           </div>
         </div>

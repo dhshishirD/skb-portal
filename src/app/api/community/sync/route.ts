@@ -9,7 +9,7 @@ export async function GET() {
     const supabase = createAdminClient();
     const { data, error } = await (supabase.from('notifications') as any)
       .select('*')
-      .in('kind', ['community_post', 'community_comment', 'community_dm'])
+      .in('kind', ['community_post', 'community_comment', 'community_dm', 'donor_ticket'])
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -20,6 +20,7 @@ export async function GET() {
     const posts: any[] = [];
     const commentsByPost: Record<string, any[]> = {};
     const dms: any[] = [];
+    const donorTickets: any[] = [];
 
     (data || []).forEach((row: any) => {
       const payload = row.payload;
@@ -48,6 +49,13 @@ export async function GET() {
           ...payload,
           dbId: row.id,
           createdAtIso: row.created_at,
+        });
+      } else if (row.kind === 'donor_ticket') {
+        if (!payload || !payload.id) return;
+        donorTickets.push({
+          ...payload,
+          dbId: row.id,
+          createdAt: payload.createdAt || new Date(row.created_at).toLocaleString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' }),
         });
       }
     });
@@ -90,6 +98,7 @@ export async function GET() {
       posts: postsWithComments,
       directMessages: chronologicalDms,
       directMessagesMap,
+      donorTickets,
     });
   } catch (err: any) {
     console.error('Community sync GET exception:', err);
@@ -169,6 +178,34 @@ export async function POST(request: Request) {
           .update({ payload: updatedPayload })
           .eq('id', match.id);
       }
+      return NextResponse.json({ success: true });
+    }
+
+    if (type === 'DONOR_TICKET') {
+      const { ticket } = payload;
+      if (!ticket || !ticket.id) {
+        return NextResponse.json({ success: false, message: 'Invalid ticket payload' }, { status: 400 });
+      }
+
+      const { data: existing } = await (supabase.from('notifications') as any)
+        .select('id, payload')
+        .eq('kind', 'donor_ticket')
+        .limit(100);
+
+      const match = (existing || []).find((r: any) => r.payload?.id === ticket.id);
+
+      if (match) {
+        await (supabase.from('notifications') as any)
+          .update({ payload: ticket })
+          .eq('id', match.id);
+      } else {
+        await (supabase.from('notifications') as any).insert({
+          user_id: SYSTEM_PROFILE_ID,
+          kind: 'donor_ticket',
+          payload: ticket,
+        });
+      }
+
       return NextResponse.json({ success: true });
     }
 

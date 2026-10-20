@@ -55,7 +55,8 @@ import {
 import { 
   DonorQueryTicket, 
   INITIAL_DONOR_QUERIES, 
-  respondToDonorQuery 
+  respondToDonorQuery,
+  DonorQueryService
 } from '@/server/services/donorQueryService';
 import { CloudSyncService } from '@/server/services/cloudSyncService';
 import { formatCurrencyString } from '@/server/services/multiCurrency';
@@ -183,6 +184,20 @@ export default function StaffDashboardPage() {
 
     loadProjectsWithDocsAndAssignments();
 
+    // Load and poll live donor tickets from Supabase
+    DonorQueryService.fetchTickets().then((loaded) => {
+      if (loaded && loaded.length > 0) {
+        setDonorTickets(loaded);
+      }
+    });
+
+    const ticketPoll = setInterval(async () => {
+      const latest = await DonorQueryService.fetchTickets();
+      if (latest && latest.length > 0) {
+        setDonorTickets(latest);
+      }
+    }, 4000);
+
     // Listen for cross-component assignment updates
     const handleAssignmentsChanged = () => {
       loadProjectsWithDocsAndAssignments();
@@ -190,6 +205,7 @@ export default function StaffDashboardPage() {
     window.addEventListener('skb_assignments_changed', handleAssignmentsChanged);
     return () => {
       window.removeEventListener('skb_assignments_changed', handleAssignmentsChanged);
+      clearInterval(ticketPoll);
     };
   }, []);
 
@@ -366,6 +382,7 @@ export default function StaffDashboardPage() {
 
     const updatedList = donorTickets.map((t) => (t.id === updatedTicket.id ? updatedTicket : t));
     setDonorTickets(updatedList);
+    DonorQueryService.saveTicket(updatedTicket);
     setSuccessToast(`Clarification posted for ${updatedTicket.id} (${updatedTicket.pid})! Synchronized with International Donor Workspace.`);
     setActiveResponseTicket(null);
     setResponseText('');

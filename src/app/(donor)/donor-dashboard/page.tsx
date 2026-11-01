@@ -1,5 +1,6 @@
 'use client';
 
+import { POLL_INTERVALS, startPoll } from '@/lib/polling';
 import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -228,7 +229,7 @@ function DonorDashboardContent() {
       }
     });
 
-    const ticketPoll = setInterval(async () => {
+    const stopTicketPoll = startPoll(async () => {
       const latest = await DonorQueryService.fetchTickets();
       if (latest && latest.length > 0) {
         // Automatic notification chime & toast if new message arrived from officer
@@ -257,12 +258,12 @@ function DonorDashboardContent() {
         prevTicketsRef.current = latest;
         setTickets(latest);
       }
-    }, 4000);
+    }, POLL_INTERVALS.donorTickets, { immediate: false });
 
     return () => {
       docSub.unsubscribe();
       projSub.unsubscribe();
-      clearInterval(ticketPoll);
+      stopTicketPoll();
     };
   }, []);
 

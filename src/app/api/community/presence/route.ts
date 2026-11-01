@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireUser } from '@/lib/auth/guards';
+import { PRESENCE_TIMEOUT_MS } from '@/lib/polling';
 
 // In-memory cache for fast response
 const activeHeartbeats: Map<string, { role: string; lastSeen: number }> = new Map();
 const SYSTEM_PROFILE_ID = 'd963309c-1da4-4a4a-947c-c10785d43f1e';
-const PRESENCE_TIMEOUT_MS = 35 * 1000; // 35 seconds
 
 function getCleanName(name: string): string {
   return (name || '').split('(')[0].trim().toLowerCase();

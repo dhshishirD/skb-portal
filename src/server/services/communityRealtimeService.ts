@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { POLL_INTERVALS, startPoll } from '@/lib/polling';
 import { CommunityPost, DirectMessage } from '@/app/(staff)/community/page';
 
 export class CommunityRealtimeService {
@@ -404,9 +405,8 @@ export class CommunityRealtimeService {
       }
     };
 
-    // Immediate heartbeat
-    sendHeartbeat();
-    const heartbeatInterval = setInterval(sendHeartbeat, 10000);
+    // Heartbeat keeps running in background tabs so the officer stays "online".
+    const stopHeartbeat = startPoll(sendHeartbeat, POLL_INTERVALS.presenceHeartbeat, { runWhenHidden: true });
 
     // Channel 3: Supabase Realtime WebSocket presence channel
     const supabase = this.getSupabaseClient();
@@ -470,7 +470,7 @@ export class CommunityRealtimeService {
     // Return cleanup handle
     return {
       unsubscribe: () => {
-        clearInterval(heartbeatInterval);
+        stopHeartbeat();
         handleUnload();
         if (typeof window !== 'undefined') {
           window.removeEventListener('beforeunload', handleUnload);

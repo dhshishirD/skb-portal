@@ -1,5 +1,6 @@
 'use client';
 
+import { POLL_INTERVALS, startPoll } from '@/lib/polling';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -200,7 +201,7 @@ export default function StaffDashboardPage() {
       }
     });
 
-    const ticketPoll = setInterval(async () => {
+    const stopTicketPoll = startPoll(async () => {
       const latest = await DonorQueryService.fetchTickets();
       if (latest && latest.length > 0) {
         // Automatic notification chime & toast if new donor message arrived
@@ -226,7 +227,7 @@ export default function StaffDashboardPage() {
         prevTicketsRef.current = latest;
         setDonorTickets(latest);
       }
-    }, 4000);
+    }, POLL_INTERVALS.donorTickets, { immediate: false });
 
     // Listen for cross-component assignment updates
     const handleAssignmentsChanged = () => {
@@ -235,7 +236,7 @@ export default function StaffDashboardPage() {
     window.addEventListener('skb_assignments_changed', handleAssignmentsChanged);
     return () => {
       window.removeEventListener('skb_assignments_changed', handleAssignmentsChanged);
-      clearInterval(ticketPoll);
+      stopTicketPoll();
     };
   }, []);
 

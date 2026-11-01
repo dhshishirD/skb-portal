@@ -1,34 +1,82 @@
--- RLS Test Suite for Integrations & AI Narratives (0006)
+-- rls_integrations.sql - proves the 0006 rules for webhooks, notification logs and AI narratives.
+-- Plain SQL like the other suites (no pgTAP): one transaction, rolled back; any failed
+-- assert raises an error. Run against LOCAL Supabase only.
+begin;
 
-BEGIN;
-SELECT plan(6);
+-- ---------- fixtures (as superuser, RLS bypassed) ----------
+insert into auth.users (id) values
+  ('60000000-0000-0000-0000-000000000001'), -- super admin
+  ('60000000-0000-0000-0000-000000000002'), -- finance
+  ('60000000-0000-0000-0000-000000000003'); -- field officer
 
--- Test 1: Anonymous cannot view external webhooks
-SET LOCAL ROLE anon;
-SELECT is_empty(
-    'SELECT * FROM external_webhooks',
-    'Anonymous user cannot read external webhooks log'
-);
+insert into public.user_roles (user_id, role) values
+  ('60000000-0000-0000-0000-000000000001','super_admin'),
+  ('60000000-0000-0000-0000-000000000002','finance'),
+  ('60000000-0000-0000-0000-000000000003','field_officer');
 
--- Test 2: Anonymous cannot view notification logs
-SELECT is_empty(
-    'SELECT * FROM notification_logs',
-    'Anonymous user cannot read notification logs'
-);
+insert into public.external_webhooks (source, event_type, payload)
+  values ('kobotoolbox', 'submission', '{"x":1}'::jsonb);
+insert into public.notification_logs (channel, recipient, message, status)
+  values ('sms', '+8801000000000', 'test', 'sent');
 
--- Test 3: Anonymous cannot view AI narratives
-SELECT is_empty(
-    'SELECT * FROM ai_report_narratives',
-    'Anonymous user cannot read AI report narratives'
-);
+-- ---------- checks ----------
+do $$
+declare n int; denied boolean;
+begin
+  -- 1. anonymous visitors have no table access at all (0006 + 0008 revokes)
+  execute 'set local role anon';
+  foreach n in array array[1,2,3] loop
+    denied := false;
+    begin
+      execute format('select count(*) from public.%I',
+        (array['external_webhooks','notification_logs','ai_report_narratives'])[n]);
+    exception when insufficient_privilege then denied := true;
+    end;
+    assert denied, format('anon must be denied on table #%s', n);
+  end loop;
+  denied := false;
+  begin
+    insert into public.external_webhooks (source, event_type, payload) values ('x','y','{}'::jsonb);
+  exception when insufficient_privilege then denied := true;
+  end;
+  assert denied, 'anon must not insert webhooks';
+  execute 'reset role';
 
--- Test 4: External webhooks table is readable by admins
--- Note: pgTAP test simulation block for sys_admin role
-SELECT throws_ok(
-    'INSERT INTO external_webhooks (source, event_type, payload) VALUES (''test'', ''test_event'', ''{}''::jsonb)',
-    '23502', -- error code or permission check depending on RLS setup
-    'Anonymous insertion blocked or fails validation'
-);
+  -- 2. super admin reads webhooks and notification logs
+  perform set_config('request.jwt.claims','{"sub":"60000000-0000-0000-0000-000000000001"}',true);
+  execute 'set local role authenticated';
+  select count(*) into n from public.external_webhooks;
+  assert n = 1, format('super admin should see 1 webhook, got %s', n);
+  select count(*) into n from public.notification_logs;
+  assert n = 1, format('super admin should see 1 notification log, got %s', n);
+  execute 'reset role';
 
-SELECT * FROM finish();
-ROLLBACK;
+  -- 3. finance reads notification logs but not webhooks
+  perform set_config('request.jwt.claims','{"sub":"60000000-0000-0000-0000-000000000002"}',true);
+  execute 'set local role authenticated';
+  select count(*) into n from public.notification_logs;
+  assert n = 1, format('finance should see notification logs, got %s', n);
+  select count(*) into n from public.external_webhooks;
+  assert n = 0, format('finance must not see webhooks, got %s', n);
+  execute 'reset role';
+
+  -- 4. field officer sees neither
+  perform set_config('request.jwt.claims','{"sub":"60000000-0000-0000-0000-000000000003"}',true);
+  execute 'set local role authenticated';
+  select count(*) into n from public.external_webhooks;
+  assert n = 0, format('field officer must not see webhooks, got %s', n);
+  select count(*) into n from public.notification_logs;
+  assert n = 0, format('field officer must not see notification logs, got %s', n);
+
+  -- 5. signed-in users cannot write webhook / log rows (server-only tables, 0008)
+  denied := false;
+  begin
+    insert into public.external_webhooks (source, event_type, payload) values ('x','y','{}'::jsonb);
+  exception when insufficient_privilege then denied := true;
+  end;
+  assert denied, 'authenticated users must not insert webhooks';
+  execute 'reset role';
+end $$;
+
+select 'ALL INTEGRATIONS RLS CHECKS PASSED' as result;
+rollback;

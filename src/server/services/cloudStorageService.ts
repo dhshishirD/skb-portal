@@ -8,9 +8,6 @@ export interface UploadResult {
   error?: string;
 }
 
-const SUPABASE_BASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://vfozkewdnelkgsluntex.supabase.co';
-const BUCKET_NAME = 'project-documents';
-
 export class CloudStorageService {
   /**
    * Upload a file directly to the Supabase cloud bucket 'project-documents' via API route.
@@ -27,7 +24,8 @@ export class CloudStorageService {
     const fileSizeStr = file.size > 1024 * 1024 ? `${sizeInMB} MB` : `${sizeInKB} KB`;
     const resolvedDocName = docName || file.name;
 
-    if (typeof window !== 'undefined' && window.location?.origin && !window.location.origin.includes('localhost:3000') === false) {
+    // Upload through the authenticated API route (the old check only uploaded on localhost:3000).
+    if (typeof window !== 'undefined') {
       try {
         const formData = new FormData();
         formData.append('file', file);
@@ -63,28 +61,22 @@ export class CloudStorageService {
         resolve({
           success: true,
           fileName: resolvedDocName,
-          fileUrl: (reader.result as string) || `https://vfozkewdnelkgsluntex.supabase.co/storage/v1/object/public/project-documents/${projectId}/${encodeURIComponent(resolvedDocName)}`,
+          fileUrl: (reader.result as string) || '',
           fileSize: fileSizeStr,
           fileType: file.type || 'application/pdf',
         });
       };
       reader.onerror = () => {
         resolve({
-          success: true,
+          success: false,
+          error: 'Could not read the file on this device.',
           fileName: resolvedDocName,
-          fileUrl: `https://vfozkewdnelkgsluntex.supabase.co/storage/v1/object/public/project-documents/${projectId}/${encodeURIComponent(resolvedDocName)}`,
+          fileUrl: '',
           fileSize: fileSizeStr,
           fileType: file.type || 'application/pdf',
         });
       };
       reader.readAsDataURL(file);
     });
-  }
-
-  /**
-   * Helper to format public CDN URL for a file in project-documents bucket
-   */
-  public static getPublicUrl(storagePath: string): string {
-    return `${SUPABASE_BASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${storagePath}`;
   }
 }

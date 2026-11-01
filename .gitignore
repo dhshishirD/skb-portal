@@ -26,3 +26,15 @@
 *.sw?
 supabase/.temp/
 .temp/
+
+# Never commit personal data or internal documents (NIDs, beneficiary lists, salary sheets,
+# donor proposals, work statements). Keep them in private storage, not in the code repo.
+docs/archives/
+docs/proposals/
+Daily_Work_Statement_*
+~$*
+*.tsbuildinfo
+
+# Test output
+/playwright-report/
+/test-results/

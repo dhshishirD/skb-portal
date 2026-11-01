@@ -103,6 +103,10 @@ jobs:
           version: 2.122.0
       - name: Start local Supabase (applies migrations 0001+ and seed.sql)
         run: supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor,postgres-meta
+      # The RLS test files create their own fixtures (same IDs as seed.sql), so they need
+      # an empty database. `supabase start` above already proved migrations + seed load.
+      - name: Reset database without seed data
+        run: supabase db reset --local --no-seed
       - name: Run RLS tests
         run: |
           set -euo pipefail

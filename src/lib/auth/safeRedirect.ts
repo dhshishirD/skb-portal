@@ -1,8 +1,9 @@
 /**
  * Returns `next` only if it is a same-site relative path (e.g. "/projects?x=1").
+ * Falls back to /home, which sends each person to their own desk.
  * Blocks open redirects such as "//evil.com", "/\\evil.com", "https://evil.com" or "@evil.com".
  */
-export function safeRedirectPath(next: string | null | undefined, fallback = '/dashboard'): string {
+export function safeRedirectPath(next: string | null | undefined, fallback = '/home'): string {
   if (!next || typeof next !== 'string') return fallback;
   if (!next.startsWith('/')) return fallback;
   if (next.startsWith('//') || next.startsWith('/\\')) return fallback;

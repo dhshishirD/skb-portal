@@ -26,14 +26,9 @@ import { createClient } from '@/lib/supabase/client';
 import { safeRedirectPath } from '@/lib/auth/safeRedirect';
 
 function nextPathFromUrl(): string {
-  if (typeof window === 'undefined') return '/dashboard';
+  if (typeof window === 'undefined') return '/home';
   return safeRedirectPath(new URLSearchParams(window.location.search).get('next'));
 }
-import { 
-  UserApprovalService, 
-  UserProfileRecord,
-  SystemRole 
-} from '@/server/services/userApprovalService';
 
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<'CREDENTIALS' | 'JOIN_SKB'>('CREDENTIALS');
@@ -46,14 +41,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
 
   // New Officer Onboarding Form State
-  const [joinFullName, setJoinFullName] = useState('');
-  const [joinEmail, setJoinEmail] = useState('');
-  const [joinPhone, setJoinPhone] = useState('');
-  const [joinDutyStation, setJoinDutyStation] = useState('Dhaka HQ');
-  const [joinDepartment, setJoinDepartment] = useState('Programs Directorate');
-  const [joinRole, setJoinRole] = useState<SystemRole>('Program Officer');
-  const [joinBio, setJoinBio] = useState('');
-  const [registeredProfile, setRegisteredProfile] = useState<UserProfileRecord | null>(null);
 
   // Google OAuth Sign-In
   const handleGoogleOAuth = async () => {
@@ -115,36 +102,6 @@ export default function LoginPage() {
     }
   };
 
-  // Submit New Officer Onboarding Request
-  const handleJoinSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!joinFullName.trim() || !joinEmail.trim()) {
-      setErrorMsg('Full Name and Work Email are required.');
-      return;
-    }
-    setLoading(true);
-    setErrorMsg('');
-    try {
-      const newOfficer = await UserApprovalService.registerOfficerRequest({
-        fullName: joinFullName.trim(),
-        email: joinEmail.trim(),
-        phone: joinPhone.trim(),
-        dutyStation: joinDutyStation,
-        department: joinDepartment,
-        requestedRole: joinRole,
-        designation: joinRole,
-        bio: joinBio.trim() || `Newly joined ${joinRole} at Small Kindness Bangladesh (${joinDutyStation}).`,
-      });
-
-      setRegisteredProfile(newOfficer);
-      setSuccessMsg('Officer registration submitted successfully!');
-      setLoading(false);
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Failed to submit registration request.');
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="w-full max-w-2xl mx-auto space-y-6 py-4">
       {/* Header Banner */}
@@ -185,7 +142,7 @@ export default function LoginPage() {
           }`}
         >
           <UserPlus className="w-4 h-4 text-amber-600" />
-          <span>Join SKB (New Staff)</span>
+          <span>New staff? How to get access</span>
         </button>
       </div>
 
@@ -296,185 +253,21 @@ export default function LoginPage() {
         </div>
       )}
 
-      {/* TAB 3: JOIN SKB (New Officer Onboarding Application) */}
+      {/* TAB: JOINING SKB (accounts are invite-only) */}
       {activeTab === 'JOIN_SKB' && (
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl space-y-5">
-          {!registeredProfile ? (
-            <>
-              <div className="space-y-1 border-b border-slate-100 pb-3">
-                <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-amber-600" />
-                  New Officer Registration & Directory Application
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Newly joining SKB personnel submit this form to register their profile. Daloyar Hassan (Super Admin) and Md. Abu Huraira (Executive Director) will activate your role.
-                </p>
-              </div>
-
-              <form onSubmit={handleJoinSubmit} className="space-y-3.5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700">Full Name *</label>
-                    <input
-                      type="text"
-                      value={joinFullName}
-                      onChange={(e) => setJoinFullName(e.target.value)}
-                      placeholder="e.g. Tanvir Hossain"
-                      required
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700">Official / Google Email *</label>
-                    <input
-                      type="email"
-                      value={joinEmail}
-                      onChange={(e) => setJoinEmail(e.target.value)}
-                      placeholder="tanvir@skb.org.bd"
-                      required
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700">Official Mobile / WhatsApp</label>
-                    <input
-                      type="text"
-                      value={joinPhone}
-                      onChange={(e) => setJoinPhone(e.target.value)}
-                      placeholder="+880 1711-XXXXXX"
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700">Duty Station</label>
-                    <select
-                      value={joinDutyStation}
-                      onChange={(e) => setJoinDutyStation(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
-                    >
-                      <option value="Dhaka HQ">Dhaka HQ</option>
-                      <option value="Cox's Bazar Field Hub">Cox&apos;s Bazar Field Hub</option>
-                      <option value="Teknaf Sub-Office">Teknaf Sub-Office</option>
-                      <option value="Ukhia Field Desk">Ukhia Field Desk</option>
-                      <option value="Remote Field Operations">Remote Field Operations</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700">Department</label>
-                    <select
-                      value={joinDepartment}
-                      onChange={(e) => setJoinDepartment(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
-                    >
-                      <option value="Programs Directorate">Programs Directorate</option>
-                      <option value="HR & Admin">HR & Admin</option>
-                      <option value="Finance & Grants">Finance & Grants</option>
-                      <option value="Field Logistics & Relief">Field Logistics & Relief</option>
-                      <option value="IT & Systems Desk">IT & Systems Desk</option>
-                      <option value="Legal & Compliance Desk">Legal & Compliance Desk</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-700">Requested Official Role</label>
-                    <select
-                      value={joinRole}
-                      onChange={(e) => setJoinRole(e.target.value as SystemRole)}
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-semibold text-blue-700"
-                    >
-                      <option value="Program Officer">Program Officer</option>
-                      <option value="Field Operations Officer">Field Operations Officer</option>
-                      <option value="Finance Manager">Finance Manager</option>
-                      <option value="IT Officer">IT Officer</option>
-                      <option value="Law Officer">Law Officer</option>
-                      <option value="General Staff">General Staff</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Professional Bio & Role Brief</label>
-                  <textarea
-                    rows={2}
-                    value={joinBio}
-                    onChange={(e) => setJoinBio(e.target.value)}
-                    placeholder="Brief description of field experience, humanitarian expertise, or responsibilities..."
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  <span>{loading ? 'Submitting Application...' : 'Submit Officer Application for Approval'}</span>
-                </button>
-              </form>
-            </>
-          ) : (
-            <div className="text-center py-6 space-y-4">
-              <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
-                <CheckCircle2 className="w-8 h-8" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-lg font-extrabold text-slate-900">Application Received!</h3>
-                <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  Your officer profile for <strong className="text-slate-800">{registeredProfile.fullName}</strong> ({registeredProfile.requestedRole}) has been registered in the <strong className="text-amber-700">Pending Role Activation Queue</strong>.
-                </p>
-              </div>
-
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 max-w-md mx-auto text-left text-xs space-y-2">
-                <div className="flex items-center gap-2 font-bold text-amber-900">
-                  <Clock className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>Awaiting Leadership Confirmation</span>
-                </div>
-                <p className="text-[11px] text-amber-800 leading-relaxed">
-                  Super Admin (<strong>Daloyar Hassan</strong>) and Executive Director (<strong>Md. Abu Huraira</strong>) have received your application in their Users & Access Management desk. Once confirmed, you will receive full workspace permissions.
-                </p>
-              </div>
-
-              <div className="pt-2 flex items-center justify-center gap-3">
-                <button
-                  onClick={() => {
-                    setRegisteredProfile(null);
-                    setActiveTab('CREDENTIALS');
-                  }}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
-                >
-                  Back to Sign In
-                </button>
-                <Link
-                  href="/community"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition"
-                >
-                  Preview Live Community
-                </Link>
-              </div>
-            </div>
-          )}
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl space-y-3 text-sm text-slate-700">
+          <h2 className="text-base font-extrabold text-slate-900">New to SKB?</h2>
+          <p>
+            Portal accounts are created by invitation only. Ask HR &amp; Admin or the Executive Director to invite you.
+            They will set your role, and you will receive an email to choose your own password.
+          </p>
+          <ol className="list-decimal pl-5 space-y-1 text-xs text-slate-600">
+            <li>Open the invitation email and click the link.</li>
+            <li>Choose a password (at least 10 characters, with upper-case, lower-case and a number).</li>
+            <li>You land on your own desk. Leadership accounts also set up two-step verification.</li>
+          </ol>
         </div>
       )}
-
-      {/* Quick Direct Link to Partner Inspection Workspace */}
-      <div className="text-center pt-2">
-        <Link
-          href="/donor-dashboard?partner=IHH"
-          className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-bold hover:underline transition"
-        >
-          <Globe2 className="w-4 h-4 text-blue-600" />
-          <span>Open International Partner Workspace (IHH Turkey & Qatar) &rsaquo;</span>
-        </Link>
-      </div>
     </div>
   );
 }

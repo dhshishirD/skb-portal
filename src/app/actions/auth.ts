@@ -40,7 +40,7 @@ export async function setPasswordAction(formData: FormData): Promise<void> {
   if (errorMessage) {
     redirect(`/set-password?error=${encodeURIComponent(errorMessage)}`);
   }
-  redirect('/dashboard');
+  redirect('/home');
 }
 
 export async function resetPasswordAction(formData: FormData): Promise<void> {

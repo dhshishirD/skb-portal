@@ -52,15 +52,15 @@ describe('ProjectAssignmentService: Multi-Officer Project Governance', () => {
     expect(ProjectAssignmentService.isUserAssigned(projectId, 'Daloyar Hassan')).toBe(true);
   });
 
-  it('should restrict assignment authority to Executive Director only', () => {
-    // Executive Director has assignment rights
-    expect(ProjectAssignmentService.canUserAssignOfficers('Md. Abu Huraira', 'Executive Director')).toBe(true);
-    expect(ProjectAssignmentService.canUserAssignOfficers('Abu Huraira', '', 'kindnessforbeauty@gmail.com')).toBe(true);
-
-    // Program Officers do NOT have assignment rights
-    expect(ProjectAssignmentService.canUserAssignOfficers('Emran Ahmed', 'Program Officer')).toBe(false);
-    expect(ProjectAssignmentService.canUserAssignOfficers('Mizbah Uddin', 'Program Officer')).toBe(false);
-    expect(ProjectAssignmentService.canUserAssignOfficers('Daloyar Hassan', 'Program Officer')).toBe(false);
+  it('assignment authority follows roles (Super Admin or Programme Manager), not names', () => {
+    // Role-based (Nov 2026): matches the user_project_access RLS rule.
+    expect(ProjectAssignmentService.canUserAssignOfficers(['executive', 'super_admin'])).toBe(true); // ED
+    expect(ProjectAssignmentService.canUserAssignOfficers(['super_admin'])).toBe(true); // HR & Admin
+    expect(ProjectAssignmentService.canUserAssignOfficers(['programme_manager'])).toBe(true);
+    expect(ProjectAssignmentService.canUserAssignOfficers(['board'])).toBe(false); // Chairman: read-only
+    expect(ProjectAssignmentService.canUserAssignOfficers(['project_officer', 'field_officer'])).toBe(false);
+    expect(ProjectAssignmentService.canUserAssignOfficers(['it_officer'])).toBe(false);
+    expect(ProjectAssignmentService.canUserAssignOfficers([])).toBe(false);
   });
 
   it('should list all assignable official personnel', () => {

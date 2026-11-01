@@ -13,6 +13,14 @@ test.describe('Authentication & MFA Flows', () => {
     await expect(page.getByText(/@skb\.org\.bd|@gmail\.com/i)).toHaveCount(0);
   });
 
+  test('new staff tab explains invite-only access and has no self-registration form', async ({ page }) => {
+    await page.goto('/login');
+    await page.getByRole('button', { name: /New staff\? How to get access/i }).click();
+    await expect(page.getByText(/created by invitation only/i)).toBeVisible();
+    await expect(page.getByText(/Pending Role Activation/i)).toHaveCount(0);
+    await expect(page.getByText(/International Partner Workspace/i)).toHaveCount(0);
+  });
+
   test('navigates to MFA verification screen', async ({ page }) => {
     await page.goto('/mfa');
     await expect(page.locator('h2')).toContainText('MFA Verification Required');
@@ -42,14 +50,14 @@ test.describe('Authentication & MFA Flows', () => {
 });
 
 test.describe('Server-side route protection', () => {
-  for (const path of ['/dashboard', '/projects', '/beneficiaries', '/community', '/donor-dashboard?partner=IHH', '/field-dashboard']) {
+  for (const path of ['/home', '/no-access', '/admin/users', '/dashboard', '/projects', '/beneficiaries', '/community', '/donor-dashboard?partner=IHH', '/field-dashboard']) {
     test(`anonymous visit to ${path} redirects to /login`, async ({ page }) => {
       await page.goto(path);
       await expect(page).toHaveURL(/\/login\?next=/);
     });
   }
 
-  for (const path of ['/api/community/sync', '/api/community/presence']) {
+  for (const path of ['/api/me', '/api/community/sync', '/api/community/presence']) {
     test(`anonymous GET ${path} is rejected`, async ({ request }) => {
       const res = await request.get(path);
       expect(res.status()).toBe(401);

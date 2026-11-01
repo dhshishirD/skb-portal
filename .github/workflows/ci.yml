@@ -19,11 +19,10 @@ permissions:
 
 env:
   NEXT_TELEMETRY_DISABLED: '1'
-  # Placeholder values so the app builds. They are NOT secrets and point at nothing real.
-  # CI never talks to the production or staging Supabase projects.
-  NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
-  NEXT_PUBLIC_SITE_URL: http://localhost:3000
+
+# Placeholder values so the app builds and serves. They are NOT secrets and point at nothing
+# real; CI never talks to the production or staging Supabase projects. They are set only on
+# the build/e2e steps: unit tests must run with no Supabase configured (offline fallbacks).
 
 jobs:
   checks:
@@ -48,6 +47,10 @@ jobs:
         run: pnpm test
       - name: Production build
         run: pnpm build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
 
   e2e:
     name: End-to-end (Playwright)
@@ -69,10 +72,18 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
       - name: Build
         run: pnpm build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
       # No Supabase backend on purpose: these tests check public pages and that every
       # private page / API refuses anonymous visitors.
       - name: Run Playwright
         run: pnpm test:e2e
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4

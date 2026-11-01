@@ -2,13 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { CloudStorageService } from '../cloudStorageService';
 
 describe('Phase 2: CloudStorageService Supabase Bucket Linking', () => {
-  it('should correctly format public CDN URL for a given storage path', () => {
-    const path = 'BD-SKB-2026-COW-20/17912708-form7.pdf';
-    const publicUrl = CloudStorageService.getPublicUrl(path);
-
-    expect(publicUrl).toContain('supabase.co');
-    expect(publicUrl).toContain('project-documents');
-    expect(publicUrl).toContain(path);
+  it('should not expose any permanent public URL helper (bucket is private)', () => {
+    expect((CloudStorageService as unknown as Record<string, unknown>).getPublicUrl).toBeUndefined();
   });
 
   it('should handle file upload and generate accessible fileUrl', async () => {

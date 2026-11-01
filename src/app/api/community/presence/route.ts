@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireUser } from '@/lib/auth/guards';
 
 // In-memory cache for fast response
 const activeHeartbeats: Map<string, { role: string; lastSeen: number }> = new Map();
@@ -11,6 +12,9 @@ function getCleanName(name: string): string {
 }
 
 export async function GET() {
+  const guard = await requireUser();
+  if (!guard.ok) return guard.response;
+
   const now = Date.now();
 
   // 1. Purge expired in-memory heartbeats
@@ -63,6 +67,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const guard = await requireUser();
+  if (!guard.ok) return guard.response;
+
   try {
     const body = await request.json();
     const { officerName, role, action } = body;

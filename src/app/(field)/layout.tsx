@@ -43,13 +43,13 @@ export default function FieldLayout({
 
         <div className="flex items-center gap-3">
           <LanguageSwitcher />
-          <Link 
-            href="/login" 
+          <a
+            href="/auth/signout"
             className="p-1 rounded-lg text-slate-400 hover:text-red-400 transition"
             title="Exit Workspace"
           >
             <LogOut className="w-4 h-4" />
-          </Link>
+          </a>
         </div>
       </header>
 

@@ -1,90 +1,77 @@
 -- Migration 0006: Integrations, Webhooks, SMS Notifications, and AI Narrative Logs
+--
+-- Security fix (Nov 2026): the original version referenced a non-existent
+-- `profiles.role` column, so this migration failed on any clean database.
+-- Policies now use the role helpers from 0001 (user_roles + has_any_role) and
+-- are scoped to the `authenticated` role only.
 
-CREATE TYPE webhook_status AS ENUM ('pending', 'processed', 'failed');
-CREATE TYPE notification_channel AS ENUM ('sms', 'whatsapp', 'email');
-CREATE TYPE notification_status AS ENUM ('queued', 'sent', 'failed');
+create type public.webhook_status as enum ('pending', 'processed', 'failed');
+create type public.notification_channel as enum ('sms', 'whatsapp', 'email');
+create type public.notification_status as enum ('queued', 'sent', 'failed');
 
--- External Webhooks log table
-CREATE TABLE external_webhooks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    source VARCHAR(50) NOT NULL, -- e.g. 'kobotoolbox', 'odk'
-    event_type VARCHAR(100) NOT NULL,
-    payload JSONB NOT NULL,
-    status webhook_status NOT NULL DEFAULT 'pending',
-    error_message TEXT,
-    processed_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- External Webhooks log table (written only by trusted server code / service role)
+create table public.external_webhooks (
+    id uuid primary key default gen_random_uuid(),
+    source varchar(50) not null, -- e.g. 'kobotoolbox', 'odk'
+    event_type varchar(100) not null,
+    payload jsonb not null,
+    status public.webhook_status not null default 'pending',
+    error_message text,
+    processed_at timestamptz,
+    created_at timestamptz not null default now()
 );
 
--- SMS / WhatsApp / Email Notification logs
-CREATE TABLE notification_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    recipient VARCHAR(100) NOT NULL,
-    channel notification_channel NOT NULL,
-    message TEXT NOT NULL,
-    status notification_status NOT NULL DEFAULT 'queued',
-    provider_response JSONB,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- SMS / WhatsApp / Email Notification logs (written only by trusted server code)
+create table public.notification_logs (
+    id uuid primary key default gen_random_uuid(),
+    recipient varchar(100) not null,
+    channel public.notification_channel not null,
+    message text not null,
+    status public.notification_status not null default 'queued',
+    provider_response jsonb,
+    created_at timestamptz not null default now()
 );
 
 -- AI Narrative Assistant generated reports log
-CREATE TABLE ai_report_narratives (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
-    donor_report_id UUID REFERENCES donor_reports(id) ON DELETE SET NULL,
-    prompt_summary TEXT NOT NULL,
-    generated_narrative TEXT NOT NULL,
-    model_name VARCHAR(100) NOT NULL DEFAULT 'gemini-1.5-pro',
-    created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+create table public.ai_report_narratives (
+    id uuid primary key default gen_random_uuid(),
+    project_id uuid not null references public.projects(id) on delete cascade,
+    donor_report_id uuid references public.donor_reports(id) on delete set null,
+    prompt_summary text not null,
+    generated_narrative text not null,
+    model_name varchar(100) not null default 'gemini-1.5-pro',
+    created_by uuid default auth.uid() references public.profiles(id) on delete set null,
+    created_at timestamptz not null default now()
 );
 
--- Indexes
-CREATE INDEX idx_external_webhooks_source ON external_webhooks(source);
-CREATE INDEX idx_external_webhooks_status ON external_webhooks(status);
-CREATE INDEX idx_notification_logs_recipient ON notification_logs(recipient);
-CREATE INDEX idx_ai_narratives_project ON ai_report_narratives(project_id);
+create index idx_external_webhooks_source on public.external_webhooks(source);
+create index idx_external_webhooks_status on public.external_webhooks(status);
+create index idx_notification_logs_recipient on public.notification_logs(recipient);
+create index idx_ai_narratives_project on public.ai_report_narratives(project_id);
 
--- Enable RLS
-ALTER TABLE external_webhooks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notification_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE ai_report_narratives ENABLE ROW LEVEL SECURITY;
+alter table public.external_webhooks enable row level security;
+alter table public.notification_logs enable row level security;
+alter table public.ai_report_narratives enable row level security;
 
--- Policies for external_webhooks: System admins & managers can view webhooks
-CREATE POLICY "Admins and managers view external webhooks"
-    ON external_webhooks
-    FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM profiles
-            WHERE profiles.id = auth.uid()
-            AND profiles.role IN ('sys_admin', 'super_admin', 'program_manager')
-        )
-    );
+revoke all on public.external_webhooks, public.notification_logs, public.ai_report_narratives from anon;
 
--- Policies for notification_logs: Admins & managers can view notifications
-CREATE POLICY "Admins and managers view notifications"
-    ON notification_logs
-    FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM profiles
-            WHERE profiles.id = auth.uid()
-            AND profiles.role IN ('sys_admin', 'super_admin', 'program_manager', 'finance_manager')
-        )
-    );
+-- Webhook and notification logs: read-only for admins/executives; no client writes.
+create policy external_webhooks_select on public.external_webhooks for select to authenticated
+  using (public.has_any_role(array['super_admin','executive']::public.app_role[]));
 
--- Policies for ai_report_narratives: Users with project access can view and create AI narratives
-CREATE POLICY "Project members view AI narratives"
-    ON ai_report_narratives
-    FOR SELECT
-    USING (
-        project_id IS NULL OR can_access_project(project_id)
-    );
+create policy notification_logs_select on public.notification_logs for select to authenticated
+  using (public.has_any_role(array['super_admin','executive','finance']::public.app_role[]));
 
-CREATE POLICY "Project members create AI narratives"
-    ON ai_report_narratives
-    FOR INSERT
-    WITH CHECK (
-        project_id IS NULL OR can_access_project(project_id)
-    );
+-- AI narratives: internal staff with access to the project.
+create policy ai_narratives_select on public.ai_report_narratives for select to authenticated
+  using (public.is_internal_user() and public.can_access_project(project_id));
+
+create policy ai_narratives_insert on public.ai_report_narratives for insert to authenticated
+  with check (
+    public.is_internal_user()
+    and public.can_access_project(project_id)
+    and created_by = (select auth.uid())
+  );
+
+create trigger audit_ai_report_narratives after insert or update or delete on public.ai_report_narratives
+  for each row execute function public.log_audit();

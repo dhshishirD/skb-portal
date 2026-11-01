@@ -1,22 +1,15 @@
+import 'server-only';
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '../database.types';
+import { getSupabaseServiceRoleKey, getSupabaseUrl } from './env';
 
 /**
  * Server-only Admin Supabase Client using the SERVICE_ROLE_KEY.
- * NEVER import or expose this client in browser components or public APIs.
- * Must only be invoked after explicit permission checks (e.g. requirePermission('user.manage')).
+ * It BYPASSES Row Level Security. NEVER import it in browser components, and only call
+ * it after the caller has been authenticated and authorised (see src/lib/auth/guards.ts).
  */
 export function createAdminClient() {
-  const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    process.env.SUPABASE_URL ||
-    'https://vfozkewdnelkgsluntex.supabase.co';
-
-  const serviceRoleKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    Buffer.from('c2Jfc2VjcmV0X3NqZ1FHRWNLYmlZNzdXVk1FRXBfcEFfZFBhTXF5MDE=', 'base64').toString('ascii');
-
-  return createClient<Database>(supabaseUrl, serviceRoleKey, {
+  return createClient<Database>(getSupabaseUrl(), getSupabaseServiceRoleKey(), {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

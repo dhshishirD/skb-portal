@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { canOpenPath, deskRuleFor, homeForRoles, NO_ACCESS_PATH } from '@/lib/desks';
+import type { AppRole } from '@/lib/database.types';
 
 /**
  * Server-side access control for the whole portal.
@@ -75,10 +77,51 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Role-based desks (pages only; APIs and RLS do their own checks). Each person is sent to
+  // their own desk and kept out of desks their role does not cover.
+  if (!pathname.startsWith('/api/') && (pathname === '/home' || deskRuleFor(pathname))) {
+    const access = await loadAccess(supabase, user.id);
+    const redirectTo = (target: string) => {
+      const res = NextResponse.redirect(new URL(target, request.url));
+      response.cookies.getAll().forEach((c) => res.cookies.set(c));
+      return res;
+    };
+
+    if (!access.ok) return redirectTo(`${NO_ACCESS_PATH}?reason=error`);
+    if (!access.active) return redirectTo(`${NO_ACCESS_PATH}?reason=inactive`);
+
+    const home = homeForRoles(access.roles);
+    if (pathname === '/home') return redirectTo(home);
+    if (!canOpenPath(pathname, access.roles)) {
+      return redirectTo(home === NO_ACCESS_PATH ? `${NO_ACCESS_PATH}?reason=no-role` : home);
+    }
+  }
+
   // Private pages must not be cached by shared caches or the browser back/forward cache.
   response.headers.set('Cache-Control', 'private, no-store');
   response.headers.set('X-Robots-Tag', 'noindex, nofollow');
   return response;
+}
+
+type AccessResult = { ok: true; active: boolean; roles: AppRole[] } | { ok: false };
+
+/** The signed-in user's roles and active flag, read through RLS (users can read their own). */
+async function loadAccess(
+  supabase: ReturnType<typeof createServerClient>,
+  userId: string
+): Promise<AccessResult> {
+  try {
+    const [rolesRes, profileRes] = await Promise.all([
+      supabase.from('user_roles').select('role').eq('user_id', userId),
+      supabase.from('profiles').select('is_active').eq('id', userId).maybeSingle(),
+    ]);
+    if (rolesRes.error || profileRes.error) return { ok: false };
+    const roles = ((rolesRes.data ?? []) as Array<{ role: AppRole }>).map((r) => r.role);
+    const active = (profileRes.data as { is_active?: boolean } | null)?.is_active !== false;
+    return { ok: true, active: active && profileRes.data !== null, roles };
+  } catch {
+    return { ok: false }; // fail closed
+  }
 }
 
 export const config = {

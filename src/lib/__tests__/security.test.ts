@@ -15,9 +15,9 @@ describe('safeRedirectPath (open-redirect protection)', () => {
   });
 
   it.each(['//evil.com', '/\\evil.com', 'https://evil.com', '@evil.com', 'evil.com', '', null, undefined, '/x\u0000y'])(
-    'rejects %s and falls back to /dashboard',
+    'rejects %s and falls back to /home',
     (value) => {
-      expect(safeRedirectPath(value as string | null | undefined)).toBe('/dashboard');
+      expect(safeRedirectPath(value as string | null | undefined)).toBe('/home');
     }
   );
 });

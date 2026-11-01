@@ -26,7 +26,9 @@ import {
   ChevronDown,
   User
 } from 'lucide-react';
-import { DEFAULT_APPROVED_USERS } from '@/server/services/userApprovalService';
+import { canOpenPath, ROLE_LABELS } from '@/lib/desks';
+import type { AppRole } from '@/lib/database.types';
+import type { MeResponse } from '@/app/api/me/route';
 import { getOfficialAvatar } from '@/lib/avatarPresets';
 
 export default function StaffLayout({
@@ -48,93 +50,52 @@ export default function StaffLayout({
   const navT = useTranslations('Navigation');
   const roleT = useTranslations('RoleAreas');
 
+  const [userRoles, setUserRoles] = useState<AppRole[]>([]);
+
   useEffect(() => {
+    // Identity comes only from the database (/api/me). There is no hard-coded fallback user:
+    // if the lookup fails, the menu stays minimal and the server keeps enforcing access.
     const resolveUser = async () => {
-      const storedAuthor = typeof window !== 'undefined' ? localStorage.getItem('skb_current_community_author') : null;
-      const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('skb_current_user_email') : null;
-
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-
-      // Priority 1: Match by authenticated Supabase user
-      if (user) {
-        const email = user.email || '';
-        const metaName = user.user_metadata?.full_name;
-        const matched = DEFAULT_APPROVED_USERS.find(
-          u => u.email.toLowerCase() === email.toLowerCase() || (metaName && u.fullName.toLowerCase() === metaName.toLowerCase())
-        );
-
-        if (matched) {
+      try {
+        const res = await fetch('/api/me', { cache: 'no-store' });
+        if (res.ok) {
+          const me: MeResponse = await res.json();
+          const roleLabel = me.designation || (me.roles[0] ? ROLE_LABELS[me.roles[0]] : 'No role assigned');
+          setUserRoles(me.roles);
           setUserProfile({
-            name: matched.fullName,
-            role: matched.designation || matched.requestedRole,
-            initial: matched.fullName.charAt(0).toUpperCase(),
-            avatarUrl: matched.avatarUrl || getOfficialAvatar(matched)
+            name: me.fullName,
+            role: roleLabel,
+            initial: me.fullName.charAt(0).toUpperCase(),
+            avatarUrl: getOfficialAvatar({ fullName: me.fullName, designation: me.designation ?? undefined }),
           });
-          setLoadingUser(false);
-          return;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('skb_current_community_author', me.fullName);
+            if (me.email) localStorage.setItem('skb_current_user_email', me.email);
+          }
         }
-
-        const fullName = metaName || email.split('@')[0] || 'SKB Officer';
-        const designation = user.user_metadata?.designation || 'Staff Member';
-        setUserProfile({
-          name: fullName,
-          role: designation,
-          initial: fullName.charAt(0).toUpperCase(),
-          avatarUrl: user.user_metadata?.avatar_url || getOfficialAvatar({ fullName, requestedRole: designation as any })
-        });
+      } catch (err) {
+        console.warn('Could not load signed-in profile:', err);
+      } finally {
         setLoadingUser(false);
-        return;
       }
-
-      // Priority 2: Match by active local session
-      if (storedAuthor || storedEmail) {
-        const matched = DEFAULT_APPROVED_USERS.find(
-          u => (storedAuthor && u.fullName.toLowerCase() === storedAuthor.toLowerCase()) ||
-               (storedEmail && u.email.toLowerCase() === storedEmail.toLowerCase())
-        );
-        if (matched) {
-          setUserProfile({
-            name: matched.fullName,
-            role: matched.designation || matched.requestedRole,
-            initial: matched.fullName.charAt(0).toUpperCase(),
-            avatarUrl: matched.avatarUrl || getOfficialAvatar(matched)
-          });
-          setLoadingUser(false);
-          return;
-        }
-      }
-
-      // Default fallback
-      const defaultOfficer = DEFAULT_APPROVED_USERS[2]; // Daloyar Hassan (Super Admin / HR)
-      setUserProfile({
-        name: defaultOfficer.fullName,
-        role: defaultOfficer.designation || defaultOfficer.requestedRole,
-        initial: defaultOfficer.fullName.charAt(0).toUpperCase(),
-        avatarUrl: defaultOfficer.avatarUrl || getOfficialAvatar(defaultOfficer)
-      });
-      setLoadingUser(false);
     };
 
     resolveUser();
   }, []);
 
-  const isAdminUser = 
-    userProfile.role.toLowerCase().includes('admin') || 
-    userProfile.role.toLowerCase().includes('director') || 
-    userProfile.role.toLowerCase().includes('executive') || 
-    userProfile.role.toLowerCase().includes('it');
-
-  const navItems = [
+  const allNavItems: Array<{ href: string; label: string; icon: typeof LayoutDashboard; badge?: string }> = [
     { href: '/dashboard', label: navT('dashboard'), icon: LayoutDashboard },
     { href: '/projects', label: navT('projects'), icon: FolderKanban },
     { href: '/finance/approvals', label: 'Finance & Approvals', icon: Receipt },
     { href: '/community', label: 'HQ Staff Community', icon: MessageSquare },
     { href: '/me/dashboard', label: 'M&E Analytics', icon: BarChart2 },
-    { href: '/me/report-generator', label: 'AI Donor Generator', icon: Sparkles, badge: 'AI' },
+    { href: '/me/report-generator', label: 'Donor Report Generator', icon: Sparkles },
     { href: '/beneficiaries', label: 'Beneficiary Registry', icon: Users },
-    ...(isAdminUser ? [{ href: '/admin/users', label: 'Admin & Governance', icon: ShieldCheck }] : []),
+    { href: '/admin/users', label: 'Admin & Governance', icon: ShieldCheck },
+    { href: '/admin/audit-log', label: 'Audit Log', icon: ShieldCheck },
   ];
+  // Show only what this person's roles can open (the middleware enforces the same rules).
+  const navItems = allNavItems.filter((item) => canOpenPath(item.href, userRoles));
 
 
   return (

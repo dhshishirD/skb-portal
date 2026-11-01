@@ -21,6 +21,7 @@ export type PermissionKey =
   | 'beneficiary.read'
   | 'beneficiary.write'
   | 'user.manage'
+  | 'user.view'
   | 'audit.read';
 
 /**
@@ -29,7 +30,7 @@ export type PermissionKey =
  * This client/server helper is for UI state and action guards only.
  */
 export const ROLE_PERMISSIONS: Record<AppRole, PermissionKey[]> = {
-  super_admin: ['user.manage', 'audit.read', 'project.read'],
+  super_admin: ['user.manage', 'user.view', 'audit.read', 'project.read'],
   executive: [
     'project.read',
     'field_report.review',
@@ -83,6 +84,11 @@ export const ROLE_PERMISSIONS: Record<AppRole, PermissionKey[]> = {
     'donor_portal.read',
     'audit.read',
   ],
+  // SKB hierarchy roles (migrations 0010/0011). Read-only by design: RLS gives them no
+  // write policies on project data.
+  board: ['project.read', 'budget.read', 'field_report.review', 'audit.read', 'user.view'],
+  legal_officer: ['project.read', 'beneficiary.read', 'audit.read'],
+  it_officer: ['user.view', 'audit.read'],
 };
 
 export function hasPermission(roles: AppRole[], permission: PermissionKey): boolean {

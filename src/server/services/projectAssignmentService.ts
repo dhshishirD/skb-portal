@@ -1,3 +1,4 @@
+import type { AppRole } from '@/lib/database.types';
 import { DEFAULT_APPROVED_USERS } from './userApprovalService';
 
 export interface AssignableOfficer {
@@ -146,26 +147,12 @@ export class ProjectAssignmentService {
   }
 
   /**
-   * Determine if the user has authority to assign officers to projects.
-   * Per organizational mandate: ONLY Executive Director (Md. Abu Huraira) or Board Chairman.
+   * Who may assign officers to projects. Decided by ROLE, never by name or email, and kept
+   * in step with the database rule on user_project_access (super_admin or programme_manager).
+   * The Chairman holds the read-only `board` role and therefore cannot assign.
    */
-  public static canUserAssignOfficers(userName: string, userRole?: string, userEmail?: string): boolean {
-    const cleanName = (userName || '').trim().toLowerCase();
-    const cleanRole = (userRole || '').trim().toLowerCase();
-    const cleanEmail = (userEmail || '').trim().toLowerCase();
-
-    if (
-      cleanName.includes('huraira') || 
-      cleanEmail === 'kindnessforbeauty@gmail.com' ||
-      cleanRole.includes('executive director') ||
-      cleanRole.includes('director') ||
-      cleanName.includes('orakatul') ||
-      cleanRole.includes('chairman')
-    ) {
-      return true;
-    }
-
-    return false;
+  public static canUserAssignOfficers(roles: readonly AppRole[]): boolean {
+    return roles.includes('super_admin') || roles.includes('programme_manager');
   }
 
   /**

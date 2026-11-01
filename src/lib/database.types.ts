@@ -18,6 +18,9 @@ export type AppRole =
   | 'donor'
   | 'partner'
   | 'auditor'
+  | 'board'
+  | 'legal_officer'
+  | 'it_officer'
 
 export type OrgType = 'internal' | 'donor' | 'implementing_partner'
 export type ProjectStage = 'concept' | 'proposal' | 'approved' | 'implementation' | 'monitoring_evaluation' | 'closed'

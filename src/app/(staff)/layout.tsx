@@ -271,13 +271,13 @@ export default function StaffLayout({
 
             <LanguageSwitcher />
             
-            <Link 
-              href="/login" 
+            <a
+              href="/auth/signout"
               className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-slate-800 transition"
               title="Logout"
             >
               <LogOut className="w-4 h-4" />
-            </Link>
+            </a>
           </div>
         </div>
       </header>

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { hasSupabaseConfig } from '@/lib/supabase/env';
 
 export interface CloudProjectRecord {
   id: string;
@@ -48,9 +48,6 @@ export interface CloudBeneficiaryRecord {
   registeredAt: string;
 }
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://vfozkewdnelkgsluntex.supabase.co';
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_0N-bsiW8Zxqiri5FEEoRoQ_x0naDUwt';
-
 export const PROJECT_CODE_TO_UUID: Record<string, string> = {
   'BD-SKB-2026-COW-20': '30000000-0000-0000-0000-000000000011',
   'BD-SKB-2026-LIV-CLO': '30000000-0000-0000-0000-000000000012',
@@ -68,9 +65,8 @@ export function resolveProjectDbUuid(pid: string): string {
 export class CloudSyncService {
   private static getClient(): any {
     try {
-      if (typeof window === 'undefined' && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        return createAdminClient();
-      }
+      // Always the signed-in user's client: Row Level Security decides what they may see.
+      if (!hasSupabaseConfig()) return null;
       return createClient();
     } catch {
       return null;

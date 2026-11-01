@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { 
   ShieldCheck, 
@@ -23,17 +23,20 @@ import {
   Globe2
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { safeRedirectPath } from '@/lib/auth/safeRedirect';
+
+function nextPathFromUrl(): string {
+  if (typeof window === 'undefined') return '/dashboard';
+  return safeRedirectPath(new URLSearchParams(window.location.search).get('next'));
+}
 import { 
   UserApprovalService, 
-  UserProfileRecord, 
-  DEFAULT_APPROVED_USERS,
+  UserProfileRecord,
   SystemRole 
 } from '@/server/services/userApprovalService';
-import { getOfficialAvatar } from '@/lib/avatarPresets';
 
 export default function LoginPage() {
-  const [activeTab, setActiveTab] = useState<'OFFICER_ROSTER' | 'CREDENTIALS' | 'JOIN_SKB'>('OFFICER_ROSTER');
-  const [officers, setOfficers] = useState<UserProfileRecord[]>(DEFAULT_APPROVED_USERS);
+  const [activeTab, setActiveTab] = useState<'CREDENTIALS' | 'JOIN_SKB'>('CREDENTIALS');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -52,48 +55,6 @@ export default function LoginPage() {
   const [joinBio, setJoinBio] = useState('');
   const [registeredProfile, setRegisteredProfile] = useState<UserProfileRecord | null>(null);
 
-  useEffect(() => {
-    const loadOfficers = async () => {
-      const all = await UserApprovalService.getAllUsers();
-      if (all && all.length > 0) {
-        setOfficers(all);
-      }
-    };
-    loadOfficers();
-  }, []);
-
-  // 1-Click Fast Officer Sign-In
-  const handleOfficerQuickSignIn = async (officer: UserProfileRecord) => {
-    setLoading(true);
-    setErrorMsg('');
-    try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('skb_current_community_author', officer.fullName);
-        localStorage.setItem('skb_current_user_email', officer.email);
-        localStorage.setItem(`skb_presence_${officer.fullName.trim().toLowerCase()}`, Date.now().toString());
-      }
-
-      // If user has Supabase auth account, attempt background sync
-      const supabase = createClient();
-      try {
-        await supabase.auth.signInWithPassword({
-          email: officer.email,
-          password: 'REDACTED_REMOVED_PASSWORD'
-        });
-      } catch {
-        // Fallback: local session is already initialized
-      }
-
-      setSuccessMsg(`Welcome, ${officer.fullName}! Loading your workspace...`);
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 700);
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Failed to authenticate officer profile.');
-      setLoading(false);
-    }
-  };
-
   // Google OAuth Sign-In
   const handleGoogleOAuth = async () => {
     setLoading(true);
@@ -104,7 +65,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${origin}/auth/callback?next=/dashboard`
+          redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(nextPathFromUrl())}`
         }
       });
       if (error) {
@@ -144,26 +105,11 @@ export default function LoginPage() {
         localStorage.setItem(`skb_presence_${resolvedName.trim().toLowerCase()}`, Date.now().toString());
       }
 
-      setSuccessMsg('Authentication successful! Navigating to dashboard...');
+      setSuccessMsg('Authentication successful! Navigating to your workspace...');
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        window.location.href = nextPathFromUrl();
       }, 600);
     } catch (err: any) {
-      // Check if this matches a pre-approved organogram account
-      const matched = officers.find(o => o.email.toLowerCase() === email.toLowerCase());
-      if (matched && password === 'REDACTED_REMOVED_PASSWORD') {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('skb_current_community_author', matched.fullName);
-          localStorage.setItem('skb_current_user_email', matched.email);
-          localStorage.setItem(`skb_presence_${matched.fullName.trim().toLowerCase()}`, Date.now().toString());
-        }
-        setSuccessMsg(`Welcome, ${matched.fullName}!`);
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 600);
-        return;
-      }
-
       setErrorMsg(err?.message || 'Invalid email or password. Please verify credentials.');
       setLoading(false);
     }
@@ -217,17 +163,6 @@ export default function LoginPage() {
 
       {/* Tabs Bar */}
       <div className="bg-slate-100/90 p-1.5 rounded-2xl flex items-center gap-1 border border-slate-200">
-        <button
-          onClick={() => { setActiveTab('OFFICER_ROSTER'); setErrorMsg(''); }}
-          className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ${
-            activeTab === 'OFFICER_ROSTER'
-              ? 'bg-white text-slate-900 shadow-sm border border-slate-200/80'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-          }`}
-        >
-          <Users className="w-4 h-4 text-blue-600" />
-          <span>Official Officers Roster</span>
-        </button>
 
         <button
           onClick={() => { setActiveTab('CREDENTIALS'); setErrorMsg(''); }}
@@ -266,87 +201,6 @@ export default function LoginPage() {
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3.5 rounded-xl text-xs font-bold flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>{successMsg}</span>
-        </div>
-      )}
-
-      {/* TAB 1: OFFICIAL OFFICERS ROSTER (1-Click Instant Sign-In) */}
-      {activeTab === 'OFFICER_ROSTER' && (
-        <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-            <div>
-              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-blue-600" />
-                Verified SKB Official Personnel
-              </h2>
-              <p className="text-xs text-slate-500">
-                Click your profile below to instantly access your dedicated functional workspace.
-              </p>
-            </div>
-            <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full border border-blue-200 w-fit">
-              {officers.length} Active Officers
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[460px] overflow-y-auto pr-1">
-            {officers.map((officer) => {
-              const isExecutive = officer.designation === 'Chairman' || officer.designation === 'Executive Director';
-              const isSuperAdmin = officer.fullName.includes('Daloyar Hassan');
-
-              return (
-                <div 
-                  key={officer.id}
-                  className="bg-slate-50/70 hover:bg-slate-50 border border-slate-200 hover:border-blue-300 rounded-2xl p-3.5 transition-all flex flex-col justify-between gap-3 group shadow-xs hover:shadow-md"
-                >
-                  <div className="flex items-start gap-3">
-                    <img
-                      src={officer.avatarUrl || getOfficialAvatar(officer)}
-                      alt={officer.fullName}
-                      className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-xs shrink-0"
-                    />
-                    <div className="space-y-0.5 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="font-bold text-slate-900 text-xs truncate">{officer.fullName}</p>
-                        {isExecutive && (
-                          <span className="text-[9px] bg-amber-100 text-amber-900 font-extrabold px-1.5 py-0.2 rounded border border-amber-300">
-                            Directorate
-                          </span>
-                        )}
-                        {isSuperAdmin && (
-                          <span className="text-[9px] bg-purple-100 text-purple-900 font-extrabold px-1.5 py-0.2 rounded border border-purple-300">
-                            Super Admin
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] font-semibold text-blue-700">
-                        {officer.designation || officer.requestedRole}
-                      </p>
-                      <p className="text-[10px] text-slate-400 font-mono truncate">{officer.email}</p>
-                      <p className="text-[10px] text-slate-500 flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                        <span>{officer.dutyStation || 'Dhaka HQ'}</span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => handleOfficerQuickSignIn(officer)}
-                    disabled={loading}
-                    className="w-full py-2 bg-white group-hover:bg-blue-600 text-slate-700 group-hover:text-white border border-slate-200 group-hover:border-blue-600 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    <span>Enter Workspace</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
-            <span>Official Identity & Role-Based Access Control Protected</span>
-            <Link href="/community" className="text-blue-600 font-bold hover:underline">
-              Preview HQ Community &rsaquo;
-            </Link>
-          </div>
         </div>
       )}
 
@@ -404,7 +258,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. kindnessforbeauty@gmail.com"
+                placeholder="name@skb.org.bd"
                 required
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
@@ -416,7 +270,9 @@ export default function LoginPage() {
                   <Lock className="w-3.5 h-3.5 text-slate-400" />
                   Portal Password
                 </label>
-                <span className="text-[10px] text-slate-400">Default: REDACTED_REMOVED_PASSWORD</span>
+                <Link href="/reset-password" className="text-[10px] font-bold text-blue-600 hover:underline">
+                  Forgot password?
+                </Link>
               </div>
               <input
                 type="password"
@@ -591,11 +447,11 @@ export default function LoginPage() {
                 <button
                   onClick={() => {
                     setRegisteredProfile(null);
-                    setActiveTab('OFFICER_ROSTER');
+                    setActiveTab('CREDENTIALS');
                   }}
                   className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
                 >
-                  Back to Officers Roster
+                  Back to Sign In
                 </button>
                 <Link
                   href="/community"

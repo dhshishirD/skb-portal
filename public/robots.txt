@@ -1,0 +1,4 @@
+# SKB Works Portal is an internal system. Only the landing page may be indexed.
+User-agent: *
+Allow: /$
+Disallow: /

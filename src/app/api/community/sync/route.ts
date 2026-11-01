@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireUser } from '@/lib/auth/guards';
 
 // Known active profile ID in Supabase profiles table for foreign key validation
 const SYSTEM_PROFILE_ID = 'd963309c-1da4-4a4a-947c-c10785d43f1e';
 
 export async function GET() {
+  const guard = await requireUser();
+  if (!guard.ok) return guard.response;
+
   try {
     const supabase = createAdminClient();
     const { data, error } = await (supabase.from('notifications') as any)
@@ -107,6 +111,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const guard = await requireUser();
+  if (!guard.ok) return guard.response;
+
   try {
     const body = await request.json();
     const { type, payload } = body;

@@ -7,11 +7,13 @@ export async function POST(req: Request) {
     const signature = req.headers.get('x-odk-signature');
     const webhookSecret = process.env.ODK_WEBHOOK_SECRET;
 
-    if (webhookSecret && signature) {
-      const isValid = verifyWebhookSignature(rawBody, signature, webhookSecret);
-      if (!isValid) {
-        return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 });
-      }
+    // Fail closed: no configured secret, no signature, or a bad signature => reject.
+    if (!webhookSecret) {
+      console.error('ODK_WEBHOOK_SECRET is not configured; rejecting webhook.');
+      return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 });
+    }
+    if (!signature || !verifyWebhookSignature(rawBody, signature, webhookSecret)) {
+      return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 });
     }
 
     const payload = JSON.parse(rawBody || '{}');

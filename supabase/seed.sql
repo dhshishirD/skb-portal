@@ -9,8 +9,8 @@ insert into public.organizations (id, name, type, country) values
   ('00000000-0000-0000-0000-0000000000a1', 'Internal HQ Organization', 'internal', 'Bangladesh'),
   ('00000000-0000-0000-0000-0000000000d1', 'USAID Bangladesh (Donor)', 'donor', 'USA'),
   ('00000000-0000-0000-0000-0000000000d2', 'EU Development Fund (Donor)', 'donor', 'Belgium'),
-  ('00000000-0000-0000-0000-0000000000p1', 'BRAC Implementing Partner', 'implementing_partner', 'Bangladesh'),
-  ('00000000-0000-0000-0000-0000000000p2', 'Coast Trust Partner', 'implementing_partner', 'Bangladesh')
+  ('00000000-0000-0000-0000-0000000000f1', 'BRAC Implementing Partner', 'implementing_partner', 'Bangladesh'),
+  ('00000000-0000-0000-0000-0000000000f2', 'Coast Trust Partner', 'implementing_partner', 'Bangladesh')
 on conflict (id) do nothing;
 
 -- ===== 2. Locations (Bangladesh Hierarchy Sample) =====
@@ -76,7 +76,7 @@ update public.profiles set org_id = '00000000-0000-0000-0000-0000000000a1', full
 update public.profiles set org_id = '00000000-0000-0000-0000-0000000000a1', full_name = 'Kamal Procurement Specialist' where id = '10000000-0000-0000-0000-000000000007';
 update public.profiles set org_id = '00000000-0000-0000-0000-0000000000a1', full_name = 'Nasrin M&E Officer' where id = '10000000-0000-0000-0000-000000000008';
 update public.profiles set org_id = '00000000-0000-0000-0000-0000000000d1', full_name = 'USAID Grant Officer' where id = '10000000-0000-0000-0000-000000000009';
-update public.profiles set org_id = '00000000-0000-0000-0000-0000000000p1', full_name = 'BRAC Field Coordinator' where id = '10000000-0000-0000-0000-00000000000a';
+update public.profiles set org_id = '00000000-0000-0000-0000-0000000000f1', full_name = 'BRAC Field Coordinator' where id = '10000000-0000-0000-0000-00000000000a';
 update public.profiles set org_id = '00000000-0000-0000-0000-0000000000a1', full_name = 'Independent Auditor' where id = '10000000-0000-0000-0000-00000000000b';
 
 -- Roles

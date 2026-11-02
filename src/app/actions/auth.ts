@@ -1,106 +1,77 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { requiresMFA } from '@/lib/mfa-rules';
-import { AppRole } from '@/lib/database.types';
+import { createClient } from '@/lib/supabase/server';
+import { authCallbackUrl, getSiteUrl } from '@/lib/siteUrl';
+import { validatePassword } from '@/lib/auth/passwordPolicy';
 
-export async function signInAction(formData: FormData): Promise<void> {
-  const email = (formData.get('email') as string || '').toLowerCase().trim();
-  const password = (formData.get('password') as string || '').trim();
-
-  // 1. Direct Donor Portal Routing for IHH
-  if (
-    email.includes('ihh') || 
-    email === 'audit@ihh.org.tr' || 
-    email === 'donor-audit@ihh.org.tr' ||
-    password === 'IHH-SKB-2026' ||
-    password === 'ihh-partner-access-2026' ||
-    password === 'ihh2026'
-  ) {
-    redirect('/donor-dashboard?partner=IHH');
-  }
-
-  // 2. Direct Donor Portal Routing for UNHCR
-  if (
-    email.includes('unhcr') ||
-    password === 'UNHCR-SKB-2026' ||
-    password === 'unhcr2026'
-  ) {
-    redirect('/donor-dashboard?partner=UNHCR');
-  }
-
-  // 3. Direct Staff Routing Shortcuts
-  if (
-    email === 'admin@skb.org.bd' || 
-    email === 'director@skb.org.bd' || 
-    password === 'skb2026' || 
-    password === 'admin2026' ||
-    password === 'password123'
-  ) {
-    redirect('/dashboard');
-  }
-
-  if (
-    email === 'uddinmizbah902@gmail.com' || 
-    email === 'officer@skb.org.bd' ||
-    email.includes('mizbah')
-  ) {
-    redirect('/projects');
-  }
-
-  // 4. Default Fail-Safe Fallback: Always open IHH Donor Dashboard if email/password submitted!
-  redirect('/donor-dashboard?partner=IHH');
-}
+// NOTE: Next.js `redirect()` works by throwing. Every redirect below is therefore called
+// OUTSIDE try/catch blocks; a redirect inside `try` would be swallowed by `catch` and the
+// user would be sent to the success page even when the action failed.
 
 export async function signOutAction(): Promise<void> {
   try {
     const supabase = await createClient();
     await supabase.auth.signOut();
-  } catch (err) {
-    // Ignore error on signout fallback
+  } catch {
+    // Signing out is best-effort; the user is sent to /login either way.
   }
   redirect('/login');
 }
 
 export async function setPasswordAction(formData: FormData): Promise<void> {
-  const password = formData.get('password') as string;
-  if (!password || password.length < 8) {
-    redirect('/set-password?error=Password+must+be+at+least+8+characters');
+  const password = String(formData.get('password') ?? '');
+
+  const policyError = validatePassword(password);
+  if (policyError) {
+    redirect(`/set-password?error=${encodeURIComponent(policyError)}`);
   }
 
+  let errorMessage: string | null = null;
   try {
     const supabase = await createClient();
     const { error } = await supabase.auth.updateUser({ password });
-
-    if (error) {
-      redirect(`/set-password?error=${encodeURIComponent(error.message)}`);
-    }
-  } catch (err) {
-    // Fallback
+    if (error) errorMessage = error.message;
+  } catch {
+    errorMessage = 'Could not update the password. Please open the reset link again.';
   }
 
-  redirect('/dashboard');
+  if (errorMessage) {
+    redirect(`/set-password?error=${encodeURIComponent(errorMessage)}`);
+  }
+  redirect('/home');
 }
 
 export async function resetPasswordAction(formData: FormData): Promise<void> {
-  const email = formData.get('email') as string;
+  const email = String(formData.get('email') ?? '').trim().toLowerCase();
   if (!email) {
     redirect('/reset-password?error=Email+address+is+required');
   }
 
+  let failed = false;
   try {
+    const siteUrl = getSiteUrl(headers());
     const supabase = await createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/callback?next=/set-password`,
+      redirectTo: authCallbackUrl(siteUrl, '/set-password'),
     });
-
     if (error) {
-      redirect(`/reset-password?error=${encodeURIComponent(error.message)}`);
+      // Rate limits and config problems are logged server-side only. The user always sees
+      // the same message so the form cannot be used to discover which emails have accounts.
+      console.error('resetPasswordForEmail failed:', error.message);
+      // Only rate limits and outages are shown; "unknown email" style errors are not.
+      failed = error.status === 429 || !error.status || error.status >= 500;
     }
   } catch (err) {
-    // Fallback
+    console.error('resetPasswordAction error:', err);
+    failed = true;
   }
 
-  redirect('/reset-password?success=Password+reset+email+sent');
+  if (failed) {
+    redirect('/reset-password?error=Could+not+send+the+email+right+now.+Please+try+again+in+a+few+minutes.');
+  }
+  redirect(
+    '/reset-password?success=If+that+address+has+a+portal+account%2C+a+reset+link+is+on+its+way.'
+  );
 }

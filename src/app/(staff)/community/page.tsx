@@ -1,5 +1,6 @@
 'use client';
 
+import { POLL_INTERVALS, startPoll } from '@/lib/polling';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { 
@@ -620,7 +621,7 @@ export default function StaffCommunityPage() {
       }
     );
 
-    // 2. Continuous server-backed presence heartbeat poll (every 8s) to synchronize cross-browser / cross-device sessions
+    // 2. Server-backed presence list (safety net for Realtime presence). Paused while the tab is hidden.
     const syncServerPresence = async () => {
       try {
         const res = await fetch('/api/community/presence');
@@ -643,9 +644,7 @@ export default function StaffCommunityPage() {
       }
     };
 
-    // Immediate first fetch
-    syncServerPresence();
-    const pollInterval = setInterval(syncServerPresence, 8000);
+    const stopPresencePoll = startPoll(syncServerPresence, POLL_INTERVALS.presenceList);
 
     // 3. Subscribe to Realtime Posts, Comments, and Likes
     const postsChannel = CommunityRealtimeService.subscribeRealtimePosts(
@@ -787,7 +786,7 @@ export default function StaffCommunityPage() {
       handleIncomingDm(incomingDm);
     });
 
-    // 6. Server-backed continuous message sync loop (every 2.5s) for cross-browser / cross-device reliability
+    // 6. Server-backed DM sync as a safety net for missed Realtime broadcasts. Paused while hidden.
     const syncRealtimeDms = async () => {
       try {
         const res = await fetch('/api/community/sync');
@@ -803,11 +802,11 @@ export default function StaffCommunityPage() {
       }
     };
 
-    const dmPollInterval = setInterval(syncRealtimeDms, 2500);
+    const stopDmPoll = startPoll(syncRealtimeDms, POLL_INTERVALS.communitySync, { immediate: false });
 
     return () => {
-      clearInterval(pollInterval);
-      clearInterval(dmPollInterval);
+      stopPresencePoll();
+      stopDmPoll();
       if (presenceChannel && typeof (presenceChannel as any).unsubscribe === 'function') {
         (presenceChannel as any).unsubscribe();
       }

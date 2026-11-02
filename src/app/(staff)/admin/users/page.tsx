@@ -1,445 +1,303 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useTranslations } from 'next-intl';
-import { createClient } from '@/lib/supabase/client';
-import { UserPlus, Shield, MapPin, FolderKanban, UserX, UserCheck, Calendar, Clock, CheckCircle2 } from 'lucide-react';
-import { inviteUserAction } from '@/server/actions/admin';
-import { UserApprovalService, UserProfileRecord } from '@/server/services/userApprovalService';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Mail, Pencil, Shield, UserPlus, X } from 'lucide-react';
+import {
+  inviteStaffAction,
+  listStaffAction,
+  resendAccessEmailAction,
+  updateStaffAction,
+  type StaffRow,
+} from '@/server/actions/admin';
+import { ROLE_LABELS } from '@/lib/desks';
+import { STAFF_ASSIGNABLE_ROLES } from '@/lib/staffAdmin';
+import type { AppRole } from '@/lib/database.types';
 
-interface UserItem {
-  id: string;
-  fullName: string;
-  email: string;
-  orgName: string;
-  roles: string[];
-  isActive: boolean;
-  projectsCount: number;
+/*
+ * Users & Access (Super Admin: full control; IT Officer: view + re-send emails).
+ * Everything here reads and writes the database through server actions. There is no
+ * local-storage approval queue: accounts are invite-only.
+ */
+
+type Banner = { kind: 'ok' | 'error'; text: string } | null;
+
+function statusOf(u: StaffRow): { label: string; cls: string } {
+  if (!u.isActive) return { label: 'Deactivated', cls: 'bg-slate-100 text-slate-600 border-slate-200' };
+  if (!u.lastSignInAt) return { label: 'Invited', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
+  if (u.roles.length === 0) return { label: 'No role', cls: 'bg-red-50 text-red-700 border-red-200' };
+  return { label: 'Active', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
 }
 
-const REAL_SKB_TEAM: UserItem[] = [
-  {
-    id: '10000000-0000-0000-0000-000000000003',
-    fullName: 'Dr. Orakatul Jannat',
-    email: 'dr.orakatul@skb.org.bd',
-    orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['Chairman'],
-    isActive: true,
-    projectsCount: 4,
-  },
-  {
-    id: '10000000-0000-0000-0000-000000000002',
-    fullName: 'Md. Abu Huraira',
-    email: 'kindnessforbeauty@gmail.com',
-    orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['Executive Director'],
-    isActive: true,
-    projectsCount: 4,
-  },
-  {
-    id: '0a88393f-1283-42d2-b4c2-31c502b1d538',
-    fullName: 'Daloyar Hassan',
-    email: 'daloyar.pro@gmail.com',
-    orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['Program Officer', 'HR & Admin'],
-    isActive: true,
-    projectsCount: 4,
-  },
-  {
-    id: '10000000-0000-0000-0000-000000000004',
-    fullName: 'Emran Ahmed',
-    email: 'emran.ahmed@skb.org.bd',
-    orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['Program Officer'],
-    isActive: true,
-    projectsCount: 4,
-  },
-  {
-    id: '10000000-0000-0000-0000-000000000005',
-    fullName: 'Mizbah Uddin',
-    email: 'mizbah.uddin@skb.org.bd',
-    orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['Program Officer'],
-    isActive: true,
-    projectsCount: 4,
-  },
-  {
-    id: '10000000-0000-0000-0000-000000000006',
-    fullName: 'Muktadir Rahaman',
-    email: 'muktadir.rahaman@skb.org.bd',
-    orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['IT Officer'],
-    isActive: true,
-    projectsCount: 4,
-  },
-  {
-    id: '10000000-0000-0000-0000-000000000007',
-    fullName: 'Aminul Islam Bulbul',
-    email: 'aminul.bulbul@skb.org.bd',
-    orgName: 'Small Kindness Bangladesh (HQ)',
-    roles: ['Law Officer'],
-    isActive: true,
-    projectsCount: 4,
-  },
-];
+function StaffForm({
+  mode,
+  staff,
+  initial,
+  onSubmit,
+  onCancel,
+  busy,
+}: {
+  mode: 'invite' | 'edit';
+  staff: StaffRow[];
+  initial?: StaffRow;
+  onSubmit: (fd: FormData) => void;
+  onCancel: () => void;
+  busy: boolean;
+}) {
+  const managers = staff.filter((s) => s.isActive && s.id !== initial?.id);
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit(new FormData(e.currentTarget));
+      }}
+    >
+      <div className="grid sm:grid-cols-2 gap-3">
+        <label className="text-xs font-medium text-slate-700 space-y-1">
+          <span>Full name</span>
+          <input name="fullName" required defaultValue={initial?.fullName} className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg" />
+        </label>
+        {mode === 'invite' ? (
+          <label className="text-xs font-medium text-slate-700 space-y-1">
+            <span>Email (use @skb.org.bd where possible)</span>
+            <input name="email" type="email" required className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg" />
+          </label>
+        ) : (
+          <div className="text-xs text-slate-500 self-end pb-2">{initial?.email}</div>
+        )}
+        <label className="text-xs font-medium text-slate-700 space-y-1">
+          <span>Designation (shown on the org chart)</span>
+          <input name="designation" defaultValue={initial?.designation ?? ''} placeholder="e.g. Program Officer" className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg" />
+        </label>
+        <label className="text-xs font-medium text-slate-700 space-y-1">
+          <span>Reports to</span>
+          <select name="reportsTo" defaultValue={initial?.reportsTo ?? ''} className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg bg-white">
+            <option value="">(nobody: top of the hierarchy)</option>
+            {managers.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.fullName}
+                {m.designation ? ` (${m.designation})` : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-xs font-medium text-slate-700 space-y-1">
+          <span>Order on org chart (lower = higher up)</span>
+          <input name="displayOrder" type="number" min={0} max={999} defaultValue={initial?.displayOrder ?? 100} className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg" />
+        </label>
+        {mode === 'edit' && (
+          <label className="flex items-center gap-2 text-xs font-medium text-slate-700 self-end pb-2">
+            <input type="checkbox" name="isActive" defaultChecked={initial?.isActive} />
+            Account active (unticking signs them out everywhere)
+          </label>
+        )}
+      </div>
 
-export default function AdminUsersPage() {
-  const t = useTranslations('Common');
-  const [users, setUsers] = useState<UserItem[]>(REAL_SKB_TEAM);
-  const [pendingUsers, setPendingUsers] = useState<UserProfileRecord[]>([]);
-  const [showInviteModal, setShowInviteModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
-  const [statusMsg, setStatusMsg] = useState('');
-  const [accessDenied, setAccessDenied] = useState(false);
+      <fieldset className="space-y-2">
+        <legend className="text-xs font-semibold text-slate-800">Role(s): these decide which desk they get and what they can see</legend>
+        <div className="grid sm:grid-cols-2 gap-2">
+          {STAFF_ASSIGNABLE_ROLES.map((r) => (
+            <label key={r} className="flex items-start gap-2 text-xs text-slate-700 border border-slate-200 rounded-lg px-3 py-2">
+              <input type="checkbox" name="roles" value={r} defaultChecked={initial?.roles.includes(r)} className="mt-0.5" />
+              <span>{ROLE_LABELS[r]}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
-  useEffect(() => {
-    const loadPendingUsers = async () => {
-      const pending = await UserApprovalService.getPendingUsers();
-      setPendingUsers(pending);
-    };
-    loadPendingUsers();
+      <div className="flex justify-end gap-2">
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-xs border border-slate-300 rounded-lg">
+          Cancel
+        </button>
+        <button type="submit" disabled={busy} className="px-4 py-2 text-xs bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold rounded-lg">
+          {busy ? 'Working…' : mode === 'invite' ? 'Send invitation' : 'Save changes'}
+        </button>
+      </div>
+    </form>
+  );
+}
 
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        const designation = (user.user_metadata?.designation || '').toLowerCase();
-        const isAdmin = designation.includes('admin') || designation.includes('director') || designation.includes('executive') || designation.includes('it');
-        if (!isAdmin) {
-          setAccessDenied(false); // Accessible for administrative role management
-        }
-      }
-    });
+export default function UsersAdminPage() {
+  const [staff, setStaff] = useState<StaffRow[]>([]);
+  const [canManage, setCanManage] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [banner, setBanner] = useState<Banner>(null);
+  const [busy, setBusy] = useState(false);
+  const [panel, setPanel] = useState<{ mode: 'invite' } | { mode: 'edit'; user: StaffRow } | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const res = await listStaffAction();
+    if (res.ok) {
+      setStaff(res.staff);
+      setCanManage(res.canManage);
+    } else {
+      setBanner({ kind: 'error', text: res.error });
+    }
+    setLoading(false);
   }, []);
 
-  const handleApproveUser = async (userId: string) => {
-    const approved = await UserApprovalService.approveUser(userId, 'Daloyar Hassan (Super Admin)');
-    if (approved) {
-      setPendingUsers((prev) => prev.filter((u) => u.id !== userId));
-      setUsers((prev) => [
-        {
-          id: approved.id,
-          fullName: approved.fullName,
-          email: approved.email,
-          orgName: 'Small Kindness Bangladesh (HQ)',
-          roles: [approved.requestedRole],
-          isActive: true,
-          projectsCount: 1,
-        },
-        ...prev,
-      ]);
-      setStatusMsg(`User "${approved.fullName}" approved! Assigned role: "${approved.requestedRole}".`);
-      setTimeout(() => setStatusMsg(''), 4000);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const nameOf = useMemo(() => new Map(staff.map((s) => [s.id, s.fullName])), [staff]);
+
+  const run = async (fn: () => Promise<{ ok: boolean; message?: string; error?: string }>) => {
+    setBusy(true);
+    const res = await fn();
+    setBusy(false);
+    if (res.ok) {
+      setBanner({ kind: 'ok', text: res.message ?? 'Done.' });
+      setPanel(null);
+      await load();
+    } else {
+      setBanner({ kind: 'error', text: res.error ?? 'Something went wrong' });
     }
   };
-
-  const toggleStatus = (id: string) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, isActive: !u.isActive } : u))
-    );
-  };
-
-  if (accessDenied) {
-    return (
-      <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center max-w-lg mx-auto my-12 space-y-4 shadow-sm">
-        <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
-          <Shield className="w-6 h-6" />
-        </div>
-        <h2 className="text-lg font-bold text-slate-900">🔒 Access Restricted</h2>
-        <p className="text-xs text-slate-500 leading-relaxed">
-          The Users & Access Management workspace is restricted to Executive Directors, Super Admins, and IT Officers.
-        </p>
-        <Link 
-          href="/dashboard" 
-          className="inline-block bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-sm transition"
-        >
-          Return to My Workspace
-        </Link>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Users & Access Management</h1>
+          <h1 className="text-xl font-bold text-slate-900">Users &amp; Access</h1>
           <p className="text-xs text-slate-500">
-            Manage user accounts, assign roles, and configure project & location access limits.
+            Accounts are by invitation only. Each person&apos;s role decides which desk they land on and what they can see.
           </p>
         </div>
-        <button
-          onClick={() => setShowInviteModal(true)}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-xl shadow-sm transition-colors"
-        >
-          <UserPlus className="w-4 h-4" />
-          Invite New User
-        </button>
+        {canManage && (
+          <button
+            onClick={() => setPanel({ mode: 'invite' })}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-xl shadow-sm"
+          >
+            <UserPlus className="w-4 h-4" /> Invite staff member
+          </button>
+        )}
       </div>
 
-      {statusMsg && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-3.5 rounded-xl text-xs font-bold flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> {statusMsg}
+      {banner && (
+        <div
+          role={banner.kind === 'error' ? 'alert' : 'status'}
+          className={`text-xs rounded-lg px-3 py-2 border flex justify-between ${
+            banner.kind === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+          }`}
+        >
+          <span>{banner.text}</span>
+          <button onClick={() => setBanner(null)} aria-label="Dismiss">
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
-      {/* Pending Role Approvals Queue */}
-      {pendingUsers.length > 0 && (
-        <div className="bg-amber-50/60 border border-amber-200 rounded-2xl p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-amber-200/80 pb-3">
-            <div>
-              <h2 className="text-sm font-bold text-amber-950 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-600" />
-                Pending Role Activation Queue ({pendingUsers.length})
-              </h2>
-              <p className="text-xs text-amber-800">
-                Staff members signed in with Google awaiting administrator role confirmation.
-              </p>
-            </div>
-          </div>
+      {!canManage && !loading && (
+        <p className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 flex items-center gap-2">
+          <Shield className="w-4 h-4" /> View-only: you can re-send invite or password emails. Role changes need a Super Admin.
+        </p>
+      )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {pendingUsers.map((pending) => (
-              <div key={pending.id} className="bg-white border border-amber-200 rounded-xl p-4 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <img src={pending.avatarUrl} alt={pending.fullName} className="w-8 h-8 rounded-full object-cover border border-amber-300" />
-                    <div>
-                      <p className="font-bold text-slate-900 text-xs">{pending.fullName}</p>
-                      <p className="text-[10px] text-slate-500 font-mono">{pending.email}</p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300">
-                    Pending
-                  </span>
-                </div>
-
-                <div className="bg-slate-50 p-2.5 rounded-lg text-xs space-y-1">
-                  <p className="text-[10px] text-slate-400">Requested Directory & Role:</p>
-                  <p className="font-bold text-blue-700">{pending.requestedRole} ({pending.department})</p>
-                </div>
-
-                <button
-                  onClick={() => handleApproveUser(pending.id)}
-                  className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-1.5"
-                >
-                  <UserCheck className="w-4 h-4" /> Confirm & Approve Full Access
-                </button>
-              </div>
-            ))}
-          </div>
+      {panel && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <h2 className="text-sm font-bold text-slate-900 mb-4">
+            {panel.mode === 'invite' ? 'Invite a staff member' : `Edit ${panel.user.fullName}`}
+          </h2>
+          <StaffForm
+            mode={panel.mode}
+            staff={staff}
+            initial={panel.mode === 'edit' ? panel.user : undefined}
+            busy={busy}
+            onCancel={() => setPanel(null)}
+            onSubmit={(fd) =>
+              run(() => (panel.mode === 'invite' ? inviteStaffAction(fd) : updateStaffAction(panel.user.id, fd)))
+            }
+          />
+          {panel.mode === 'invite' && (
+            <p className="mt-3 text-[11px] text-slate-500">
+              They receive an email, set their own password, and land on their desk. Super Admins and the Executive
+              Director are then asked to set up two-step verification.
+            </p>
+          )}
         </div>
       )}
 
-      {/* Users Table */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-600">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-sm">
+        <table className="w-full text-xs">
+          <thead className="bg-slate-50 text-slate-600 text-left">
+            <tr>
+              <th className="px-4 py-3">Name &amp; designation</th>
+              <th className="px-4 py-3">Reports to</th>
+              <th className="px-4 py-3">Roles</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Last sign-in</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {loading && (
               <tr>
-                <th className="px-4 py-3">User</th>
-                <th className="px-4 py-3">Organization</th>
-                <th className="px-4 py-3">Roles</th>
-                <th className="px-4 py-3">Projects</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                  Loading staff…
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
+            )}
+            {!loading && staff.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                  No staff accounts yet.
+                </td>
+              </tr>
+            )}
+            {staff.map((u) => {
+              const st = statusOf(u);
+              return (
+                <tr key={u.id} className={u.isActive ? '' : 'opacity-60'}>
                   <td className="px-4 py-3">
-                    <div className="font-semibold text-slate-900">{user.fullName}</div>
-                    <div className="text-[11px] text-slate-400">{user.email}</div>
+                    <div className="font-semibold text-slate-900">{u.fullName}</div>
+                    <div className="text-slate-500">{u.designation ?? 'n/a'}</div>
+                    <div className="text-slate-400">{u.email}</div>
                   </td>
-                  <td className="px-4 py-3 font-medium text-slate-700">{user.orgName}</td>
+                  <td className="px-4 py-3 text-slate-600">{u.reportsTo ? nameOf.get(u.reportsTo) ?? 'n/a' : 'n/a'}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
-                      {user.roles.map((r) => (
-                        <span
-                          key={r}
-                          className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200"
-                        >
-                          {r}
+                      {u.roles.length === 0 && <span className="text-red-600">none</span>}
+                      {u.roles.map((r: AppRole) => (
+                        <span key={r} className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                          {ROLE_LABELS[r]?.split(' (')[0] ?? r}
                         </span>
                       ))}
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1 font-mono text-slate-700">
-                      <FolderKanban className="w-3.5 h-3.5 text-slate-400" />
-                      {user.projectsCount}
-                    </span>
+                    <span className={`px-2 py-0.5 rounded-full border ${st.cls}`}>{st.label}</span>
                   </td>
-                  <td className="px-4 py-3">
-                    {user.isActive ? (
-                      <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[10px] font-medium border border-emerald-200">
-                        <UserCheck className="w-3 h-3" /> Active
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full text-[10px] font-medium">
-                        <UserX className="w-3 h-3" /> Deactivated
-                      </span>
+                  <td className="px-4 py-3 text-slate-500">
+                    {u.lastSignInAt ? new Date(u.lastSignInAt).toLocaleDateString() : 'never'}
+                  </td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap space-x-1">
+                    {u.isActive && (
+                      <button
+                        onClick={() => run(() => resendAccessEmailAction(u.id))}
+                        disabled={busy}
+                        title={u.lastSignInAt ? 'Send password-reset email' : 'Re-send invitation'}
+                        className="inline-flex items-center gap-1 px-2 py-1 border border-slate-300 rounded-lg hover:bg-slate-50"
+                      >
+                        <Mail className="w-3.5 h-3.5" /> {u.lastSignInAt ? 'Reset' : 'Re-invite'}
+                      </button>
+                    )}
+                    {canManage && (
+                      <button
+                        onClick={() => setPanel({ mode: 'edit', user: u })}
+                        className="inline-flex items-center gap-1 px-2 py-1 border border-slate-300 rounded-lg hover:bg-slate-50"
+                      >
+                        <Pencil className="w-3.5 h-3.5" /> Edit
+                      </button>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right space-x-2">
-                    <button
-                      onClick={() => setSelectedUser(user)}
-                      className="px-2.5 py-1 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors"
-                    >
-                      Assign Access
-                    </button>
-                    <button
-                      onClick={() => toggleStatus(user.id)}
-                      className={`px-2.5 py-1 text-[11px] rounded-lg font-medium transition-colors ${
-                        user.isActive
-                          ? 'bg-red-50 hover:bg-red-100 text-red-700'
-                          : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
-                      }`}
-                    >
-                      {user.isActive ? 'Deactivate' : 'Reactivate'}
-                    </button>
-                  </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
-
-      {/* Invite User Modal */}
-      {showInviteModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-200 p-6 space-y-4">
-            <h3 className="text-base font-bold text-slate-900">Invite New User</h3>
-
-            <form
-              action={async (formData) => {
-                try {
-                  const res = await inviteUserAction(formData);
-                  setStatusMsg(res.message || 'User invitation email sent successfully!');
-                } catch (err: any) {
-                  setStatusMsg(`Invitation notice: ${err.message || 'User registered'}`);
-                }
-                setShowInviteModal(false);
-              }}
-              className="space-y-3"
-            >
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Email Address</label>
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  placeholder="newuser@organization.org"
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Full Name</label>
-                <input
-                  name="fullName"
-                  type="text"
-                  required
-                  placeholder="Official Name"
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Initial Role</label>
-                <select
-                  name="role"
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="program_officer">Program Officer</option>
-                  <option value="field_officer">Field Officer</option>
-                  <option value="executive_director">Executive Director</option>
-                  <option value="admin_hr">Admin & HR Officer</option>
-                  <option value="it_officer">IT Officer</option>
-                  <option value="finance">Finance Officer</option>
-                  <option value="procurement">Procurement Officer</option>
-                  <option value="me_officer">M&E Officer</option>
-                  <option value="legal_officer">Legal Officer</option>
-                  <option value="donor">Donor Representative</option>
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowInviteModal(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
-                >
-                  Send Invitation
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Assign Access Modal */}
-      {selectedUser && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-200 p-6 space-y-4">
-            <h3 className="text-base font-bold text-slate-900">
-              Assign Access for {selectedUser.fullName}
-            </h3>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Assigned Project</label>
-                <select className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg">
-                  <option>P1 - Climate Resilience in Coastal Areas</option>
-                  <option>P2 - Primary Healthcare Access</option>
-                  <option>P3 - Youth Employment Training</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
-                  Access Expiry Date (Optional - e.g. for Auditors)
-                </label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg"
-                  />
-                  <Calendar className="w-4 h-4 text-slate-400 absolute right-3 top-2.5 pointer-events-none" />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedUser(null)}
-                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg"
-                >
-                  Close
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStatusMsg(`Access updated for ${selectedUser.fullName}`);
-                    setSelectedUser(null);
-                  }}
-                  className="px-4 py-2 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
-                >
-                  Save Access Rule
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

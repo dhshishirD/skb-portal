@@ -12,8 +12,9 @@ import { getActor, getProjectById } from '@/server/services/projectsData';
 
 const dash = (v: string | number | null | undefined) => (v === null || v === undefined || v === '' ? '—' : String(v));
 
-export default async function ProjectOverviewPage({ params }: { params: { id: string } }) {
-  const [project, actor] = await Promise.all([getProjectById(params.id), getActor()]);
+export default async function ProjectOverviewPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const [project, actor] = await Promise.all([getProjectById(id), getActor()]);
   if (!project || !actor) notFound();
 
   const rows: Array<[string, string]> = [

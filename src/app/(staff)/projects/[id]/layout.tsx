@@ -14,9 +14,10 @@ export default async function ProjectDetailLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const [project, org] = await Promise.all([getProjectById(params.id), getOwnOrganization().catch(() => null)]);
+  const { id } = await params;
+  const [project, org] = await Promise.all([getProjectById(id), getOwnOrganization().catch(() => null)]);
   if (!project) notFound();
 
   return (

@@ -1,12 +1,13 @@
 import { setPasswordAction } from '@/app/actions/auth';
 import { PASSWORD_MIN_LENGTH, PASSWORD_RULES_TEXT } from '@/lib/auth/passwordPolicy';
 
-export default function SetPasswordPage({
+export default async function SetPasswordPage({
   searchParams,
 }: {
-  searchParams?: { error?: string };
+  searchParams?: Promise<{ error?: string }>;
 }) {
-  const error = typeof searchParams?.error === 'string' ? searchParams.error : null;
+  const query = (await searchParams) ?? {};
+  const error = typeof query.error === 'string' ? query.error : null;
 
   return (
     <div className="space-y-6">

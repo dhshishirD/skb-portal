@@ -40,9 +40,6 @@ export default function RootPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-base font-extrabold text-slate-900 leading-none">{t('appName')}</h1>
-              <span className="text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded-full border border-blue-200">
-                NGO Reg #2938
-              </span>
             </div>
             <p className="text-[11px] text-slate-500 font-semibold mt-0.5">Small Kindness Bangladesh Operations</p>
           </div>
@@ -76,7 +73,7 @@ export default function RootPage() {
 
           <div className="pt-2 flex flex-wrap items-center gap-4 text-xs font-semibold text-blue-100">
             <span className="flex items-center gap-1.5 bg-black/20 px-3 py-1.5 rounded-xl border border-white/10">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Multi-Tenant Security
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Role-based security
             </span>
             <span className="flex items-center gap-1.5 bg-black/20 px-3 py-1.5 rounded-xl border border-white/10">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Live Field Data Sync
@@ -267,7 +264,6 @@ export default function RootPage() {
       <footer className="border-t border-slate-200 py-5 px-4 text-center text-xs text-slate-500 bg-white mt-auto">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>&copy; {new Date().getFullYear()} Small Kindness Bangladesh • SKB Works Portal v2.4</span>
-          <span className="text-slate-400">NGO Affairs Bureau Reg #2938 • Multi-Tenant Secured Infrastructure</span>
         </div>
       </footer>
     </div>

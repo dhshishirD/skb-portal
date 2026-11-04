@@ -1,89 +1,55 @@
-'use client';
-
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { 
-  FileText, 
-  FolderKanban,
-  Target, 
-  CheckSquare, 
-  Users, 
-  FolderArchive, 
-  ShieldCheck, 
-  Building2 
-} from 'lucide-react';
+import { notFound } from 'next/navigation';
+import { Building2 } from 'lucide-react';
+import { ProjectTabs } from '@/components/projects/ProjectTabs';
+import { STAGE_LABELS } from '@/lib/projects';
+import { getOwnOrganization, getProjectById } from '@/server/services/projectsData';
 
-export default function ProjectDetailSubLayout({
+/*
+ * Shared header for every project page. The title, code and stage come from the database,
+ * through the signed-in user's own access (a project they may not see is a 404).
+ */
+export default async function ProjectDetailLayout({
   children,
   params,
 }: {
   children: React.ReactNode;
   params: { id: string };
 }) {
-  const pathname = usePathname();
-  const pid = params.id || 'PID-2026';
-
-  const navTabs = [
-    { name: '1. Project Charter', href: `/projects/${pid}/charter`, icon: FileText, isNew: true },
-    { name: '2. Stage Gates', href: `/projects/${pid}/kanban`, icon: FolderKanban, isNew: false },
-    { name: '3. Logframe Tree', href: `/projects/${pid}/logframe`, icon: Target, isNew: false },
-    { name: '4. Tasks & Workplan', href: `/projects/${pid}/tasks`, icon: CheckSquare, isNew: false },
-    { name: '5. Beneficiaries', href: `/projects/${pid}/beneficiaries`, icon: Users, isNew: false },
-    { name: '6. Compliance Docs', href: `/projects/${pid}/documents`, icon: FolderArchive, isNew: false },
-    { name: '7. Closing & Form-7 Audit', href: `/projects/${pid}/closing-report`, icon: ShieldCheck, isNew: true },
-  ];
+  const [project, org] = await Promise.all([getProjectById(params.id), getOwnOrganization().catch(() => null)]);
+  if (!project) notFound();
 
   return (
     <div className="space-y-6 font-sans">
-      {/* Shared Project Top Breadcrumb & Unified Single Tab Bar */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3 text-xs">
-          <div className="flex items-center gap-2 text-slate-500 font-medium">
+          <div className="flex flex-wrap items-center gap-2 text-slate-500 font-medium">
             <Link href="/projects" className="hover:underline text-blue-600 font-bold">
-              Projects Portfolio
+              Projects
             </Link>
-            <span>&rsaquo;</span>
+            <span aria-hidden="true">&rsaquo;</span>
             <span className="font-mono font-extrabold text-slate-900 bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200">
-              {decodeURIComponent(pid)}
+              {project.code}
             </span>
+            <span className="font-semibold text-slate-800">{project.title}</span>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="bg-blue-50 text-blue-800 border border-blue-200 text-[11px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5 text-blue-600" /> SKB Operations • NGOAB Reg #2938
+            <span className="bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-bold px-3 py-1 rounded-full">
+              {STAGE_LABELS[project.stage]}
             </span>
+            {org?.registration_no && (
+              <span className="bg-blue-50 text-blue-800 border border-blue-200 text-[11px] font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-blue-600" aria-hidden="true" />
+                {org.registration_authority ? `${org.registration_authority} ` : 'Reg. '}
+                {org.registration_no}
+              </span>
+            )}
           </div>
         </div>
-
-        {/* Streamlined Single Lifecycle Tab Navigation Bar */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          {navTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = pathname.startsWith(tab.href);
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
-                  isActive
-                    ? 'bg-slate-900 text-white shadow-md'
-                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/70'
-                }`}
-              >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-amber-400' : 'text-slate-500'}`} />
-                <span>{tab.name}</span>
-                {tab.isNew && (
-                  <span className="text-[9px] bg-amber-500 text-slate-950 font-black px-1.5 py-0.2 rounded-full uppercase">
-                    New
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </div>
+        <ProjectTabs projectId={project.id} />
       </div>
 
-      {/* Main Tab Content View */}
       <div>{children}</div>
     </div>
   );

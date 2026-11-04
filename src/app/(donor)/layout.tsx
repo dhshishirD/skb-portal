@@ -77,7 +77,7 @@ const PARTNER_LAYOUT_MAP: Record<string, PartnerLayoutMeta> = {
     flag: '🏛️',
     auditName: 'SKB Directorate General',
     auditRole: 'HQ Central Governance & Audit',
-    operationsText: 'HQ Multi-Tenant Engine • 6 Partner Desks Active',
+    operationsText: 'SKB HQ • Partner desks',
   }
 };
 
@@ -202,7 +202,6 @@ function DonorLayoutInner({ children }: { children: React.ReactNode }) {
 
           <div className="pt-4 border-t border-slate-100 px-3 text-[11px] text-slate-400 space-y-0.5">
             <p className="font-bold text-slate-700">Small Kindness Bangladesh</p>
-            <p className="text-[10px] text-slate-400">NGO Affairs Bureau Reg. #2938</p>
           </div>
         </aside>
 
@@ -224,7 +223,6 @@ function DonorLayoutInner({ children }: { children: React.ReactNode }) {
       <footer className="border-t border-slate-200 py-4 px-4 text-center text-xs text-slate-500 bg-white mt-auto">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>&copy; {new Date().getFullYear()} Small Kindness Bangladesh • Dedicated Partner Desk</span>
-          <span className="text-slate-400">NGO Affairs Bureau Reg #2938 • Multi-Tenant Partner Isolation</span>
         </div>
       </footer>
     </div>

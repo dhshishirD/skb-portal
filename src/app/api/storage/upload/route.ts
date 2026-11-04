@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireUser } from '@/lib/auth/guards';
+import { createClient } from '@/lib/supabase/server';
+import { requireActiveRole } from '@/lib/auth/guards';
+import { contentMatchesMime, isUuid } from '@/lib/apiAccess';
+import { hasPermission } from '@/lib/permissions';
 
 const BUCKET = 'project-documents';
 const MAX_BYTES = 25 * 1024 * 1024; // 25 MB
@@ -24,18 +27,35 @@ function safeSegment(value: string, fallback: string): string {
 }
 
 export async function POST(req: NextRequest) {
-  const guard = await requireUser();
+  // The service-role client below bypasses Row Level Security, so check the person here:
+  // active, with permission to add documents.
+  const guard = await requireActiveRole((roles) => hasPermission(roles, 'document.write'));
   if (!guard.ok) return guard.response;
 
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
-    const projectId = safeSegment((formData.get('projectId') as string) || '', 'GENERAL');
+    const projectId = ((formData.get('projectId') as string) || '').trim();
     const category = safeSegment((formData.get('category') as string) || '', 'MANDATORY_PRIMARY');
     const docName = ((formData.get('docName') as string) || (file ? file.name : 'document')).slice(0, 200);
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided in form data' }, { status: 400 });
+    }
+
+    // The project must be a real one that THIS person may access (checked with their own
+    // access rights, not the service role).
+    if (!isUuid(projectId)) {
+      return NextResponse.json({ error: 'Choose a project to attach this document to.' }, { status: 400 });
+    }
+    const userClient = await createClient();
+    const { data: project } = await (userClient.from('projects') as any)
+      .select('id')
+      .eq('id', projectId)
+      .is('deleted_at', null)
+      .maybeSingle();
+    if (!project) {
+      return NextResponse.json({ error: 'You do not have access to this project.' }, { status: 403 });
     }
     if (file.size === 0 || file.size > MAX_BYTES) {
       return NextResponse.json({ error: 'File must be between 1 byte and 25 MB.' }, { status: 413 });
@@ -48,6 +68,9 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    if (!contentMatchesMime(file.type, buffer.subarray(0, 16))) {
+      return NextResponse.json({ error: 'The file content does not match its type.' }, { status: 415 });
+    }
     const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120);
     const storagePath = `${projectId}/${Date.now()}-${crypto.randomUUID()}-${sanitizedFileName}`;
 

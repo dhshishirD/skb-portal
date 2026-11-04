@@ -15,8 +15,9 @@ const MESSAGES: Record<string, { title: string; body: string }> = {
   },
 };
 
-export default function NoAccessPage({ searchParams }: { searchParams?: { reason?: string } }) {
-  const reason = typeof searchParams?.reason === 'string' && MESSAGES[searchParams.reason] ? searchParams.reason : 'no-role';
+export default async function NoAccessPage({ searchParams }: { searchParams?: Promise<{ reason?: string }> }) {
+  const query = (await searchParams) ?? {};
+  const reason = typeof query.reason === 'string' && MESSAGES[query.reason] ? query.reason : 'no-role';
   const msg = MESSAGES[reason];
 
   return (

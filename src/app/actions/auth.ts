@@ -51,7 +51,7 @@ export async function resetPasswordAction(formData: FormData): Promise<void> {
 
   let failed = false;
   try {
-    const siteUrl = getSiteUrl(headers());
+    const siteUrl = getSiteUrl(await headers());
     const supabase = await createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: authCallbackUrl(siteUrl, '/set-password'),

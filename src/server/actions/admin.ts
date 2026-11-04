@@ -161,7 +161,7 @@ export async function inviteStaffAction(formData: FormData): Promise<ActionResul
     const input = parsed.data;
 
     const admin = createAdminClient();
-    const siteUrl = getSiteUrl(headers());
+    const siteUrl = getSiteUrl(await headers());
     const { data, error } = await admin.auth.admin.inviteUserByEmail(input.email, {
       data: { full_name: input.fullName },
       redirectTo: authCallbackUrl(siteUrl, '/set-password'),
@@ -257,7 +257,7 @@ export async function resendAccessEmailAction(userId: string): Promise<ActionRes
     const { data, error } = await admin.auth.admin.getUserById(userId);
     if (error || !data.user?.email) return { ok: false, error: 'User not found.' };
 
-    const siteUrl = getSiteUrl(headers());
+    const siteUrl = getSiteUrl(await headers());
     const redirectTo = authCallbackUrl(siteUrl, '/set-password');
     const neverSignedIn = !data.user.last_sign_in_at;
 

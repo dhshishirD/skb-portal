@@ -1,13 +1,14 @@
 import { resetPasswordAction } from '@/app/actions/auth';
 import Link from 'next/link';
 
-export default function ResetPasswordPage({
+export default async function ResetPasswordPage({
   searchParams,
 }: {
-  searchParams?: { error?: string; success?: string };
+  searchParams?: Promise<{ error?: string; success?: string }>;
 }) {
-  const error = typeof searchParams?.error === 'string' ? searchParams.error : null;
-  const success = typeof searchParams?.success === 'string' ? searchParams.success : null;
+  const query = (await searchParams) ?? {};
+  const error = typeof query.error === 'string' ? query.error : null;
+  const success = typeof query.success === 'string' ? query.success : null;
 
   return (
     <div className="space-y-6">

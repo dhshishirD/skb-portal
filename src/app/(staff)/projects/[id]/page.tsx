@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
-export default function ProjectIndexPage({ params }: { params: { id: string } }) {
-  redirect(`/projects/${params.id}/overview`);
+export default async function ProjectIndexPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  redirect(`/projects/${id}/overview`);
 }

@@ -36,6 +36,8 @@ export interface Database {
           name: string
           type: OrgType
           country: string | null
+          registration_no: string | null
+          registration_authority: string | null
           is_active: boolean
           created_at: string
           created_by: string | null
@@ -46,6 +48,8 @@ export interface Database {
           name: string
           type: OrgType
           country?: string | null
+          registration_no?: string | null
+          registration_authority?: string | null
           is_active?: boolean
           created_at?: string
           created_by?: string | null
@@ -56,6 +60,8 @@ export interface Database {
           name?: string
           type?: OrgType
           country?: string | null
+          registration_no?: string | null
+          registration_authority?: string | null
           is_active?: boolean
           created_at?: string
           created_by?: string | null
@@ -204,6 +210,12 @@ export interface Database {
           manager_id: string | null
           start_date: string | null
           end_date: string | null
+          location: string | null
+          donor_name: string | null
+          budget_amount: number | null
+          budget_currency: string
+          beneficiary_target: number | null
+          ngoab_ref: string | null
           created_at: string
           created_by: string | null
           updated_at: string
@@ -219,6 +231,12 @@ export interface Database {
           manager_id?: string | null
           start_date?: string | null
           end_date?: string | null
+          location?: string | null
+          donor_name?: string | null
+          budget_amount?: number | null
+          budget_currency?: string
+          beneficiary_target?: number | null
+          ngoab_ref?: string | null
           created_at?: string
           created_by?: string | null
           updated_at?: string
@@ -234,6 +252,12 @@ export interface Database {
           manager_id?: string | null
           start_date?: string | null
           end_date?: string | null
+          location?: string | null
+          donor_name?: string | null
+          budget_amount?: number | null
+          budget_currency?: string
+          beneficiary_target?: number | null
+          ngoab_ref?: string | null
           created_at?: string
           created_by?: string | null
           updated_at?: string

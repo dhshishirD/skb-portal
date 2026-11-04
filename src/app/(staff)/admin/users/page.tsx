@@ -10,6 +10,7 @@ import {
   type StaffRow,
 } from '@/server/actions/admin';
 import { ROLE_LABELS } from '@/lib/desks';
+import { OrganizationDetails } from '@/components/projects/OrganizationDetails';
 import { STAFF_ASSIGNABLE_ROLES } from '@/lib/staffAdmin';
 import type { AppRole } from '@/lib/database.types';
 
@@ -174,6 +175,8 @@ export default function UsersAdminPage() {
           </button>
         )}
       </div>
+
+      <OrganizationDetails />
 
       {banner && (
         <div

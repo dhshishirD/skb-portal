@@ -637,7 +637,6 @@ export default function MyProfilePage() {
                 <div className="space-y-0.5">
                   <span className="text-[9px] font-black uppercase tracking-widest text-blue-400">Humanitarian Mission</span>
                   <h3 className="text-sm font-black tracking-tight text-white">SMALL KINDNESS BANGLADESH</h3>
-                  <p className="text-[9px] text-slate-400">NGO Affairs Bureau Reg: #2847</p>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-blue-600/30 border border-blue-400/40 flex items-center justify-center font-black text-white text-sm shrink-0">
                   SKB

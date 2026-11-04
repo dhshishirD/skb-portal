@@ -345,7 +345,7 @@ function DonorDashboardContent() {
       setTimeout(() => setDownloadToast(null), 3500);
       return;
     }
-    const dummyContent = `==========================================================\nSMALL KINDNESS BANGLADESH (SKB) - OFFICIAL AUDIT SUBMISSION\nPartner Workspace: ${currentPartnerInfo.name}\nDocument Name: ${docName}\nNGO Affairs Bureau Registration #2938 | SKB Works Portal\n==========================================================\n\nOfficial verified archive document extract generated for donor review.\nAudit Timestamp: ${new Date().toLocaleString()}\n`;
+    const dummyContent = `==========================================================\nSMALL KINDNESS BANGLADESH (SKB) - OFFICIAL AUDIT SUBMISSION\nPartner Workspace: ${currentPartnerInfo.name}\nDocument Name: ${docName}\nSKB Works Portal\n==========================================================\n\nOfficial verified archive document extract generated for donor review.\nAudit Timestamp: ${new Date().toLocaleString()}\n`;
     const blob = new Blob([dummyContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -380,7 +380,7 @@ function DonorDashboardContent() {
 
   const handleDownloadFinancialVoucher = (project: SKBDonorGrantProject) => {
     const bdtEquivalent = convertCurrency(project.budgetAmount, project.currency, 'BDT');
-    const voucherText = `========================================================================\nSMALL KINDNESS BANGLADESH (SKB) - OFFICIAL GRANT DISBURSEMENT VOUCHER\nNGO Affairs Bureau Registration #2938 | Bilateral Partner Operations\n========================================================================\n\nPROJECT IDENTIFIER : ${project.pid}\nPROJECT TITLE      : ${project.title}\nPARTNER DESK       : ${project.partner}\nASSIGNED OFFICER   : ${project.assignedOfficer} (${project.assignedOfficerEmail})\n\nCOMMITTED GRANT    : ${formatCurrencyString(project.budgetAmount, project.currency)}\nBDT EQUIVALENT     : ${formatCurrencyString(bdtEquivalent, 'BDT')} (Prevailing NGOAB Central Rate)\nBENEFICIARIES      : ${project.beneficiariesCount.toLocaleString()} Verified Recipients\nLOCATION           : ${project.location}\n\nTRANCHE DISBURSEMENT STATUS:\n- Tranche 1 (40% - Mobilization & Procurement) : DISBURSED & RECONCILED [AUDIT PASSED]\n- Tranche 2 (40% - Interim Field Execution)   : DISBURSED & RECONCILED [AUDIT PASSED]\n- Tranche 3 (20% - Form-7 Clearance Retention) : ${approvedPids[project.pid] ? 'CLEARED & READY FOR RELEASE' : 'RETAINED PENDING FINAL REGULATORY SIGN-OFF'}\n\nDESIGNATED BANK ACCOUNT:\n- Bank Name    : Janata Bank PLC / Foreign Donation Account\n- Account Title: Small Kindness Bangladesh\n- Clearance Ref: NGOAB/FD-6/2938\n\nGenerated on: ${new Date().toLocaleString()}\nOfficial Electronic Verification Token: SKB-FIN-${project.pid.replace(/[^A-Z0-9]/g, '')}-${Date.now()}\n========================================================================\n`;
+    const voucherText = `========================================================================\nSMALL KINDNESS BANGLADESH (SKB) - OFFICIAL GRANT DISBURSEMENT VOUCHER\nBilateral Partner Operations\n========================================================================\n\nPROJECT IDENTIFIER : ${project.pid}\nPROJECT TITLE      : ${project.title}\nPARTNER DESK       : ${project.partner}\nASSIGNED OFFICER   : ${project.assignedOfficer} (${project.assignedOfficerEmail})\n\nCOMMITTED GRANT    : ${formatCurrencyString(project.budgetAmount, project.currency)}\nBDT EQUIVALENT     : ${formatCurrencyString(bdtEquivalent, 'BDT')} (Prevailing NGOAB Central Rate)\nBENEFICIARIES      : ${project.beneficiariesCount.toLocaleString()} Verified Recipients\nLOCATION           : ${project.location}\n\nTRANCHE DISBURSEMENT STATUS:\n- Tranche 1 (40% - Mobilization & Procurement) : DISBURSED & RECONCILED [AUDIT PASSED]\n- Tranche 2 (40% - Interim Field Execution)   : DISBURSED & RECONCILED [AUDIT PASSED]\n- Tranche 3 (20% - Form-7 Clearance Retention) : ${approvedPids[project.pid] ? 'CLEARED & READY FOR RELEASE' : 'RETAINED PENDING FINAL REGULATORY SIGN-OFF'}\n\nDESIGNATED BANK ACCOUNT:\n- Bank Name    : Janata Bank PLC / Foreign Donation Account\n- Account Title: Small Kindness Bangladesh\n\nGenerated on: ${new Date().toLocaleString()}\nOfficial Electronic Verification Token: SKB-FIN-${project.pid.replace(/[^A-Z0-9]/g, '')}-${Date.now()}\n========================================================================\n`;
     const blob = new Blob([voucherText], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -842,7 +842,7 @@ function DonorDashboardContent() {
             <div className="flex items-center gap-3">
               <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
               <div>
-                <p className="font-semibold text-slate-800">Official Bangladesh NGO Affairs Bureau Registration #2938</p>
+                <p className="font-semibold text-slate-800">NGO Affairs Bureau compliance</p>
                 <p className="text-[11px] text-slate-500">
                   Every grant project is fully compliant with FD-6 / FD-7 regulations and bilateral audit standards.
                 </p>
@@ -1013,8 +1013,6 @@ function DonorDashboardContent() {
                       <div className="flex items-center gap-2 text-xs text-slate-600">
                         <FileCheck2 className="w-4 h-4 text-slate-500 shrink-0" />
                         <span>Compliance Dossier: <strong className="text-slate-900 font-semibold">{submittedCount} / 7 verified</strong></span>
-                        <span className="text-slate-300">•</span>
-                        <span className="text-[11px] text-slate-500">NGOAB FD-6/2938</span>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -1085,9 +1083,6 @@ function DonorDashboardContent() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3 text-emerald-600" /> NGO Affairs Bureau Reg. #2938
-                  </span>
                   <span className="text-[11px] text-slate-500 font-mono">Ref: FD-6 / FD-7 Quality Standard</span>
                 </div>
                 <h2 className="text-base font-bold text-slate-900 mt-1">Official Compliance & Form-7 Dossier</h2>

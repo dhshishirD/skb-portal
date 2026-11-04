@@ -108,7 +108,7 @@ export default function LoginPage() {
       <div className="text-center space-y-2">
         <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-full text-[11px] font-bold shadow-xs">
           <Building2 className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Small Kindness Bangladesh • NGO Affairs Bureau Reg: #2847</span>
+          <span>Small Kindness Bangladesh</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
           SKB Officer Portal & Gateway

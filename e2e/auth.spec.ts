@@ -50,7 +50,7 @@ test.describe('Authentication & MFA Flows', () => {
 });
 
 test.describe('Server-side route protection', () => {
-  for (const path of ['/home', '/no-access', '/admin/users', '/dashboard', '/projects', '/beneficiaries', '/community', '/donor-dashboard?partner=IHH', '/field-dashboard']) {
+  for (const path of ['/home', '/no-access', '/admin/users', '/dashboard', '/projects', '/projects/11111111-1111-4111-8111-111111111111/overview', '/beneficiaries', '/community', '/donor-dashboard?partner=IHH', '/field-dashboard']) {
     test(`anonymous visit to ${path} redirects to /login`, async ({ page }) => {
       await page.goto(path);
       await expect(page).toHaveURL(/\/login\?next=/);

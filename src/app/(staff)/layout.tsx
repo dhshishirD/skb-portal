@@ -287,17 +287,6 @@ export default function StaffLayout({
               })}
             </nav>
           </div>
-
-          <div className="pt-4 border-t border-slate-100">
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-1.5">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-800">
-                <Building2 className="w-3.5 h-3.5 text-blue-600" /> Multi-Tenant Active
-              </div>
-              <p className="text-[10px] text-slate-500 leading-tight">
-                HQ NGO Operations • Connected to Supabase Production
-              </p>
-            </div>
-          </div>
         </aside>
 
         {/* Mobile Backdrop overlay */}

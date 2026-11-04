@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireUser } from '@/lib/auth/guards';
+import { requireActiveRole } from '@/lib/auth/guards';
+import { isStaff } from '@/lib/apiAccess';
 import { PRESENCE_TIMEOUT_MS } from '@/lib/polling';
 
 // In-memory cache for fast response
@@ -12,7 +13,7 @@ function getCleanName(name: string): string {
 }
 
 export async function GET() {
-  const guard = await requireUser();
+  const guard = await requireActiveRole(isStaff);
   if (!guard.ok) return guard.response;
 
   const now = Date.now();
@@ -66,16 +67,22 @@ export async function GET() {
   });
 }
 
+// Last time each person's heartbeat was written to the database (limits table growth).
+const lastDbWrite: Map<string, number> = new Map();
+const DB_WRITE_MIN_GAP_MS = 30_000;
+
 export async function POST(request: Request) {
-  const guard = await requireUser();
+  const guard = await requireActiveRole(isStaff);
   if (!guard.ok) return guard.response;
 
   try {
     const body = await request.json();
-    const { officerName, role, action } = body;
+    const { role, action } = body;
+    // Who is "here" comes from the signed-in profile, never from the request body.
+    const officerName = guard.fullName;
 
     if (!officerName) {
-      return NextResponse.json({ success: false, error: 'officerName is required' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Your profile has no name' }, { status: 400 });
     }
 
     const clean = getCleanName(officerName);
@@ -92,8 +99,10 @@ export async function POST(request: Request) {
       lastSeen: now,
     });
 
-    // Write to Supabase DB asynchronously so other serverless instances can read it
-    try {
+    // Write to Supabase DB so other serverless instances can read it (at most every 30 s each)
+    const lastWrite = lastDbWrite.get(clean) ?? 0;
+    if (now - lastWrite >= DB_WRITE_MIN_GAP_MS) try {
+      lastDbWrite.set(clean, now);
       const supabase = createAdminClient();
       await (supabase.from('notifications') as any).insert({
         user_id: SYSTEM_PROFILE_ID,
@@ -122,6 +131,6 @@ export async function POST(request: Request) {
     });
   } catch (err: any) {
     console.error('Presence POST error:', err);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Could not update presence' }, { status: 500 });
   }
 }

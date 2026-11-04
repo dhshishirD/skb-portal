@@ -1,12 +1,20 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireUser } from '@/lib/auth/guards';
+import { requireActiveRole } from '@/lib/auth/guards';
+import { canModerateCommunity, canReadDirectMessage, canSeeDonorTickets, isStaff, sameName } from '@/lib/apiAccess';
 
 // Known active profile ID in Supabase profiles table for foreign key validation
 const SYSTEM_PROFILE_ID = 'd963309c-1da4-4a4a-947c-c10785d43f1e';
 
+/*
+ * Community feed. This route uses the service-role client (it bypasses Row Level Security), so
+ * every rule is enforced HERE: staff only, direct messages only for their two people, donor
+ * tickets only for the roles that deal with donors, and the author/sender name always comes
+ * from the signed-in profile, never from the request body.
+ * (Phase 2 moves chat to the community_* tables, where RLS does this.)
+ */
 export async function GET() {
-  const guard = await requireUser();
+  const guard = await requireActiveRole(isStaff);
   if (!guard.ok) return guard.response;
 
   try {
@@ -18,7 +26,7 @@ export async function GET() {
 
     if (error) {
       console.error('Error fetching community data:', error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      return NextResponse.json({ success: false, error: 'Could not load community data' }, { status: 500 });
     }
 
     const posts: any[] = [];
@@ -49,13 +57,14 @@ export async function GET() {
         }
       } else if (row.kind === 'community_dm') {
         if (!payload || !payload.id || !payload.senderName || !payload.recipientName) return;
+        if (!canReadDirectMessage(guard.fullName, payload)) return;
         dms.push({
           ...payload,
           dbId: row.id,
           createdAtIso: row.created_at,
         });
       } else if (row.kind === 'donor_ticket') {
-        if (!payload || !payload.id) return;
+        if (!payload || !payload.id || !canSeeDonorTickets(guard.roles)) return;
         donorTickets.push({
           ...payload,
           dbId: row.id,
@@ -106,12 +115,12 @@ export async function GET() {
     });
   } catch (err: any) {
     console.error('Community sync GET exception:', err);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Could not load community data' }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
-  const guard = await requireUser();
+  const guard = await requireActiveRole(isStaff);
   if (!guard.ok) return guard.response;
 
   try {
@@ -120,7 +129,10 @@ export async function POST(request: Request) {
     const supabase = createAdminClient();
 
     if (type === 'POST') {
-      const post = payload;
+      if (!payload || typeof payload !== 'object') {
+        return NextResponse.json({ success: false, message: 'Invalid post' }, { status: 400 });
+      }
+      const post = { ...payload, authorName: guard.fullName };
       // Check if post already exists to prevent duplicates
       const { data: existing } = await (supabase.from('notifications') as any)
         .select('id, payload')
@@ -130,8 +142,12 @@ export async function POST(request: Request) {
       const match = (existing || []).find((r: any) => r.payload?.id === post.id);
 
       if (match) {
+        // Only the author (or the Executive Director / Super Admin) may change an existing post.
+        if (!sameName(match.payload?.authorName, guard.fullName) && !canModerateCommunity(guard.roles)) {
+          return NextResponse.json({ success: false, message: 'You can only edit your own posts' }, { status: 403 });
+        }
         await (supabase.from('notifications') as any)
-          .update({ payload: post })
+          .update({ payload: { ...post, authorName: match.payload?.authorName ?? post.authorName } })
           .eq('id', match.id);
       } else {
         await (supabase.from('notifications') as any).insert({
@@ -145,27 +161,33 @@ export async function POST(request: Request) {
     }
 
     if (type === 'COMMENT') {
-      const { postId, comment } = payload;
+      const { postId, comment } = payload ?? {};
+      if (!postId || !comment || typeof comment !== 'object') {
+        return NextResponse.json({ success: false, message: 'Invalid comment' }, { status: 400 });
+      }
       await (supabase.from('notifications') as any).insert({
         user_id: SYSTEM_PROFILE_ID,
         kind: 'community_comment',
-        payload: { postId, comment },
+        payload: { postId, comment: { ...comment, authorName: guard.fullName } },
       });
 
       return NextResponse.json({ success: true });
     }
 
     if (type === 'DM') {
-      const { dm } = payload;
+      const { dm } = payload ?? {};
+      if (!dm || typeof dm !== 'object' || !dm.recipientName) {
+        return NextResponse.json({ success: false, message: 'Invalid message' }, { status: 400 });
+      }
       const { error: insertError } = await (supabase.from('notifications') as any).insert({
         user_id: SYSTEM_PROFILE_ID,
         kind: 'community_dm',
-        payload: dm,
+        payload: { ...dm, senderName: guard.fullName },
       });
 
       if (insertError) {
         console.error('Error inserting DM:', insertError);
-        return NextResponse.json({ success: false, error: insertError.message }, { status: 500 });
+        return NextResponse.json({ success: false, error: 'Could not send the message' }, { status: 500 });
       }
 
       return NextResponse.json({ success: true });
@@ -189,7 +211,10 @@ export async function POST(request: Request) {
     }
 
     if (type === 'DONOR_TICKET') {
-      const { ticket } = payload;
+      if (!canSeeDonorTickets(guard.roles)) {
+        return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+      }
+      const { ticket } = payload ?? {};
       if (!ticket || !ticket.id) {
         return NextResponse.json({ success: false, message: 'Invalid ticket payload' }, { status: 400 });
       }
@@ -219,6 +244,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, message: 'Invalid sync operation' }, { status: 400 });
   } catch (err: any) {
     console.error('Community sync POST exception:', err);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Could not save' }, { status: 500 });
   }
 }

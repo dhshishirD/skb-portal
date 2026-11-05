@@ -20,12 +20,17 @@ export default function ProjectsPortfolioPage() {
   const [query, setQuery] = useState('');
 
   const load = useCallback(async () => {
-    const r = await listProjectsAction();
-    if (r.ok) {
-      setData(r.data);
-      setError(null);
-    } else {
-      setError(r.error);
+    setError(null);
+    try {
+      const r = await listProjectsAction();
+      if (r.ok) {
+        setData(r.data);
+      } else {
+        setError(r.error);
+      }
+    } catch {
+      // Network failure, or this tab was opened before a new version was published.
+      setError('Could not reach the server. Reload the page (Ctrl+F5) and try again.');
     }
   }, []);
 
@@ -83,7 +88,10 @@ export default function ProjectsPortfolioPage() {
 
       {error && (
         <p role="alert" className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-          {error}
+          {error}{' '}
+          <button type="button" onClick={load} className="underline font-semibold">
+            Try again
+          </button>
         </p>
       )}
 

@@ -11,7 +11,7 @@ export function ProjectTabs({ projectId }: { projectId: string }) {
   const tabs = [
     { name: 'Overview', href: `${base}/overview`, icon: LayoutDashboard, ready: true },
     { name: 'Charter', href: `${base}/charter`, icon: FileText, ready: false },
-    { name: 'Stage gates', href: `${base}/kanban`, icon: FolderKanban, ready: false },
+    { name: 'Stage gates', href: `${base}/kanban`, icon: FolderKanban, ready: true },
     { name: 'Logframe', href: `${base}/logframe`, icon: Target, ready: false },
     { name: 'Tasks', href: `${base}/tasks`, icon: CheckSquare, ready: false },
     { name: 'Beneficiaries', href: `${base}/beneficiaries`, icon: Users, ready: false },

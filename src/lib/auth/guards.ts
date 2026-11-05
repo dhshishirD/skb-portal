@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import type { AppRole } from '@/lib/database.types';
+import { getVerifiedUserId } from './verifiedUser';
 
 export type GuardResult =
   | { ok: true; user: User }
@@ -40,7 +41,7 @@ export async function requireUser(): Promise<GuardResult> {
 }
 
 export type StaffGuardResult =
-  | { ok: true; user: User; roles: AppRole[]; fullName: string }
+  | { ok: true; user: { id: string }; roles: AppRole[]; fullName: string }
   | { ok: false; response: NextResponse };
 
 /**
@@ -58,21 +59,18 @@ export async function requireActiveRole(allowed: (roles: AppRole[]) => boolean):
   });
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
-    if (error || !user) return deny(401, 'Unauthorized');
+    const userId = await getVerifiedUserId(supabase);
+    if (!userId) return deny(401, 'Unauthorized');
 
     const [{ data: profile }, { data: roleRows }] = await Promise.all([
-      supabase.from('profiles').select('full_name, is_active').eq('id', user.id).maybeSingle(),
-      supabase.from('user_roles').select('role').eq('user_id', user.id),
+      supabase.from('profiles').select('full_name, is_active').eq('id', userId).maybeSingle(),
+      supabase.from('user_roles').select('role').eq('user_id', userId),
     ]);
     const p = profile as { full_name?: string; is_active?: boolean } | null;
     const roles = ((roleRows ?? []) as Array<{ role: AppRole }>).map((r) => r.role);
     if (!p?.is_active || !allowed(roles)) return deny(403, 'Forbidden');
 
-    return { ok: true, user, roles, fullName: p.full_name ?? '' };
+    return { ok: true, user: { id: userId }, roles, fullName: p.full_name ?? '' };
   } catch {
     return deny(401, 'Unauthorized');
   }

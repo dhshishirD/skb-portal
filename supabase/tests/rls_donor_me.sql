@@ -186,8 +186,16 @@ begin
   assert n = 1, format('assigned officer should still see the expense of their project, got %s', n);
   select count(*) into n from public.purchase_requests;
   assert n = 1, format('assigned officer should still see the purchase request, got %s', n);
-  select count(*) into n from public.stage_gate_items;
-  assert n = 1, format('assigned officer should still see stage gates, got %s', n);
+  -- Since 0015 every project also gets the standard checklist, so count by project, not in total:
+  -- the officer sees only their own project's gates (the manual one and the seeded checklist).
+  select count(*) into n from public.stage_gate_items where project_id <> '93000000-0000-0000-0000-00000000000a';
+  assert n = 0, format('assigned officer must not see stage gates of other projects, got %s', n);
+  select count(*) into n from public.stage_gate_items
+    where project_id = '93000000-0000-0000-0000-00000000000a' and label = 'Internal gate';
+  assert n = 1, format('assigned officer should still see the stage gate of their project, got %s', n);
+  select count(*) into n from public.stage_gate_items
+    where project_id = '93000000-0000-0000-0000-00000000000a' and label <> 'Internal gate';
+  assert n > 0, 'assigned officer should see the standard checklist of their project';
   select count(*) into n from public.budget_lines;
   assert n = 1, format('assigned officer should still see the budget lines of their project, got %s', n);
   execute 'reset role';

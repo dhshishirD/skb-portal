@@ -54,10 +54,13 @@ export interface AttachmentFile {
   size?: string;
   type?: string;
   dataUrl?: string;
+  /** Large files are left out of the feed; they are fetched when opened. */
+  remote?: boolean;
 }
 
 export interface CommunityPost {
   id: string;
+  dbId?: string;
   authorName: string;
   authorRole: string;
   authorAvatar?: string;
@@ -80,6 +83,7 @@ export interface CommunityPost {
 
 export interface DirectMessage {
   id: string;
+  dbId?: string;
   senderName: string;
   senderRole: string;
   recipientName: string;
@@ -980,7 +984,22 @@ export default function StaffCommunityPage() {
   };
 
   // Download File & Trigger Document Viewer
-  const handleDownloadAndPreview = (file: AttachmentFile | string) => {
+  const handleDownloadAndPreview = async (file: AttachmentFile | string, dbId?: string) => {
+    if (typeof file === 'object' && file.remote && !file.dataUrl) {
+      if (!dbId) {
+        showToast('This file is not available.');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/community/attachment?id=${encodeURIComponent(dbId)}`);
+        const json = await res.json();
+        if (!res.ok || !json?.success || !json.attachment?.dataUrl) throw new Error('unavailable');
+        file = { ...file, ...json.attachment, remote: false };
+      } catch {
+        showToast('Could not load the file. Please try again.');
+        return;
+      }
+    }
     const fileName = typeof file === 'string' ? file : file.name;
     const dataUrl = typeof file === 'object' ? file.dataUrl : undefined;
     const fileSize = typeof file === 'object' && file.size ? file.size : '1.4 MB';
@@ -1561,7 +1580,7 @@ SKB Operations Portal - https://skbportal.online
                   {post.attachment && (
                     <div className="pt-2">
                       <button
-                        onClick={() => handleDownloadAndPreview(post.attachment!)}
+                        onClick={() => handleDownloadAndPreview(post.attachment!, post.dbId)}
                         className="inline-flex items-center gap-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-3.5 py-2 rounded-xl border border-blue-200 transition shadow-sm group"
                       >
                         <FileText className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform" />
@@ -1875,7 +1894,7 @@ SKB Operations Portal - https://skbportal.online
                       {/* Clickable Real Attachment Button inside DM */}
                       {msg.attachment && (
                         <button
-                          onClick={() => handleDownloadAndPreview(msg.attachment!)}
+                          onClick={() => handleDownloadAndPreview(msg.attachment!, msg.dbId)}
                           className={`w-full inline-flex items-center justify-between gap-2 p-2 rounded-xl text-xs font-bold border transition ${
                             msg.isMine
                               ? 'bg-blue-700/80 border-blue-400 text-white hover:bg-blue-800'

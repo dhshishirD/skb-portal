@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireActiveRole } from '@/lib/auth/guards';
-import { canModerateCommunity, canReadDirectMessage, canSeeDonorTickets, isStaff, sameName } from '@/lib/apiAccess';
+import {
+  attachmentTooLarge,
+  canModerateCommunity,
+  canReadDirectMessage,
+  canSeeDonorTickets,
+  isStaff,
+  sameName,
+  stripLargeAttachment,
+} from '@/lib/apiAccess';
 
 // Known active profile ID in Supabase profiles table for foreign key validation
 const SYSTEM_PROFILE_ID = 'd963309c-1da4-4a4a-947c-c10785d43f1e';
@@ -22,7 +30,8 @@ export async function GET() {
     const { data, error } = await (supabase.from('notifications') as any)
       .select('*')
       .in('kind', ['community_post', 'community_comment', 'community_dm', 'donor_ticket'])
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(500);
 
     if (error) {
       console.error('Error fetching community data:', error);
@@ -35,7 +44,7 @@ export async function GET() {
     const donorTickets: any[] = [];
 
     (data || []).forEach((row: any) => {
-      const payload = row.payload;
+      const payload = row.payload ? stripLargeAttachment(row.payload) : row.payload;
       if (!payload) return;
 
       if (row.kind === 'community_post') {
@@ -87,20 +96,6 @@ export async function GET() {
       };
     });
 
-    // Group DMs into conversation threads
-    const directMessagesMap: Record<string, any[]> = {};
-    dms.forEach((dm) => {
-      const sender = dm.senderName;
-      const recipient = dm.recipientName;
-      if (sender && recipient) {
-        if (!directMessagesMap[recipient]) directMessagesMap[recipient] = [];
-        directMessagesMap[recipient].push(dm);
-
-        if (!directMessagesMap[sender]) directMessagesMap[sender] = [];
-        directMessagesMap[sender].push(dm);
-      }
-    });
-
     // Sort DMs chronologically (oldest to newest for chat timeline)
     const chronologicalDms = [...dms].sort(
       (a, b) => new Date(a.createdAtIso || 0).getTime() - new Date(b.createdAtIso || 0).getTime()
@@ -110,7 +105,6 @@ export async function GET() {
       success: true,
       posts: postsWithComments,
       directMessages: chronologicalDms,
-      directMessagesMap,
       donorTickets,
     });
   } catch (err: any) {
@@ -126,6 +120,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { type, payload } = body;
+    if (attachmentTooLarge(payload) || attachmentTooLarge(payload?.dm) || attachmentTooLarge(payload?.comment)) {
+      return NextResponse.json({ success: false, message: 'That file is too large (limit about 1.5 MB).' }, { status: 413 });
+    }
     const supabase = createAdminClient();
 
     if (type === 'POST') {

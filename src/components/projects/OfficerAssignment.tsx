@@ -26,6 +26,10 @@ export function OfficerAssignment({ projectId }: { projectId: string }) {
         setNote({ kind: 'error', text: r.error });
       }
       setLoading(false);
+    }).catch(() => {
+      if (!alive) return;
+      setNote({ kind: 'error', text: 'Could not reach the server. Reload the page (Ctrl+F5) and try again.' });
+      setLoading(false);
     });
     return () => {
       alive = false;

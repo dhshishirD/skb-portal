@@ -29,6 +29,9 @@ export function OrganizationDetails() {
       } else {
         setNote({ kind: 'error', text: r.error });
       }
+    }).catch(() => {
+      if (!alive) return;
+      setNote({ kind: 'error', text: 'Could not reach the server. Reload the page (Ctrl+F5) and try again.' });
     });
     return () => {
       alive = false;

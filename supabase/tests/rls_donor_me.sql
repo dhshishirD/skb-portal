@@ -92,11 +92,11 @@ begin
   select count(*) into n from public.donor_reports where status = 'draft';
   assert n = 0, 'donor A must not see draft reports';
 
-  -- 3. Results information that is shared with donors by design
+  -- 3. Results information shared with donors by design (budget lines are NOT shared, see 0014)
   select count(*) into n from public.logframe_nodes;
   assert n = 1, format('donor A should see the logframe of their own project only, got %s', n);
   select count(*) into n from public.budget_lines;
-  assert n = 1, format('donor A should see the budget lines of their own project only, got %s', n);
+  assert n = 0, format('donor must not see budget lines until SKB shows them, got %s', n);
 
   -- 4. SKB's internal working data stays internal
   select count(*) into n from public.tasks;            assert n = 0, format('donor must not see tasks, got %s', n);
@@ -188,6 +188,8 @@ begin
   assert n = 1, format('assigned officer should still see the purchase request, got %s', n);
   select count(*) into n from public.stage_gate_items;
   assert n = 1, format('assigned officer should still see stage gates, got %s', n);
+  select count(*) into n from public.budget_lines;
+  assert n = 1, format('assigned officer should still see the budget lines of their project, got %s', n);
   execute 'reset role';
 end $$;
 

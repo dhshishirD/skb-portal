@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { canOpenPath, deskRuleFor, homeForRoles, NO_ACCESS_PATH } from '@/lib/desks';
 import type { AppRole } from '@/lib/database.types';
+import { getVerifiedUserId } from '@/lib/auth/verifiedUser';
 
 /**
  * Server-side access control for the whole portal.
@@ -59,16 +60,16 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // getUser() validates the session with Supabase Auth (refreshes it if needed).
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // The session token is verified here on the server (signature checked locally against the
+  // project's signing keys, refreshed if it is about to expire). Whether the person is still
+  // ACTIVE and what roles they hold is always read from the database below.
+  const userId = await getVerifiedUserId(supabase);
 
   if (isPublicPath(pathname)) {
     return response;
   }
 
-  if (!user) {
+  if (!userId) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -80,7 +81,7 @@ export async function middleware(request: NextRequest) {
   // Role-based desks (pages only; APIs and RLS do their own checks). Each person is sent to
   // their own desk and kept out of desks their role does not cover.
   if (!pathname.startsWith('/api/') && (pathname === '/home' || deskRuleFor(pathname))) {
-    const access = await loadAccess(supabase, user.id);
+    const access = await loadAccess(supabase, userId);
     const redirectTo = (target: string) => {
       const res = NextResponse.redirect(new URL(target, request.url));
       response.cookies.getAll().forEach((c) => res.cookies.set(c));

@@ -1,6 +1,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import type { AppRole } from '@/lib/database.types';
+import { getVerifiedUserId } from '@/lib/auth/verifiedUser';
 import { PROJECT_COLUMNS, type ProjectRow } from '@/lib/projects';
 
 /**
@@ -19,18 +20,16 @@ export interface Actor {
 /** The signed-in, active user and their roles; null when signed out or deactivated. */
 export async function getActor(): Promise<Actor | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const userId = await getVerifiedUserId(supabase);
+  if (!userId) return null;
 
   const [{ data: rolesData }, { data: profile }] = await Promise.all([
-    supabase.from('user_roles').select('role').eq('user_id', user.id),
-    supabase.from('profiles').select('is_active').eq('id', user.id).maybeSingle(),
+    supabase.from('user_roles').select('role').eq('user_id', userId),
+    supabase.from('profiles').select('is_active').eq('id', userId).maybeSingle(),
   ]);
   if (!(profile as { is_active?: boolean } | null)?.is_active) return null;
   const roles = ((rolesData ?? []) as Array<{ role: AppRole }>).map((r) => r.role);
-  return { userId: user.id, roles };
+  return { userId, roles };
 }
 
 export async function listProjects(): Promise<ProjectRow[]> {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CheckSquare, FileText, FolderArchive, FolderKanban, LayoutDashboard, ShieldCheck, Target, Users } from 'lucide-react';
+import { Banknote, CheckSquare, FileText, FolderArchive, FolderKanban, LayoutDashboard, ShieldCheck, Target, Users } from 'lucide-react';
 
 /** Tabs that are connected to the database show no badge; the rest are marked "Soon". */
 export function ProjectTabs({ projectId }: { projectId: string }) {
@@ -12,6 +12,7 @@ export function ProjectTabs({ projectId }: { projectId: string }) {
     { name: 'Overview', href: `${base}/overview`, icon: LayoutDashboard, ready: true },
     { name: 'Charter', href: `${base}/charter`, icon: FileText, ready: false },
     { name: 'Stage gates', href: `${base}/kanban`, icon: FolderKanban, ready: true },
+    { name: 'Fund receipts', href: `${base}/receipts`, icon: Banknote, ready: true },
     { name: 'Logframe', href: `${base}/logframe`, icon: Target, ready: false },
     { name: 'Tasks', href: `${base}/tasks`, icon: CheckSquare, ready: false },
     { name: 'Beneficiaries', href: `${base}/beneficiaries`, icon: Users, ready: false },

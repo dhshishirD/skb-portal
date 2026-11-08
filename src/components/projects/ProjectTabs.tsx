@@ -14,7 +14,7 @@ export function ProjectTabs({ projectId }: { projectId: string }) {
     { name: 'Stage gates', href: `${base}/kanban`, icon: FolderKanban, ready: true },
     { name: 'Budget', href: `${base}/budget`, icon: Calculator, ready: true },
     { name: 'Fund receipts', href: `${base}/receipts`, icon: Banknote, ready: true },
-    { name: 'Logframe', href: `${base}/logframe`, icon: Target, ready: false },
+    { name: 'Logframe', href: `${base}/logframe`, icon: Target, ready: true },
     { name: 'Tasks', href: `${base}/tasks`, icon: CheckSquare, ready: false },
     { name: 'Beneficiaries', href: `${base}/beneficiaries`, icon: Users, ready: false },
     { name: 'Documents', href: `${base}/documents`, icon: FolderArchive, ready: false },

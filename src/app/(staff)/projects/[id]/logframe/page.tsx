@@ -1,5 +1,6 @@
-import { ComingSoon } from '@/components/projects/ComingSoon';
+import { LogframePanel } from '@/components/projects/LogframePanel';
 
-export default function LogframeTabPage() {
-  return <ComingSoon title="Logframe and indicators" next="Goals, outcomes, outputs and indicators will be saved per project." />;
+export default async function LogframeTabPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <LogframePanel projectId={id} />;
 }

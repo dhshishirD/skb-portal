@@ -10,7 +10,7 @@ export function ProjectTabs({ projectId }: { projectId: string }) {
   const base = `/projects/${projectId}`;
   const tabs = [
     { name: 'Overview', href: `${base}/overview`, icon: LayoutDashboard, ready: true },
-    { name: 'Charter', href: `${base}/charter`, icon: FileText, ready: false },
+    { name: 'Charter', href: `${base}/charter`, icon: FileText, ready: true },
     { name: 'Stage gates', href: `${base}/kanban`, icon: FolderKanban, ready: true },
     { name: 'Budget', href: `${base}/budget`, icon: Calculator, ready: true },
     { name: 'Fund receipts', href: `${base}/receipts`, icon: Banknote, ready: true },

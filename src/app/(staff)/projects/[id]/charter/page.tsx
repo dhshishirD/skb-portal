@@ -1,5 +1,6 @@
-import { ComingSoon } from '@/components/projects/ComingSoon';
+import { CharterPanel } from '@/components/projects/CharterPanel';
 
-export default function CharterTabPage() {
-  return <ComingSoon title="Project charter" next="The charter will be saved per project, with versions and a real PDF export." />;
+export default async function CharterTabPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <CharterPanel projectId={id} />;
 }

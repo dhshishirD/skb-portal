@@ -73,16 +73,17 @@ begin
   assert denied, 'text is limited to 8000 characters';
 
   -- 2. A saved version cannot be edited or deleted by the author
-  denied := false;
-  begin update public.project_charter_versions set background = 'Rewritten' where id = v2;
-  exception when insufficient_privilege then denied := true; end;
-  assert denied, 'a saved version cannot be edited';
+  update public.project_charter_versions set background = 'Rewritten' where id = v2;
+  get diagnostics n = row_count;
+  assert n = 0, 'the author cannot edit a saved version (no update policy for officers)';
+  assert (select background from public.project_charter_versions where id = v2) = 'Background two', 'text unchanged';
   update public.project_charter_versions set approved_by = a::uuid, approved_at = now() where id = v2;
   get diagnostics n = row_count;
   assert n = 0, 'officer must not approve (no update policy for officers)';
-  delete from public.project_charter_versions where id = v2;
-  get diagnostics n = row_count;
-  assert n = 0, 'a version cannot be deleted';
+  denied := false;
+  begin delete from public.project_charter_versions where id = v2;
+  exception when insufficient_privilege then denied := true; end;
+  assert denied, 'a version cannot be deleted (no delete privilege)';
   select count(*) into n from public.project_charter_versions where project_id = pid;
   assert n = 3, format('officer A should see 3 versions, got %s', n);
   execute 'reset role';
@@ -118,7 +119,7 @@ begin
   assert (select approved_by from public.project_charter_versions where id = v2) = ed::uuid, 'approved_by is the Executive Director, not what was sent';
   assert (select approved_at from public.project_charter_versions where id = v2) is not null, 'approved_at recorded';
   denied := false;
-  begin update public.project_charter_versions set approved_at = now() where id = v2;
+  begin update public.project_charter_versions set approved_at = now() + interval '1 day' where id = v2;
   exception when insufficient_privilege then denied := true; end;
   assert denied, 'an approved version cannot be approved again or changed';
   denied := false;

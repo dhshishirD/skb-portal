@@ -148,11 +148,15 @@ begin
 
   -- 3. Access log: reveal is recorded; the log cannot be changed or read by field staff
   perform pg_temp.as_user(me);
+  -- no RETURNING here: the M&E officer may write the log but not read it back
   insert into public.beneficiary_access_log (project_id, beneficiary_id, field, reason, accessed_by, accessed_at)
-    values (pid, b1, 'national_id', 'Donor list check', px::uuid, '2020-01-01') returning id into l1;
+    values (pid, b1, 'national_id', 'Donor list check', px::uuid, '2020-01-01');
+  assert (select count(*) from public.beneficiary_access_log where project_id = pid) = 0, 'the M&E officer cannot read the log';
+  perform pg_temp.as_user(ed);
+  select id into l1 from public.beneficiary_access_log where project_id = pid and beneficiary_id = b1;
   assert (select accessed_by from public.beneficiary_access_log where id = l1) = me::uuid, 'the log records the signed-in user, not what was sent';
   assert (select accessed_at from public.beneficiary_access_log where id = l1) > now() - interval '1 minute', 'the log time is set by the database';
-  assert (select count(*) from public.beneficiary_access_log where project_id = pid) = 0, 'the M&E officer cannot read the log';
+  perform pg_temp.as_user(me);
   denied := false;
   begin update public.beneficiary_access_log set reason = 'changed' where id = l1;
   exception when insufficient_privilege then denied := true; end;

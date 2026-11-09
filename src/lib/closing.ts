@@ -7,18 +7,22 @@ import type { AppRole } from './database.types';
  */
 
 export const REPORT_FIELDS = [
-  { key: 'projectSummary', column: 'project_summary', label: 'Project summary', hint: 'What the project did, in a few sentences.', max: 5000 },
-  { key: 'goalsAchieved', column: 'goals_achieved', label: 'Goals and what was achieved', hint: 'Compare the goals with what happened.', max: 5000 },
-  { key: 'localManpower', column: 'local_manpower', label: 'Local manpower', hint: 'Who from the community worked on the project, and how many.', max: 2000 },
-  { key: 'beneficiaryStory', column: 'beneficiary_story', label: 'Beneficiary story', hint: 'One real story, without names or ID numbers.', max: 5000 },
-  { key: 'challenges', column: 'challenges', label: 'Challenges', hint: 'What was difficult, and how it was handled.', max: 5000 },
-  { key: 'lessonsLearned', column: 'lessons_learned', label: 'Lessons learned', hint: 'What SKB would do differently next time.', max: 5000 },
+  { key: 'projectSummary', column: 'project_summary', label: 'Short description of the project (3.1)', hint: 'What the project did, in a few sentences.', max: 5000 },
+  { key: 'generalImpact', column: 'general_impact', label: 'General impact and benefits to beneficiaries (3.1)', hint: 'How the beneficiaries gained from the project.', max: 5000 },
+  { key: 'negativeGroups', column: 'negative_groups', label: 'Groups negatively impacted by the project (3.1)', hint: 'Write N/A if there were none.', max: 2000 },
+  { key: 'challenges', column: 'challenges', label: 'Problems encountered and actions taken (3.1)', hint: 'Write N/A if there were none.', max: 5000 },
+  { key: 'goalsAchieved', column: 'goals_achieved', label: 'Targets, goals, follow-up and success (4.1)', hint: 'Compare the goals with what happened.', max: 5000 },
+  { key: 'localManpower', column: 'local_manpower', label: 'Local manpower and materials used (4.2)', hint: 'Who from the area worked on the project, how many, and where materials were bought.', max: 2000 },
+  { key: 'beneficiaryStory', column: 'beneficiary_story', label: 'Sample beneficiary feedback (4.3)', hint: 'One beneficiary in their own words. Do not write names or ID numbers here; add them by hand on the printed stakeholder form.', max: 5000 },
+  { key: 'lessonsLearned', column: 'lessons_learned', label: 'Lessons learned (internal, not printed in Form-7)', hint: 'What SKB would do differently next time.', max: 5000 },
 ] as const;
 export type ReportKey = (typeof REPORT_FIELDS)[number]['key'];
 export type ReportText = Record<ReportKey, string>;
 
 export const EMPTY_REPORT: ReportText = {
   projectSummary: '',
+  generalImpact: '',
+  negativeGroups: '',
   goalsAchieved: '',
   localManpower: '',
   beneficiaryStory: '',
@@ -80,7 +84,9 @@ const section = (max: number, label: string) =>
     .transform((v) => v.trim());
 
 export const reportSchema = z.object({
-  projectSummary: section(5000, 'The summary'),
+  projectSummary: section(5000, 'The description'),
+  generalImpact: section(5000, 'The impact section'),
+  negativeGroups: section(2000, 'The negatively impacted groups section'),
   goalsAchieved: section(5000, 'The goals section'),
   localManpower: section(2000, 'The local manpower section'),
   beneficiaryStory: section(5000, 'The beneficiary story'),

@@ -1,5 +1,5 @@
 -- 0023_project_closing.sql
--- Closing and Form-7 (projects step 8): the closure checklist and the Form-7 narrative for one project.
+-- Closing and Form-7 (projects step 8): the closure checklist and the Form-7 text (IHH template) for one project.
 --
 --   * closing_checklist_items: the fixed list of things to finish before a project is closed
 --     (managed by migrations, read-only for everyone signed in).
@@ -59,6 +59,8 @@ create table if not exists public.project_closing_reports (
   project_id      uuid primary key references public.projects(id) on delete cascade,
   project_summary text not null default '' check (char_length(project_summary) <= 5000),
   goals_achieved  text not null default '' check (char_length(goals_achieved) <= 5000),
+  general_impact  text not null default '' check (char_length(general_impact) <= 5000),
+  negative_groups text not null default '' check (char_length(negative_groups) <= 2000),
   local_manpower  text not null default '' check (char_length(local_manpower) <= 2000),
   beneficiary_story text not null default '' check (char_length(beneficiary_story) <= 5000),
   challenges      text not null default '' check (char_length(challenges) <= 5000),
@@ -93,9 +95,9 @@ begin
     new.signed_off_at := null;
   else
     if old.signed_off_at is not null and new.signed_off_at is not null
-       and (new.project_summary, new.goals_achieved, new.local_manpower, new.beneficiary_story, new.challenges, new.lessons_learned)
+       and (new.project_summary, new.general_impact, new.negative_groups, new.goals_achieved, new.local_manpower, new.beneficiary_story, new.challenges, new.lessons_learned)
            is distinct from
-           (old.project_summary, old.goals_achieved, old.local_manpower, old.beneficiary_story, old.challenges, old.lessons_learned) then
+           (old.project_summary, old.general_impact, old.negative_groups, old.goals_achieved, old.local_manpower, old.beneficiary_story, old.challenges, old.lessons_learned) then
       raise exception 'the report is signed off; the Executive Director must reopen it before it is changed' using errcode = '42501';
     end if;
     if (new.signed_off_at is not null) is distinct from (old.signed_off_at is not null) then

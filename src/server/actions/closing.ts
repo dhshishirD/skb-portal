@@ -38,6 +38,8 @@ const firstIssue = (e: { issues: Array<{ message: string }> }) => e.issues[0]?.m
 
 interface ReportRow {
   project_summary: string;
+  general_impact: string;
+  negative_groups: string;
   goals_achieved: string;
   local_manpower: string;
   beneficiary_story: string;
@@ -51,6 +53,8 @@ interface ReportRow {
 
 const reportFromRow = (r: ReportRow | null): ReportText => ({
   projectSummary: r?.project_summary ?? '',
+  generalImpact: r?.general_impact ?? '',
+  negativeGroups: r?.negative_groups ?? '',
   goalsAchieved: r?.goals_achieved ?? '',
   localManpower: r?.local_manpower ?? '',
   beneficiaryStory: r?.beneficiary_story ?? '',
@@ -64,7 +68,7 @@ async function loadClosing(projectId: string, roles: import('@/lib/database.type
     (supabase.from('closing_checklist_items') as any).select('key, label, position').order('position', { ascending: true }),
     (supabase.from('project_closing_checks') as any).select('item_key, checked_by, checked_at, note, document_id').eq('project_id', projectId),
     (supabase.from('project_closing_reports') as any)
-      .select('project_summary, goals_achieved, local_manpower, beneficiary_story, challenges, lessons_learned, updated_by, updated_at, signed_off_by, signed_off_at')
+      .select('project_summary, general_impact, negative_groups, goals_achieved, local_manpower, beneficiary_story, challenges, lessons_learned, updated_by, updated_at, signed_off_by, signed_off_at')
       .eq('project_id', projectId)
       .maybeSingle(),
     (supabase.from('documents') as any).select('id, title').eq('project_id', projectId).is('deleted_at', null).order('created_at', { ascending: false }),
@@ -287,7 +291,6 @@ export async function generateForm7Action(projectId: string): Promise<ClosingDat
       rateDate: b.settings.rateDate,
       receipts: receiptsRes.data.receipts.map((r) => ({ receivedOn: r.receivedOn, amount: r.amount, currency: r.currency, reference: r.reference })),
       report: closing.report,
-      checklist: closing.items.map((i) => ({ label: i.label, done: !!i.checked })),
       signedOffOn: closing.signedOffAt,
       signedOffByName: closing.signedOffByName,
       madeOn: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' }),

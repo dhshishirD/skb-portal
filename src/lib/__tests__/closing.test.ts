@@ -37,8 +37,8 @@ describe('checklist helpers', () => {
   });
   it('lists empty written sections', () => {
     expect(emptySections(EMPTY_REPORT)).toHaveLength(REPORT_FIELDS.length);
-    expect(emptySections({ ...EMPTY_REPORT, challenges: '  ' })).toContain('Challenges');
-    expect(emptySections({ ...EMPTY_REPORT, challenges: 'x' })).not.toContain('Challenges');
+    expect(emptySections({ ...EMPTY_REPORT, challenges: '  ' })).toContain(REPORT_FIELDS.find((f) => f.key === 'challenges')!.label);
+    expect(emptySections({ ...EMPTY_REPORT, challenges: 'x' })).not.toContain(REPORT_FIELDS.find((f) => f.key === 'challenges')!.label);
   });
 });
 

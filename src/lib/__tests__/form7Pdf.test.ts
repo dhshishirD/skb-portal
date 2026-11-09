@@ -20,7 +20,6 @@ function input(over: Partial<Form7Input> = {}): Form7Input {
     rateDate: '2026-01-02',
     receipts: [{ receivedOn: '2026-01-05', amount: 1000, currency: 'EUR', reference: 'R1' }],
     report: { ...EMPTY_REPORT, projectSummary: 'Long text. '.repeat(400) },
-    checklist: [{ label: 'One', done: true }, { label: 'Two', done: false }],
     signedOffOn: null,
     signedOffByName: null,
     madeOn: '2026-11-09',

@@ -45,6 +45,7 @@ export function ClosingPanel({ projectId }: { projectId: string }) {
   const [note, setNote] = useState<Note>(null);
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState<ReportText | null>(null);
+  const [families, setFamilies] = useState('');
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [docs, setDocs] = useState<Record<string, string>>({});
 
@@ -55,7 +56,10 @@ export function ClosingPanel({ projectId }: { projectId: string }) {
         if (r.ok) {
           setData(r.data);
           setLoadError(null);
-          if (resetForm) setText(r.data.report);
+          if (resetForm) {
+            setText(r.data.report);
+            setFamilies(r.data.familiesCount === null ? '' : String(r.data.familiesCount));
+          }
         } else setLoadError(r.error);
       } catch {
         setLoadError('Could not reach the server. Reload the page (Ctrl+F5) and try again.');
@@ -97,7 +101,9 @@ export function ClosingPanel({ projectId }: { projectId: string }) {
 
   const signedOff = !!data.signedOffAt;
   const done = countChecked(data.items);
-  const changed = REPORT_FIELDS.some((f) => text[f.key].trim() !== data.report[f.key].trim());
+  const changed =
+    REPORT_FIELDS.some((f) => text[f.key].trim() !== data.report[f.key].trim()) ||
+    families.trim() !== (data.familiesCount === null ? '' : String(data.familiesCount));
   const missing = emptySections(data.report);
 
   const makePdf = async () => {
@@ -151,9 +157,14 @@ export function ClosingPanel({ projectId }: { projectId: string }) {
             <p className="text-[11px] text-slate-500">{f.hint} ({text[f.key].length}/{f.max})</p>
           </div>
         ))}
+        <div>
+          <label htmlFor="cl-families" className="block text-xs font-bold text-slate-600 mb-1">Number of families (optional)</label>
+          <input id="cl-families" inputMode="numeric" disabled={!data.canWrite || busy} className={`${inputCls} sm:w-48`} value={families} onChange={(e) => setFamilies(e.target.value.replace(/[^0-9]/g, ''))} />
+          <p className="text-[11px] text-slate-500">Leave empty to use the project&apos;s beneficiary target. The people counts (women, men, girls, boys) come from the Beneficiaries tab.</p>
+        </div>
         {data.canWrite && (
           <div className="flex items-center gap-3">
-            <button className={btnCls} disabled={busy || !changed} onClick={() => run(() => saveClosingReportAction(projectId, text), true)}>Save text</button>
+            <button className={btnCls} disabled={busy || !changed} onClick={() => run(() => saveClosingReportAction(projectId, { ...text, familiesCount: families }), true)}>Save text</button>
             {changed && <span className="text-xs text-amber-700">Unsaved changes</span>}
             {data.updatedAt && !changed && (
               <span className="text-xs text-slate-500">Last saved {fmt(data.updatedAt)}{data.updatedByName ? ` by ${data.updatedByName}` : ''}</span>

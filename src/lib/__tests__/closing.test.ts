@@ -64,3 +64,12 @@ describe('friendlyClosingError', () => {
     expect(friendlyClosingError({ message: 'weird' })).toMatch(/try again/);
   });
 });
+
+describe('familiesCount', () => {
+  it('is optional and must be a whole number', () => {
+    expect(reportSchema.parse({ ...EMPTY_REPORT }).familiesCount).toBeNull();
+    expect(reportSchema.parse({ ...EMPTY_REPORT, familiesCount: ' 67 ' }).familiesCount).toBe(67);
+    expect(reportSchema.safeParse({ ...EMPTY_REPORT, familiesCount: '6.5' }).success).toBe(false);
+    expect(reportSchema.safeParse({ ...EMPTY_REPORT, familiesCount: '-3' }).success).toBe(false);
+  });
+});

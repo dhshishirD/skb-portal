@@ -19,6 +19,7 @@ function input(over: Partial<Form7Input> = {}): Form7Input {
     exchangeRate: 130,
     rateDate: '2026-01-02',
     receipts: [{ receivedOn: '2026-01-05', amount: 1000, currency: 'EUR', reference: 'R1' }],
+    familiesCount: 67,
     report: { ...EMPTY_REPORT, projectSummary: 'Long text. '.repeat(400) },
     signedOffOn: null,
     signedOffByName: null,

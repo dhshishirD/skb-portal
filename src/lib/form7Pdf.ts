@@ -1,7 +1,7 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
 import { wrapLine } from './charterPdf';
 import { pdfSafe } from './fundReceiptLetter';
-import { formatBdtCents, formatBp, formatMilli, type BudgetCalc, type BudgetItem } from './budget';
+import { formatBp, type BudgetCalc, type BudgetItem } from './budget';
 import { type ReportText } from './closing';
 
 /**
@@ -32,6 +32,8 @@ export interface Form7Input {
   rateDate: string | null;
   receipts: Array<{ receivedOn: string; amount: number; currency: string; reference: string | null }>;
   report: ReportText;
+  /** Families served; when null the project's beneficiary target is used. */
+  familiesCount: number | null;
   signedOffOn: string | null;
   signedOffByName: string | null;
   madeOn: string; // yyyy-mm-dd
@@ -43,7 +45,6 @@ const grey = rgb(0.45, 0.45, 0.45);
 
 const day = (iso: string | null) =>
   iso ? new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '-';
-const amount = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export async function buildForm7Pdf(input: Form7Input): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
@@ -142,8 +143,14 @@ export async function buildForm7Pdf(input: Form7Input): Promise<Uint8Array> {
   const p = input.project;
   const c = input.calc;
   const cur = input.currency;
-  const conv = (m: number | null) => (m === null ? '-' : formatMilli(m));
-  const rawNum = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  // Whole numbers without separators, as in the donor's own form; unit prices keep up to 2 decimals.
+  const num = (n: number) => String(Math.round(n * 100) / 100);
+  const conv = (m: number | null) => (m === null ? '-' : String(Math.round(m / 1000)));
+  const convUnit = (m: number | null) => (m === null ? '-' : num(m / 1000));
+  const bdt = (cents: number | null) => (cents === null ? '-' : num(cents / 100));
+  const rawNum = num;
+  const families = input.familiesCount ?? p.beneficiaryTarget;
+  const familiesNote = input.familiesCount === null && p.beneficiaryTarget !== null ? ' (target)' : '';
 
   // ----- title
   write('FORM 7', { font: bold, size: 18, gap: 0 });
@@ -190,7 +197,7 @@ export async function buildForm7Pdf(input: Form7Input): Promise<Uint8Array> {
     const f = [0.2, 0.14, 0.14, 0.14, 0.14, 0.24];
     row(['Total individuals', 'Women', 'Men', 'Girls', 'Boys', 'Number of families'], f, { font: bold });
     rule();
-    row([String(k.total), String(k.women), String(k.men), String(k.girls), String(k.boys), p.beneficiaryTarget !== null ? `${p.beneficiaryTarget} (target)` : ''], f);
+    row([String(k.total), String(k.women), String(k.men), String(k.girls), String(k.boys), families !== null ? `${families}${familiesNote}` : ''], f);
     if (k.unspecified > 0) write(`${k.unspecified} registered people have no birth year or sex and are only in the total.`, { size: 8.5, color: grey });
   } else {
     write('Not shown (you do not have permission to read the beneficiary registry).', { color: grey });
@@ -210,14 +217,14 @@ export async function buildForm7Pdf(input: Form7Input): Promise<Uint8Array> {
   part('PART 5: Financial Summary');
   const received = input.receipts.filter((r) => r.currency === cur).reduce((s, r) => s + Math.round(r.amount * 100), 0);
   pair('Total cost of the project', `${cur} ${conv(c.projectConvertedMilli)}`);
-  pair('Funds received from the donor', `${cur} ${amount(received / 100)}`);
+  pair('Funds received from the donor', `${cur} ${num(received / 100)}`);
   pair('Bank charges on the donor fund', null);
   if (input.receipts.length > 0) {
     y -= 2;
     const f = [0.22, 0.24, 0.54];
     row(['Received on', 'Amount', 'Reference'], f, { font: bold, right: [false, true, false] });
     rule();
-    for (const r of input.receipts) row([day(r.receivedOn), `${r.currency} ${amount(r.amount)}`, r.reference ?? '-'], f, { right: [false, true, false] });
+    for (const r of input.receipts) row([day(r.receivedOn), `${r.currency} ${num(r.amount)}`, r.reference ?? '-'], f, { right: [false, true, false] });
   }
   y -= 4;
 
@@ -232,15 +239,15 @@ export async function buildForm7Pdf(input: Form7Input): Promise<Uint8Array> {
       const isPer = g.itemIds.some((id) => input.items.find((i) => i.id === id)?.kind === 'per_package');
       if (!isPer) continue;
       row(
-        [`${g.name ?? 'Package items'} (x ${c.packagesCount} packages)`, formatBdtCents(perPackageBdt), conv(perPackageConv), formatBdtCents(perPackageBdt * c.packagesCount), perPackageConv === null ? '-' : conv(perPackageConv * c.packagesCount)],
+        [`${g.name ?? 'Package items'} (x ${c.packagesCount} packages)`, bdt(perPackageBdt), convUnit(perPackageConv), bdt(perPackageBdt * c.packagesCount), perPackageConv === null ? '-' : conv(perPackageConv * c.packagesCount)],
         f,
         { right: [false, true, true, true, true] },
       );
     }
-    if (c.oneOffBdtCents > 0) row(['One-off costs', '', '', formatBdtCents(c.oneOffBdtCents), conv(c.oneOffConvertedMilli)], f, { right: [false, true, true, true, true] });
+    if (c.oneOffBdtCents > 0) row(['One-off costs', '', '', bdt(c.oneOffBdtCents), conv(c.oneOffConvertedMilli)], f, { right: [false, true, true, true, true] });
     rule();
-    row(['Total amount (without admin cost)', '', '', formatBdtCents(c.projectBdtCents), conv(c.projectConvertedMilli)], f, { font: bold, right: [false, true, true, true, true] });
-    row([`Admin cost (${formatBp(c.adminBp)})`, '', '', c.adminConvertedMilli !== null && input.exchangeRate ? formatBdtCents(Math.round((c.adminConvertedMilli / 1000) * input.exchangeRate * 100)) : '-', conv(c.adminConvertedMilli)], f, { right: [false, true, true, true, true] });
+    row(['Total amount (without admin cost)', '', '', bdt(c.projectBdtCents), conv(c.projectConvertedMilli)], f, { font: bold, right: [false, true, true, true, true] });
+    row([`Admin cost (${formatBp(c.adminBp)})`, '', '', c.adminConvertedMilli !== null && input.exchangeRate ? bdt(Math.round((c.adminConvertedMilli / 1000) * input.exchangeRate * 100)) : '-', conv(c.adminConvertedMilli)], f, { right: [false, true, true, true, true] });
     row(['Grand Total', '', '', '', conv(c.donorAmountMilli)], f, { font: bold, right: [false, true, true, true, true] });
     if (c.needsRate) write(input.exchangeRate ? `Conversion rate: 1 ${cur} = ${rawNum(input.exchangeRate)} BDT${input.rateDate ? ` (set ${day(input.rateDate)})` : ''}` : 'Conversion rate: not set', { size: 9, gap: 3 });
   }
@@ -272,7 +279,7 @@ export async function buildForm7Pdf(input: Form7Input): Promise<Uint8Array> {
         }
         const line = c.lines[it.id];
         row(
-          [it.name, it.measure, String(it.quantity), rawNum(it.unitPriceBdt), line ? conv(line.unitConvertedMilli) : '-', line ? formatBdtCents(line.lineBdtCents) : '-', line ? conv(line.lineConvertedMilli) : '-'],
+          [it.name, it.measure, String(it.quantity), rawNum(it.unitPriceBdt), line ? convUnit(line.unitConvertedMilli) : '-', line ? bdt(line.lineBdtCents) : '-', line ? conv(line.lineConvertedMilli) : '-'],
           g,
           { right: [false, false, true, true, true, true, true] },
         );
@@ -313,7 +320,7 @@ export async function buildForm7Pdf(input: Form7Input): Promise<Uint8Array> {
       page.drawLine({ start: { x: PAGE.margin, y: y - 6 }, end: { x: PAGE.margin + width, y: y - 6 }, thickness: 0.3, color: rgb(0.75, 0.75, 0.75) });
       y -= 20;
     }
-    row(['TOTAL', '', '', formatBdtCents(c.projectBdtCents), conv(c.projectConvertedMilli)], f, { font: bold, right: [false, false, false, true, true] });
+    row(['TOTAL', '', '', bdt(c.projectBdtCents), conv(c.projectConvertedMilli)], f, { font: bold, right: [false, false, false, true, true] });
   }
 
   // ----- Part 6

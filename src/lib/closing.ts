@@ -51,6 +51,8 @@ export interface ClosingData {
   projectId: string;
   closed: boolean;
   report: ReportText;
+  /** Number of families for Form-7; null = use the project's beneficiary target. */
+  familiesCount: number | null;
   updatedAt: string | null;
   updatedByName: string | null;
   signedOffAt: string | null;
@@ -92,6 +94,11 @@ export const reportSchema = z.object({
   beneficiaryStory: section(5000, 'The beneficiary story'),
   challenges: section(5000, 'The challenges section'),
   lessonsLearned: section(5000, 'The lessons section'),
+  familiesCount: z
+    .union([z.string(), z.number(), z.null()])
+    .optional()
+    .transform((v) => (v === undefined || v === null || String(v).trim() === '' ? null : Number(String(v).trim())))
+    .refine((v) => v === null || (Number.isInteger(v) && v >= 0 && v <= 1000000), 'Number of families must be a whole number (0 to 1,000,000).'),
 });
 export type ReportFormValues = z.input<typeof reportSchema>;
 

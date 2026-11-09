@@ -65,6 +65,7 @@ create table if not exists public.project_closing_reports (
   beneficiary_story text not null default '' check (char_length(beneficiary_story) <= 5000),
   challenges      text not null default '' check (char_length(challenges) <= 5000),
   lessons_learned text not null default '' check (char_length(lessons_learned) <= 5000),
+  families_count  int check (families_count is null or families_count between 0 and 1000000),
   updated_by      uuid references auth.users(id),
   updated_at      timestamptz not null default now(),
   signed_off_by   uuid references auth.users(id),
@@ -95,9 +96,9 @@ begin
     new.signed_off_at := null;
   else
     if old.signed_off_at is not null and new.signed_off_at is not null
-       and (new.project_summary, new.general_impact, new.negative_groups, new.goals_achieved, new.local_manpower, new.beneficiary_story, new.challenges, new.lessons_learned)
+       and (new.project_summary, new.general_impact, new.negative_groups, new.goals_achieved, new.local_manpower, new.beneficiary_story, new.challenges, new.lessons_learned, new.families_count)
            is distinct from
-           (old.project_summary, old.general_impact, old.negative_groups, old.goals_achieved, old.local_manpower, old.beneficiary_story, old.challenges, old.lessons_learned) then
+           (old.project_summary, old.general_impact, old.negative_groups, old.goals_achieved, old.local_manpower, old.beneficiary_story, old.challenges, old.lessons_learned, old.families_count) then
       raise exception 'the report is signed off; the Executive Director must reopen it before it is changed' using errcode = '42501';
     end if;
     if (new.signed_off_at is not null) is distinct from (old.signed_off_at is not null) then

@@ -47,6 +47,7 @@ interface ReportRow {
   lessons_learned: string;
   updated_by: string | null;
   updated_at: string;
+  families_count: number | null;
   signed_off_by: string | null;
   signed_off_at: string | null;
 }
@@ -68,7 +69,7 @@ async function loadClosing(projectId: string, roles: import('@/lib/database.type
     (supabase.from('closing_checklist_items') as any).select('key, label, position').order('position', { ascending: true }),
     (supabase.from('project_closing_checks') as any).select('item_key, checked_by, checked_at, note, document_id').eq('project_id', projectId),
     (supabase.from('project_closing_reports') as any)
-      .select('project_summary, general_impact, negative_groups, goals_achieved, local_manpower, beneficiary_story, challenges, lessons_learned, updated_by, updated_at, signed_off_by, signed_off_at')
+      .select('project_summary, general_impact, negative_groups, goals_achieved, local_manpower, beneficiary_story, challenges, lessons_learned, families_count, updated_by, updated_at, signed_off_by, signed_off_at')
       .eq('project_id', projectId)
       .maybeSingle(),
     (supabase.from('documents') as any).select('id, title').eq('project_id', projectId).is('deleted_at', null).order('created_at', { ascending: false }),
@@ -107,6 +108,7 @@ async function loadClosing(projectId: string, roles: import('@/lib/database.type
     projectId,
     closed,
     report: reportFromRow(report),
+    familiesCount: report?.families_count ?? null,
     updatedAt: report?.updated_at ?? null,
     updatedByName: report?.updated_by ? names.get(report.updated_by) ?? null : null,
     signedOffAt: report?.signed_off_at ?? null,
@@ -167,7 +169,8 @@ export async function saveClosingReportAction(projectId: string, values: ReportF
     if (row.error) return fail(friendlyClosingError(row.error));
     const patch: Record<string, string> = {};
     for (const f of REPORT_FIELDS) patch[f.column] = parsed.data[f.key];
-    const { data, error } = await (supabase.from('project_closing_reports') as any).update(patch).eq('project_id', projectId).select('project_id');
+    const patchAny: Record<string, string | number | null> = { ...patch, families_count: parsed.data.familiesCount };
+    const { data, error } = await (supabase.from('project_closing_reports') as any).update(patchAny).eq('project_id', projectId).select('project_id');
     if (error) return fail(friendlyClosingError(error));
     if (!(data ?? []).length) return fail('Nothing was saved. You may not have permission on this project.');
     return { ok: true, message: 'Saved.' };
@@ -291,6 +294,7 @@ export async function generateForm7Action(projectId: string): Promise<ClosingDat
       rateDate: b.settings.rateDate,
       receipts: receiptsRes.data.receipts.map((r) => ({ receivedOn: r.receivedOn, amount: r.amount, currency: r.currency, reference: r.reference })),
       report: closing.report,
+      familiesCount: closing.familiesCount,
       signedOffOn: closing.signedOffAt,
       signedOffByName: closing.signedOffByName,
       madeOn: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dhaka' }),

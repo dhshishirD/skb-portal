@@ -82,6 +82,11 @@ begin
   exception when check_violation then denied := true; end;
   assert denied, 'text over the limit is refused';
   denied := false;
+  begin update public.project_closing_reports set families_count = -1 where project_id = pid;
+  exception when check_violation then denied := true; end;
+  assert denied, 'a negative number of families is refused';
+  update public.project_closing_reports set families_count = 67 where project_id = pid;
+  denied := false;
   begin insert into public.project_closing_reports (project_id) values (pid);
   exception when unique_violation then denied := true; end;
   assert denied, 'one report per project';

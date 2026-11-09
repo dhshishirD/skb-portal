@@ -1,5 +1,6 @@
-import { ComingSoon } from '@/components/projects/ComingSoon';
+import { DocumentsPanel } from '@/components/projects/DocumentsPanel';
 
-export default function DocumentsTabPage() {
-  return <ComingSoon title="Compliance documents" next="Files will be linked to the correct project and shown with the real uploader." />;
+export default async function DocumentsTabPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <DocumentsPanel projectId={id} />;
 }

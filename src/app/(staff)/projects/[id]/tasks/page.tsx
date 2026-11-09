@@ -1,5 +1,6 @@
-import { ComingSoon } from '@/components/projects/ComingSoon';
+import { TasksPanel } from '@/components/projects/TasksPanel';
 
-export default function TasksTabPage() {
-  return <ComingSoon title="Tasks and workplan" next="Tasks will be assigned to real staff members and appear on each person's desk." />;
+export default async function TasksTabPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <TasksPanel projectId={id} />;
 }

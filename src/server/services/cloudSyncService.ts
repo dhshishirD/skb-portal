@@ -35,19 +35,6 @@ export interface CloudDocumentRecord {
   publishedAt?: string;
 }
 
-export interface CloudBeneficiaryRecord {
-  id: string;
-  projectId: string;
-  fullName: string;
-  nationalId: string;
-  phone: string;
-  sex: 'male' | 'female' | 'other';
-  birthYear: number;
-  vulnerability?: string;
-  locationName?: string;
-  registeredAt: string;
-}
-
 export const PROJECT_CODE_TO_UUID: Record<string, string> = {
   'BD-SKB-2026-COW-20': '30000000-0000-0000-0000-000000000011',
   'BD-SKB-2026-LIV-CLO': '30000000-0000-0000-0000-000000000012',
@@ -267,107 +254,6 @@ export class CloudSyncService {
     });
 
     return true;
-  }
-
-  // ==========================================
-  // 3. BENEFICIARIES CLOUD SYNC
-  // ==========================================
-
-  public static async getBeneficiaries(projectId?: string): Promise<CloudBeneficiaryRecord[]> {
-    const supabase = this.getClient();
-    if (supabase) {
-      try {
-        let query = supabase.from('beneficiaries').select('*').order('created_at', { ascending: false });
-        if (projectId) {
-          const dbPid = resolveProjectDbUuid(projectId);
-          query = query.eq('project_id', dbPid);
-        }
-        const { data, error } = await query;
-
-        if (!error && data && data.length > 0) {
-          return data.map((b: any) => ({
-            id: b.id,
-            projectId: b.project_id || projectId || 'BD-SKB-2026-COW-20',
-            fullName: b.full_name_enc || b.full_name || 'Verified Beneficiary',
-            nationalId: b.national_id_enc || b.national_id || 'NID-VERIFIED',
-            phone: b.phone_enc || b.phone || '+880 1700-000000',
-            sex: b.sex || 'female',
-            birthYear: b.birth_year || 1988,
-            vulnerability: b.vulnerability || 'Ultra-poor household',
-            registeredAt: new Date(b.created_at || Date.now()).toLocaleDateString(),
-          }));
-        }
-      } catch (err) {
-        console.warn('Supabase beneficiaries query error', err);
-      }
-    }
-
-    // Local fallback
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('skb_portal_beneficiaries');
-      if (stored) {
-        try {
-          const list = JSON.parse(stored);
-          if (Array.isArray(list)) {
-            return list.map((b: any) => ({
-              id: b.id,
-              projectId: b.projectId || 'BD-SKB-2026-COW-20',
-              fullName: b.fullName || b.full_name,
-              nationalId: b.nationalId || b.national_id,
-              phone: b.phone || '+880 1700-000000',
-              sex: b.sex || 'female',
-              birthYear: b.birthYear || 1988,
-              vulnerability: b.summary || b.vulnerability || 'Verified Beneficiary',
-              registeredAt: b.registeredAt || '2026-10-14',
-            }));
-          }
-        } catch {}
-      }
-    }
-    return [];
-  }
-
-  public static async addBeneficiary(b: Omit<CloudBeneficiaryRecord, 'id' | 'registeredAt'>): Promise<CloudBeneficiaryRecord> {
-    const record: CloudBeneficiaryRecord = {
-      ...b,
-      id: `ben-${Date.now()}`,
-      registeredAt: new Date().toLocaleDateString(),
-    };
-
-    // 1. Local persistence
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('skb_portal_beneficiaries');
-        let current: any[] = [];
-        if (stored) {
-          try { current = JSON.parse(stored); } catch {}
-        }
-        localStorage.setItem('skb_portal_beneficiaries', JSON.stringify([record, ...current]));
-      } catch (e) {
-        console.error('Local beneficiary save error', e);
-      }
-    }
-
-    // 2. Cloud persistence
-    const supabase = this.getClient();
-    if (supabase) {
-      try {
-        await supabase.from('beneficiaries').insert({
-          project_id: resolveProjectDbUuid(b.projectId),
-          location_id: '00000000-0000-0000-0002-000000000002', // Cox's Bazar location
-          full_name_enc: b.fullName,
-          national_id_enc: b.nationalId,
-          phone_enc: b.phone,
-          sex: b.sex,
-          birth_year: b.birthYear,
-          vulnerability: b.vulnerability,
-        });
-      } catch (err) {
-        console.warn('Supabase beneficiary insert failed, cached locally', err);
-      }
-    }
-
-    return record;
   }
 
   // ==========================================

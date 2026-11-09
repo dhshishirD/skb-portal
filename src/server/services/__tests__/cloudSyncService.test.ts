@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { CloudSyncService, CloudDocumentRecord, CloudBeneficiaryRecord } from '../cloudSyncService';
+import { CloudSyncService, CloudDocumentRecord } from '../cloudSyncService';
 
 describe('Phase 1: CloudSyncService Database Wiring & Fallback', () => {
   beforeEach(() => {
@@ -34,28 +34,6 @@ describe('Phase 1: CloudSyncService Database Wiring & Fallback', () => {
     const found = docs.find(d => d.id === mockDoc.id);
     expect(found).toBeDefined();
     expect(found?.name).toBe('Form-7 Bovine Livestock Handover Audit.pdf');
-  });
-
-  it('should register and retrieve verified beneficiaries with cloud metadata', async () => {
-    const mockBen: Omit<CloudBeneficiaryRecord, 'id' | 'registeredAt'> = {
-      projectId: 'BD-SKB-2026-COW-20',
-      fullName: 'Rashida Begum',
-      nationalId: '1990192837465',
-      phone: '+880 1812-345678',
-      sex: 'female',
-      birthYear: 1990,
-      vulnerability: 'Widow household, female-headed',
-      locationName: "Cox's Bazar, Ukhia",
-    };
-
-    const created = await CloudSyncService.addBeneficiary(mockBen);
-    expect(created.id).toBeDefined();
-    expect(created.fullName).toBe('Rashida Begum');
-
-    const list = await CloudSyncService.getBeneficiaries('BD-SKB-2026-COW-20');
-    expect(list.length).toBeGreaterThanOrEqual(1);
-    const found = list.find(b => b.nationalId === '1990192837465');
-    expect(found).toBeDefined();
   });
 });
 

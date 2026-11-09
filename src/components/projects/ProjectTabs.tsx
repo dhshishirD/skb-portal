@@ -16,7 +16,7 @@ export function ProjectTabs({ projectId }: { projectId: string }) {
     { name: 'Fund receipts', href: `${base}/receipts`, icon: Banknote, ready: true },
     { name: 'Logframe', href: `${base}/logframe`, icon: Target, ready: true },
     { name: 'Tasks', href: `${base}/tasks`, icon: CheckSquare, ready: true },
-    { name: 'Beneficiaries', href: `${base}/beneficiaries`, icon: Users, ready: false },
+    { name: 'Beneficiaries', href: `${base}/beneficiaries`, icon: Users, ready: true },
     { name: 'Documents', href: `${base}/documents`, icon: FolderArchive, ready: false },
     { name: 'Closing & Form-7', href: `${base}/closing-report`, icon: ShieldCheck, ready: false },
   ];

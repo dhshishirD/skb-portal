@@ -18,7 +18,7 @@ export function ProjectTabs({ projectId }: { projectId: string }) {
     { name: 'Tasks', href: `${base}/tasks`, icon: CheckSquare, ready: true },
     { name: 'Beneficiaries', href: `${base}/beneficiaries`, icon: Users, ready: true },
     { name: 'Documents', href: `${base}/documents`, icon: FolderArchive, ready: true },
-    { name: 'Closing & Form-7', href: `${base}/closing-report`, icon: ShieldCheck, ready: false },
+    { name: 'Closing & Form-7', href: `${base}/closing-report`, icon: ShieldCheck, ready: true },
   ];
 
   return (

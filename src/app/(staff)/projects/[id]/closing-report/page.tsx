@@ -1,5 +1,6 @@
-import { ComingSoon } from '@/components/projects/ComingSoon';
+import { ClosingPanel } from '@/components/projects/ClosingPanel';
 
-export default function ClosingReportTabPage() {
-  return <ComingSoon title="Closing and Form-7" next="The closing checklist and export will be saved per project." />;
+export default async function ClosingReportTabPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <ClosingPanel projectId={id} />;
 }

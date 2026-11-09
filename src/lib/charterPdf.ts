@@ -15,7 +15,7 @@ export interface CharterPdfInput {
 
 const PAGE = { w: 595.28, h: 841.89, margin: 56 };
 
-function wrapLine(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
+export function wrapLine(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
   const out: string[] = [];
   let line = '';
   for (const word of text.split(' ')) {

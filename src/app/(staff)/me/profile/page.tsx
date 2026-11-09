@@ -610,15 +610,15 @@ export default function MyProfilePage() {
               </Link>
 
               <Link
-                href="/beneficiaries"
+                href="/projects"
                 className="p-3.5 bg-slate-50 hover:bg-slate-100/90 border border-slate-200 rounded-2xl flex items-start gap-3 transition group shadow-xs"
               >
                 <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
                   <Users className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-900 group-hover:text-blue-600">Beneficiary Registry</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Biometric & field validation of aid recipients across projects.</p>
+                  <p className="text-xs font-bold text-slate-900 group-hover:text-blue-600">Project Beneficiaries</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Open a project and use its Beneficiaries tab (encrypted registry).</p>
                 </div>
               </Link>
             </div>

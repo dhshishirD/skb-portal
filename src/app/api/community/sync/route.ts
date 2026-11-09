@@ -28,10 +28,10 @@ export async function GET() {
   try {
     const supabase = createAdminClient();
     const { data, error } = await (supabase.from('notifications') as any)
-      .select('*')
+      .select('id, kind, payload, created_at')
       .in('kind', ['community_post', 'community_comment', 'community_dm', 'donor_ticket'])
       .order('created_at', { ascending: false })
-      .limit(500);
+      .limit(300);
 
     if (error) {
       console.error('Error fetching community data:', error);

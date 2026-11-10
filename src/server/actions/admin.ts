@@ -260,12 +260,22 @@ export async function resendAccessEmailAction(userId: string): Promise<ActionRes
     const siteUrl = getSiteUrl(await headers());
     const redirectTo = authCallbackUrl(siteUrl, '/set-password');
     const neverSignedIn = !data.user.last_sign_in_at;
+    // An invite only works for an account whose email is not confirmed yet. An account that was
+    // created already confirmed (never signed in) gets a set-password email instead.
+    const sendInvite = neverSignedIn && !data.user.email_confirmed_at;
 
-    const res = neverSignedIn
+    const res = sendInvite
       ? await admin.auth.admin.inviteUserByEmail(data.user.email, { redirectTo })
       : await admin.auth.resetPasswordForEmail(data.user.email, { redirectTo });
-    if (res.error) return { ok: false, error: res.error.message };
-    return { ok: true, message: neverSignedIn ? 'Invite re-sent.' : 'Password-reset email sent.' };
+    if (res.error) {
+      return {
+        ok: false,
+        error: /already been registered|already exists/i.test(res.error.message)
+          ? 'This account already exists. Use the password email instead.'
+          : res.error.message,
+      };
+    }
+    return { ok: true, message: sendInvite ? 'Invite re-sent.' : neverSignedIn ? 'Set-password email sent.' : 'Password-reset email sent.' };
   } catch (err) {
     return fail(err);
   }

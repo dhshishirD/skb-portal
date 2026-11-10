@@ -115,6 +115,9 @@ export async function listStaffAction(): Promise<{ ok: true; staff: StaffRow[]; 
       admin.auth.admin.listUsers({ page: 1, perPage: 500 }),
     ]);
     if (profilesRes.error) throw new Error(profilesRes.error.message);
+    // Without this the list silently showed everyone as "never signed in" when Supabase could not
+    // list the users (for example a ban date of 'infinity' on one account).
+    if (usersRes.error) throw new Error('Could not read the sign-in details of the accounts from Supabase. Please tell the programmer.');
 
     const rolesBy = new Map<string, AppRole[]>();
     for (const r of (rolesRes.data ?? []) as Array<{ user_id: string; role: AppRole }>) {

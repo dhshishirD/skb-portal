@@ -183,7 +183,7 @@ export async function advanceStageAction(projectId: string, to: string, note: st
 
     revalidatePath('/projects');
     revalidatePath(`/projects/${projectId}`, 'layout');
-    return { ok: true, message: goingBack ? 'Project moved back.' : 'Project moved to the next stage.' };
+    return { ok: true, message: goingBack ? (project.stage === 'closed' ? 'Project reopened. Edits are allowed again.' : 'Project moved back.') : 'Project moved to the next stage.' };
   } catch {
     return fail('Something went wrong. Please try again.');
   }

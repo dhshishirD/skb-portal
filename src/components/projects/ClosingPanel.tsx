@@ -1,18 +1,19 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { FileDown } from 'lucide-react';
+import { AlertTriangle, FileDown, Info } from 'lucide-react';
+import type { Form7Check } from '@/lib/form7Checks';
 import {
   REPORT_FIELDS,
   allChecked,
   countChecked,
-  emptySections,
   type ClosingData,
   type ReportText,
 } from '@/lib/closing';
 import {
   generateForm7Action,
   getClosingAction,
+  getForm7ChecksAction,
   saveClosingReportAction,
   setClosingCheckAction,
   setClosingSignOffAction,
@@ -48,6 +49,7 @@ export function ClosingPanel({ projectId }: { projectId: string }) {
   const [families, setFamilies] = useState('');
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [docs, setDocs] = useState<Record<string, string>>({});
+  const [checks, setChecks] = useState<Form7Check[] | null>(null);
 
   const load = useCallback(
     async (resetForm: boolean) => {
@@ -56,6 +58,10 @@ export function ClosingPanel({ projectId }: { projectId: string }) {
         if (r.ok) {
           setData(r.data);
           setLoadError(null);
+          if (r.data.canExport) {
+            const c = await getForm7ChecksAction(projectId);
+            setChecks(c.ok ? c.data : null);
+          }
           if (resetForm) {
             setText(r.data.report);
             setFamilies(r.data.familiesCount === null ? '' : String(r.data.familiesCount));
@@ -104,7 +110,6 @@ export function ClosingPanel({ projectId }: { projectId: string }) {
   const changed =
     REPORT_FIELDS.some((f) => text[f.key].trim() !== data.report[f.key].trim()) ||
     families.trim() !== (data.familiesCount === null ? '' : String(data.familiesCount));
-  const missing = emptySections(data.report);
 
   const makePdf = async () => {
     setBusy(true);
@@ -230,7 +235,20 @@ export function ClosingPanel({ projectId }: { projectId: string }) {
 
       <section className="bg-white p-5 rounded-2xl border border-slate-200 space-y-3">
         <h2 className="text-sm font-bold">Sign-off and Form-7 PDF</h2>
-        {missing.length > 0 && <p className="text-xs text-amber-700">Not written yet: {missing.join(', ')}. The PDF will show “not written” for these.</p>}
+        {checks && checks.length === 0 && <p className="text-xs text-emerald-700">Form-7 check: nothing to fix. The numbers are ready.</p>}
+        {checks && checks.length > 0 && (
+          <div className="rounded-xl border border-slate-200 p-3 space-y-1.5" aria-label="Form-7 check">
+            <p className="text-xs font-bold">Form-7 check</p>
+            <ul className="space-y-1">
+              {checks.map((c) => (
+                <li key={c.code} className={`flex gap-2 text-xs ${c.level === 'stop' ? 'text-red-700' : 'text-amber-700'}`}>
+                  {c.level === 'stop' ? <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" aria-hidden /> : <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" aria-hidden />}
+                  <span><strong>{c.level === 'stop' ? 'Fix first: ' : 'Check: '}</strong>{c.message}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           {data.canExport && (
             <button className={btn2Cls} disabled={busy} onClick={makePdf}>

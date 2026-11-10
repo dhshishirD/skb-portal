@@ -18,6 +18,7 @@ import {
   type ReportText,
 } from '@/lib/closing';
 import { buildForm7Pdf } from '@/lib/form7Pdf';
+import { form7Checks, hasStops, type Form7Check } from '@/lib/form7Checks';
 import { getBudgetAction } from '@/server/actions/budget';
 import { getFundReceiptsAction } from '@/server/actions/fundReceipts';
 import { getActor, getOwnOrganization, getProjectById, isUuid } from '@/server/services/projectsData';
@@ -239,6 +240,75 @@ export async function setClosingSignOffAction(projectId: string, signOff: boolea
   }
 }
 
+/** Everything the checks and the PDF both need, read once. */
+async function loadForm7Inputs(projectId: string, roles: import('@/lib/database.types').AppRole[]) {
+  const project = await getProjectById(projectId);
+  if (!project) return { error: 'Project not found.' as const };
+  const closing = await loadClosing(projectId, roles, project.stage === 'closed');
+  if (!closing) return { error: 'Could not load the closing page. Please try again.' as const };
+  const [budgetRes, receiptsRes, org] = await Promise.all([getBudgetAction(projectId), getFundReceiptsAction(projectId), getOwnOrganization()]);
+  if (!budgetRes.ok) return { error: budgetRes.error as string };
+  if (!receiptsRes.ok) return { error: receiptsRes.error as string };
+  const b = budgetRes.data;
+  const calc = calculateBudget({
+    items: b.items,
+    packagesCount: b.settings.packagesCount,
+    adminPercent: b.settings.adminPercent,
+    exchangeRate: b.settings.exchangeRate,
+    donorAmount: b.donorAmount,
+    currency: b.currency,
+  });
+  const supabase = await createClient();
+  const ben = await (supabase.from('beneficiaries') as any).select('sex, birth_year').eq('project_id', projectId);
+  const counts = ben.error
+    ? null
+    : countGroups(
+        ((ben.data ?? []) as Array<{ sex: string | null; birth_year: number | null }>).map((p) => ({ sex: p.sex, birthYear: p.birth_year })),
+        new Date().getFullYear(),
+      );
+  const checks = form7Checks({
+    project: {
+      startDate: project.start_date,
+      endDate: project.end_date,
+      donorName: project.donor_name,
+      location: project.location,
+      beneficiaryTarget: project.beneficiary_target,
+    },
+    registrationNo: org?.registration_no ?? null,
+    budget: {
+      itemCount: b.items.length,
+      packagesCount: b.settings.packagesCount,
+      warnings: calc.warnings,
+      projectConvertedMilli: calc.projectConvertedMilli,
+      adminConvertedMilli: calc.adminConvertedMilli,
+      donorAmountMilli: calc.donorAmountMilli,
+    },
+    currency: b.currency,
+    receipts: receiptsRes.data.receipts.map((r) => ({ receivedOn: r.receivedOn, amount: r.amount, currency: r.currency })),
+    familiesCount: closing.familiesCount,
+    peopleTotal: counts ? counts.total : null,
+    emptySections: emptySections(closing.report),
+    checklistDone: closing.items.filter((i) => i.checked).length,
+    checklistTotal: closing.items.length,
+  });
+  return { project, closing, b, calc, counts, org, receipts: receiptsRes.data.receipts, checks };
+}
+
+/** What to fix before making Form-7 (stop = would print a wrong key number, warn = a donor may ask). */
+export async function getForm7ChecksAction(projectId: string): Promise<ClosingDataResult<Form7Check[]>> {
+  try {
+    if (!isUuid(projectId)) return fail('Project not found.');
+    const actor = await getActor();
+    if (!actor) return fail('Please sign in again.');
+    if (!canWriteClosing(actor.roles)) return fail('You do not have permission to make Form-7.');
+    const r = await loadForm7Inputs(projectId, actor.roles);
+    if ('error' in r) return fail(r.error ?? 'Could not load the project.');
+    return { ok: true, data: r.checks };
+  } catch {
+    return fail('Could not check the project. Please try again.');
+  }
+}
+
 /** Form-7 as a PDF (base64) to print, sign by hand and scan. */
 export async function generateForm7Action(projectId: string): Promise<ClosingDataResult<{ filename: string; base64: string }>> {
   try {
@@ -246,32 +316,11 @@ export async function generateForm7Action(projectId: string): Promise<ClosingDat
     const actor = await getActor();
     if (!actor) return fail('Please sign in again.');
     if (!canWriteClosing(actor.roles)) return fail('You do not have permission to make Form-7.');
-    const project = await getProjectById(projectId);
-    if (!project) return fail('Project not found.');
-
-    const closing = await loadClosing(projectId, actor.roles, project.stage === 'closed');
-    if (!closing) return fail('Could not load the closing page. Please try again.');
-    const [budgetRes, receiptsRes, org] = await Promise.all([getBudgetAction(projectId), getFundReceiptsAction(projectId), getOwnOrganization()]);
-    if (!budgetRes.ok) return fail(budgetRes.error);
-    if (!receiptsRes.ok) return fail(receiptsRes.error);
-    const b = budgetRes.data;
-    const calc = calculateBudget({
-      items: b.items,
-      packagesCount: b.settings.packagesCount,
-      adminPercent: b.settings.adminPercent,
-      exchangeRate: b.settings.exchangeRate,
-      donorAmount: b.donorAmount,
-      currency: b.currency,
-    });
-
-    const supabase = await createClient();
-    const ben = await (supabase.from('beneficiaries') as any).select('sex, birth_year').eq('project_id', projectId);
-    const counts = ben.error
-      ? null
-      : countGroups(
-          ((ben.data ?? []) as Array<{ sex: string | null; birth_year: number | null }>).map((p) => ({ sex: p.sex, birthYear: p.birth_year })),
-          new Date().getFullYear(),
-        );
+    const r = await loadForm7Inputs(projectId, actor.roles);
+    if ('error' in r) return fail(r.error ?? 'Could not load the project.');
+    const { project, closing, b, calc, counts, org } = r;
+    const stop = r.checks.find((c) => c.level === 'stop');
+    if (stop) return fail(`Form-7 is not ready: ${stop.message}`);
 
     const bytes = await buildForm7Pdf({
       organisationName: org?.name ?? 'SKB',
@@ -292,7 +341,7 @@ export async function generateForm7Action(projectId: string): Promise<ClosingDat
       calc,
       exchangeRate: b.settings.exchangeRate,
       rateDate: b.settings.rateDate,
-      receipts: receiptsRes.data.receipts.map((r) => ({ receivedOn: r.receivedOn, amount: r.amount, currency: r.currency, reference: r.reference })),
+      receipts: r.receipts.map((r) => ({ receivedOn: r.receivedOn, amount: r.amount, currency: r.currency, reference: r.reference })),
       report: closing.report,
       familiesCount: closing.familiesCount,
       signedOffOn: closing.signedOffAt,

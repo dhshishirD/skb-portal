@@ -63,6 +63,7 @@ import {
   DonorQueryService
 } from '@/server/services/donorQueryService';
 import { CloudSyncService } from '@/server/services/cloudSyncService';
+import { MyProjectsPanel } from '@/components/dashboard/MyProjectsPanel';
 import { formatCurrencyString } from '@/server/services/multiCurrency';
 import { ProjectAssignmentService, AssignableOfficer } from '@/server/services/projectAssignmentService';
 import { DEFAULT_APPROVED_USERS } from '@/server/services/userApprovalService';
@@ -579,28 +580,6 @@ export default function StaffDashboardPage() {
         </div>
       </div>
 
-      {/* Officer Operational Workspace Bar */}
-      {isProgramOfficer && (
-        <div className="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 font-bold border border-blue-100">
-              <FolderKanban className="w-4 h-4 text-blue-600" />
-            </div>
-            <div>
-              <p className="font-bold text-slate-900">
-                Assigned Projects: {displayedProjects.length} Active Charters
-              </p>
-              <p className="text-slate-500 text-[11px]">
-                Assigned to your desk by Executive Director Md. Abu Huraira.
-              </p>
-            </div>
-          </div>
-          <span className="text-[11px] font-semibold bg-slate-50 border border-slate-200 text-slate-700 px-3 py-1 rounded-xl shrink-0 self-start sm:self-auto">
-            Officer: <strong className="text-slate-900">{currentUserName}</strong>
-          </span>
-        </div>
-      )}
-
       {/* SEPARATED DESKS SELECTOR TABS */}
       <div className="bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/80 flex flex-wrap items-center gap-1.5">
         {/* Executive Director Desk Tab (ONLY for Executive Director / Chairman) */}
@@ -634,7 +613,7 @@ export default function StaffDashboardPage() {
           }`}
         >
           <FolderKanban className={`w-4 h-4 ${activeDeskTab === 'PROGRAMS_DESK' ? 'text-amber-300' : 'text-amber-500'}`} />
-          <span>{isProgramOfficer ? 'My Assigned Projects & Deliverables' : 'All Programs & Operations'} ({displayedProjects.length})</span>
+          <span>My projects &amp; tasks</span>
         </button>
 
         <button
@@ -945,183 +924,7 @@ export default function StaffDashboardPage() {
       {/* ========================================================================= */}
       {/* DESK 2: PROGRAMS & FIELD OPERATIONS DESK (FOCUSED OPERATIONAL VIEW)       */}
       {/* ========================================================================= */}
-      {activeDeskTab === 'PROGRAMS_DESK' && (
-        <div className="space-y-6 animate-in fade-in duration-150">
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-              <div>
-                <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-                  <FolderKanban className="w-5 h-5 text-blue-600" />
-                  <span>{isProgramOfficer ? 'My Responsible Assigned Project Charters' : 'Organization Project Portfolio'}</span>
-                  <span className="text-xs bg-blue-100 text-blue-800 font-bold px-2.5 py-0.5 rounded-full">
-                    {displayedProjects.length} Project{displayedProjects.length === 1 ? '' : 's'}
-                  </span>
-                </h2>
-                <p className="text-xs text-slate-500">
-                  {isProgramOfficer
-                    ? 'Execute Form-3 charters, field vouchers, biometric beneficiary registers, and donor milestones for your assigned portfolio.'
-                    : 'Executive overview of all registered projects. Assign one or more operational officers to each charter.'}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/projects"
-                  className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
-                >
-                  <span>Open Full Projects Register</span> &rarr;
-                </Link>
-              </div>
-            </div>
-
-            {displayedProjects.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {displayedProjects.map((project) => {
-                  const assignedList = project.assignedOfficers && project.assignedOfficers.length > 0
-                    ? project.assignedOfficers
-                    : [project.assignedOfficer];
-
-                  return (
-                    <div
-                      key={project.pid}
-                      className="bg-slate-50/70 hover:bg-slate-50 rounded-2xl border border-slate-200 p-5 space-y-3.5 transition shadow-xs flex flex-col justify-between"
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between border-b border-slate-200/60 pb-2.5">
-                          <span className="font-mono text-xs font-black text-blue-700 bg-blue-100/70 px-2.5 py-0.5 rounded-lg border border-blue-200">
-                            {project.pid}
-                          </span>
-                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
-                            project.statusCategory === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-blue-100 text-blue-800 border-blue-300'
-                          }`}>
-                            {project.statusLabel}
-                          </span>
-                        </div>
-
-                        <div>
-                          <h3 className="text-sm font-black text-slate-900 line-clamp-2 leading-snug">{project.title}</h3>
-                          <p className="text-xs text-slate-500 font-semibold mt-0.5">{project.partner}</p>
-                        </div>
-
-                        {/* Assigned Officers Bar */}
-                        <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 flex items-center justify-between gap-2 flex-wrap">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                              <Users className="w-3 h-3 text-blue-600" /> Assigned:
-                            </span>
-                            {assignedList.map((officerName) => {
-                              const isMe = currentUserName && officerName.toLowerCase().includes(currentUserName.toLowerCase());
-                              return (
-                                <span
-                                  key={officerName}
-                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
-                                    isMe
-                                      ? 'bg-blue-600 text-white border-blue-700 shadow-2xs'
-                                      : 'bg-slate-100 text-slate-800 border-slate-200'
-                                  }`}
-                                >
-                                  {officerName} {isMe ? '(You)' : ''}
-                                </span>
-                              );
-                            })}
-                          </div>
-
-                          {/* Executive Director Can Reassign Officers */}
-                          {canManageExecutiveGate && (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenAssignModal(project)}
-                              className="text-[10px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer"
-                              title="Assign or reassign operational officers"
-                            >
-                              <UserPlus className="w-3 h-3" />
-                              <span>Assign Officers</span>
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-slate-200/80">
-                          <div>
-                            <span className="text-slate-400">Approved Budget:</span>
-                            <p className="font-bold text-emerald-700 font-mono">
-                              {formatCurrencyString(project.budgetAmount, project.currency)}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-slate-400">Target Beneficiaries:</span>
-                            <p className="font-bold text-slate-800">{project.beneficiariesCount} Target</p>
-                          </div>
-                          <div className="col-span-2">
-                            <span className="text-slate-400">Official Field Station:</span>
-                            <p className="font-medium text-slate-700 truncate">{project.location}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Operational Action Shortcuts */}
-                      <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-200/60 text-[11px]">
-                        <Link
-                          href={`/projects/${project.pid}/documents`}
-                          className="py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg border border-blue-200 text-center transition flex items-center justify-center gap-1"
-                        >
-                          <FileCheck2 className="w-3.5 h-3.5" /> Docs ({project.primaryDocs.length})
-                        </Link>
-                        <Link
-                          href={`/projects/${project.pid}/charter`}
-                          className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg border border-slate-200 text-center transition flex items-center justify-center gap-1"
-                        >
-                          <FileText className="w-3.5 h-3.5" /> Form-3
-                        </Link>
-                        <Link
-                          href={`/projects/${project.pid}/beneficiaries`}
-                          className="py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-lg border border-emerald-200 text-center transition flex items-center justify-center gap-1"
-                        >
-                          <Users className="w-3.5 h-3.5" /> Beneficiaries
-                        </Link>
-                        <Link
-                          href={`/projects/${project.pid}/kanban`}
-                          className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg border border-slate-200 text-center transition flex items-center justify-center gap-1"
-                        >
-                          <CheckSquare className="w-3.5 h-3.5" /> Kanban
-                        </Link>
-                        <Link
-                          href={`/projects/${project.pid}/logframe`}
-                          className="py-1.5 px-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg border border-indigo-200 text-center transition flex items-center justify-center gap-1"
-                        >
-                          <Layers className="w-3.5 h-3.5" /> Logframe
-                        </Link>
-                        <Link
-                          href={`/projects/${project.pid}/closing-report`}
-                          className="py-1.5 px-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold rounded-lg border border-purple-200 text-center transition flex items-center justify-center gap-1"
-                        >
-                          <Award className="w-3.5 h-3.5" /> Audit Sign-off
-                        </Link>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-12 text-center space-y-3">
-                <FolderKanban className="w-10 h-10 text-slate-300 mx-auto" />
-                <h3 className="text-base font-bold text-slate-900">No Projects Currently Assigned to Your Desk</h3>
-                <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  You are logged in as <strong className="text-slate-800">{currentUserName}</strong> ({designation}).
-                  Only the Executive Director (Md. Abu Huraira) assigns officers to project charters. Once an assignment is made, your project workspace will appear here automatically.
-                </p>
-                <div className="pt-2">
-                  <Link
-                    href="/community"
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" /> Contact Executive Director in Community
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {activeDeskTab === 'PROGRAMS_DESK' && <MyProjectsPanel />}
 
       {/* ========================================================================= */}
       {/* DESK 3: PARTNER MESSAGES & INQUIRIES DESK                                  */}

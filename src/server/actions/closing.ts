@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { calculateBudget } from '@/lib/budget';
 import { countGroups } from '@/lib/beneficiaries';
+import { chooseCounts } from '@/lib/headcounts';
 import {
   REPORT_FIELDS,
   allChecked,
@@ -259,13 +260,18 @@ async function loadForm7Inputs(projectId: string, roles: import('@/lib/database.
     currency: b.currency,
   });
   const supabase = await createClient();
-  const ben = await (supabase.from('beneficiaries') as any).select('sex, birth_year').eq('project_id', projectId);
-  const counts = ben.error
+  const [ben, hc] = await Promise.all([
+    (supabase.from('beneficiaries') as any).select('sex, birth_year').eq('project_id', projectId),
+    (supabase.from('project_headcounts') as any).select('women, men, girls, boys').eq('project_id', projectId).maybeSingle(),
+  ]);
+  const registered = ben.error
     ? null
     : countGroups(
         ((ben.data ?? []) as Array<{ sex: string | null; birth_year: number | null }>).map((p) => ({ sex: p.sex, birthYear: p.birth_year })),
         new Date().getFullYear(),
       );
+  // Registered people come first; the numbers-only head count is used when nobody is registered.
+  const counts = chooseCounts(registered, hc.error ? null : (hc.data ?? null));
   const checks = form7Checks({
     project: {
       startDate: project.start_date,

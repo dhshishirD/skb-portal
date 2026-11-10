@@ -15,5 +15,7 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(new URL('/login?error=auth-code-error', origin));
+  // No usable one-time code: the link may carry its tokens after "#" (emails sent from the Admin
+  // screen). The server cannot see that part, so the browser finishes the sign-in on /auth/finish.
+  return NextResponse.redirect(new URL(`/auth/finish?next=${encodeURIComponent(next)}`, origin));
 }

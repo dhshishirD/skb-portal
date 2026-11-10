@@ -45,7 +45,7 @@ describe('Supabase env configuration (no hard-coded fallbacks)', () => {
 });
 
 describe('middleware route classification', () => {
-  it.each(['/', '/login', '/reset-password', '/set-password', '/mfa', '/api/health', '/auth/callback', '/auth/signout', '/api/webhooks/kobotoolbox', '/api/webhooks/odk'])(
+  it.each(['/', '/login', '/reset-password', '/set-password', '/mfa', '/api/health', '/auth/callback', '/auth/finish', '/auth/signout', '/api/webhooks/kobotoolbox', '/api/webhooks/odk'])(
     'treats %s as public',
     (path) => {
       expect(isPublicPath(path)).toBe(true);

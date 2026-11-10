@@ -560,24 +560,6 @@ export default function StaffDashboardPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Link 
-            href="/donor-dashboard" 
-            target="_blank"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs rounded-xl border border-amber-300 transition"
-          >
-            <Globe2 className="w-3.5 h-3.5 text-amber-600" />
-            <span>Donor Inspection Portal</span>
-            <ExternalLink className="w-3 h-3 text-slate-400" />
-          </Link>
-          <Link 
-            href="/me/profile" 
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>My Profile &amp; ID Desk</span>
-          </Link>
-        </div>
       </div>
 
       {/* SEPARATED DESKS SELECTOR TABS */}

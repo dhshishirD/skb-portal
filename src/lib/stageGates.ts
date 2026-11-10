@@ -117,7 +117,6 @@ export function friendlyGateError(error: { code?: string | null; message?: strin
   }
   if (/only the Executive Director/i.test(message)) return 'Only the Executive Director can change a project stage.';
   if (/only the checklist of the current stage/i.test(message)) return 'Only the checklist of the current stage can be changed.';
-  if (/closed project cannot change/i.test(message)) return 'A closed project cannot change stage.';
   if (/one stage forward or one stage back/i.test(message) || code === '22023') {
     return 'A project can only move one stage forward or one stage back.';
   }

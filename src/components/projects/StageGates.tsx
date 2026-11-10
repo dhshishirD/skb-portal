@@ -168,7 +168,7 @@ export function StageGates({ projectId }: { projectId: string }) {
 
         {currentItems.length === 0 ? (
           <p className="text-sm text-slate-600">
-            {data.stage === 'closed' ? 'This project is closed. There is no checklist for this stage.' : 'This stage has no checklist items.'}
+            {data.stage === 'closed' ? 'This project is closed and frozen. The Executive Director can reopen it below (Change the stage).' : 'This stage has no checklist items.'}
           </p>
         ) : (
           <ul className="divide-y divide-slate-100">
@@ -255,7 +255,7 @@ export function StageGates({ projectId }: { projectId: string }) {
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">Move back</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">{data.stage === 'closed' ? 'Reopen project' : 'Move back'}</h3>
               {prev ? (
                 <>
                   <label className="block text-xs text-slate-600" htmlFor="back-reason">
@@ -270,11 +270,11 @@ export function StageGates({ projectId }: { projectId: string }) {
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                   />
                   <button
-                    onClick={() => move(prev, backReason, `Move this project back to "${STAGE_LABELS[prev]}"?`)}
+                    onClick={() => move(prev, backReason, data.stage === 'closed' ? `Reopen this closed project and move it to "${STAGE_LABELS[prev]}"? Edits will be allowed again.` : `Move this project back to "${STAGE_LABELS[prev]}"?`)}
                     disabled={backReason.trim().length < 5 || moving}
                     className="px-4 py-2 text-sm font-semibold text-slate-800 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50"
                   >
-                    {moving ? 'Working…' : `Move back to ${STAGE_LABELS[prev]}`}
+                    {moving ? 'Working…' : data.stage === 'closed' ? `Reopen project (to ${STAGE_LABELS[prev]})` : `Move back to ${STAGE_LABELS[prev]}`}
                   </button>
                 </>
               ) : (

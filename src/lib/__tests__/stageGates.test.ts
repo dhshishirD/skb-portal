@@ -129,7 +129,7 @@ describe('friendlyGateError', () => {
     expect(friendlyGateError({ code: '22023', message: 'a project can only move one stage forward or one stage back' })).toMatch(
       /one stage forward or one stage back/
     );
-    expect(friendlyGateError({ code: '22023', message: 'a closed project cannot change stage' })).toMatch(/closed/);
+    expect(friendlyGateError({ code: '22023', message: 'x' })).toMatch(/one stage/);
     expect(friendlyGateError({ code: 'P0002', message: 'project not found' })).toBe('Project not found.');
   });
 

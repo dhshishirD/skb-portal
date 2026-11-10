@@ -128,14 +128,27 @@ begin
   assert n = 2, format('history should have 2 rows, got %s', n);
   execute 'reset role';
 
-  -- 6. Closed projects are final
+  -- 6. Closed projects: only the Executive Director can reopen, with a reason, one step back (0026)
   perform set_config('request.jwt.claims', '', true); -- back to a session with no signed-in user
   update public.projects set stage = 'closed' where id = pid;
-  perform pg_temp.as_user(ed);
+  perform pg_temp.as_user(a);
   denied := false;
   begin perform public.advance_project_stage(pid, 'monitoring_evaluation', 'Reopen please');
+  exception when insufficient_privilege then denied := true; end;
+  assert denied, 'an officer cannot reopen a closed project';
+  execute 'reset role';
+  perform pg_temp.as_user(ed);
+  denied := false;
+  begin perform public.advance_project_stage(pid, 'monitoring_evaluation', '  ');
+  exception when check_violation then denied := true; end;
+  assert denied, 'reopening needs a written reason';
+  denied := false;
+  begin perform public.advance_project_stage(pid, 'implementation', 'Skip a step');
   exception when invalid_parameter_value then denied := true; end;
-  assert denied, 'a closed project cannot change stage';
+  assert denied, 'reopening goes only one step back';
+  perform public.advance_project_stage(pid, 'monitoring_evaluation', 'Donor asked us to redo the final report');
+  assert (select stage from public.projects where id = pid) = 'monitoring_evaluation', 'reopened';
+  assert (select count(*) from public.project_stage_history where project_id = pid and from_stage = 'closed' and note like 'Donor asked%') = 1, 'reopen is in the history';
   execute 'reset role';
 
   -- 7. The checklist templates are not writable by signed-in users

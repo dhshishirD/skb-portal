@@ -3,6 +3,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { canOpenPath, deskRuleFor, homeForRoles, NO_ACCESS_PATH } from '@/lib/desks';
 import type { AppRole } from '@/lib/database.types';
 import { getVerifiedUserId } from '@/lib/auth/verifiedUser';
+import { buildCsp, newNonce } from '@/lib/csp';
 
 /**
  * Server-side access control for the whole portal.
@@ -34,18 +35,34 @@ export function isPublicPath(pathname: string): boolean {
   return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
+/** Every response carries a per-request CSP; the same value goes to the page so Next.js can put the nonce on its scripts. */
 export async function middleware(request: NextRequest) {
+  const nonce = newNonce();
+  const csp = buildCsp(nonce, process.env.NODE_ENV !== 'production');
+  const res = await handle(request, nonce, csp);
+  res.headers.set('Content-Security-Policy', csp);
+  return res;
+}
+
+async function handle(request: NextRequest, nonce: string, csp: string) {
+  // Built from the request's CURRENT headers each time, so cookies refreshed below reach the page too.
+  const next = () => {
+    const headers = new Headers(request.headers);
+    headers.set('x-nonce', nonce);
+    headers.set('Content-Security-Policy', csp);
+    return NextResponse.next({ request: { headers } });
+  };
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const pathname = request.nextUrl.pathname;
 
   // Misconfiguration must never open the portal: fail closed on private routes.
   if (!supabaseUrl || !supabaseAnonKey) {
-    if (isPublicPath(pathname)) return NextResponse.next();
+    if (isPublicPath(pathname)) return next();
     return new NextResponse('Service temporarily unavailable (configuration error).', { status: 503 });
   }
 
-  let response = NextResponse.next({ request });
+  let response = next();
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
@@ -54,7 +71,7 @@ export async function middleware(request: NextRequest) {
       },
       setAll(cookiesToSet: Array<{ name: string; value: string; options?: CookieOptions }>) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
+        response = next();
         cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
       },
     },

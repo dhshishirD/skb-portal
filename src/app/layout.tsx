@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { headers } from 'next/headers';
 import { getLocale, getMessages } from 'next-intl/server';
 import { NextIntlClientProvider } from 'next-intl';
 import './globals.css';
@@ -28,6 +29,8 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Reading request headers makes every page render per request, so each one gets the CSP nonce.
+  await headers();
   const locale = await getLocale();
   const messages = await getMessages();
 

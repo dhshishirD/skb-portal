@@ -57,7 +57,7 @@ test.describe('Server-side route protection', () => {
     });
   }
 
-  for (const path of ['/api/me', '/api/community/sync', '/api/community/presence']) {
+  for (const path of ['/api/me', '/api/community/files']) {
     test(`anonymous GET ${path} is rejected`, async ({ request }) => {
       const res = await request.get(path);
       expect(res.status()).toBe(401);

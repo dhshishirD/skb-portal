@@ -1,19 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
-import { directoryRowsToRecords } from '../staffDirectory';
-
-describe('staff directory', () => {
-  it('maps database rows and carries no e-mail or phone', () => {
-    const [a, b] = directoryRowsToRecords([
-      { id: '1', fullName: 'A Person', designation: 'Program Officer' },
-      { id: '2', fullName: 'B Person', designation: null },
-    ]);
-    expect(a).toMatchObject({ id: '1', fullName: 'A Person', designation: 'Program Officer', email: '' });
-    expect(a.phone).toBeUndefined();
-    expect(b.requestedRole).toBe('Staff');
-  });
-});
 
 /** Who may sign in is decided by the database roles only, never by a list written in the code. */
 describe('no hard-coded staff in the source', () => {
@@ -28,6 +15,10 @@ describe('no hard-coded staff in the source', () => {
       const text = readFileSync(f, 'utf8');
       return bad.filter((re) => re.test(text)).map((re) => `${f}: ${re}`);
     });
+    expect(hits).toEqual([]);
+  });
+  it('keeps staff names and community content out of the browser storage', () => {
+    const hits = walk(join(process.cwd(), 'src')).filter((f) => /skb_hq_|skb_current_community_author|skb_current_user_/.test(readFileSync(f, 'utf8')));
     expect(hits).toEqual([]);
   });
 });

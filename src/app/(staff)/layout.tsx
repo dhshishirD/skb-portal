@@ -68,10 +68,6 @@ export default function StaffLayout({
             initial: me.fullName.charAt(0).toUpperCase(),
             avatarUrl: getOfficialAvatar({ fullName: me.fullName, designation: me.designation ?? undefined }),
           });
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('skb_current_community_author', me.fullName);
-            if (me.email) localStorage.setItem('skb_current_user_email', me.email);
-          }
         }
       } catch (err) {
         console.warn('Could not load signed-in profile:', err);
@@ -210,10 +206,6 @@ export default function StaffLayout({
                     <div className="border-t border-slate-800 pt-1">
                       <button
                         onClick={async () => {
-                          if (typeof window !== 'undefined') {
-                            localStorage.removeItem('skb_current_community_author');
-                            localStorage.removeItem('skb_current_user_email');
-                          }
                           const supabase = createClient();
                           await supabase.auth.signOut();
                           window.location.href = '/login';

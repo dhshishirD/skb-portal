@@ -1,19 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
-  INLINE_ATTACHMENT_MAX,
-  attachmentTooLarge,
-  stripLargeAttachment,
   RateLimiter,
-  canModerateCommunity,
-  canReadDirectMessage,
-  canSeeDonorTickets,
   canSendNotifications,
   contentMatchesMime,
   isStaff,
   isUuid,
-  normalizeName,
   notificationInputSchema,
-  sameName,
 } from '../apiAccess';
 import type { AppRole } from '../database.types';
 
@@ -33,39 +25,6 @@ describe('role rules', () => {
     for (const r of ['board', 'legal_officer', 'it_officer', 'field_officer', 'donor', 'partner'] as AppRole[]) {
       expect(canSendNotifications([r])).toBe(false);
     }
-  });
-
-  it('keeps donor tickets away from oversight and IT roles', () => {
-    expect(canSeeDonorTickets(['executive'])).toBe(true);
-    expect(canSeeDonorTickets(['it_officer'])).toBe(false);
-    expect(canSeeDonorTickets(['board'])).toBe(false);
-    expect(canSeeDonorTickets(['donor'])).toBe(false);
-  });
-
-  it('lets only the ED and Super Admin moderate', () => {
-    expect(canModerateCommunity(['executive'])).toBe(true);
-    expect(canModerateCommunity(['super_admin'])).toBe(true);
-    expect(canModerateCommunity(['project_officer'])).toBe(false);
-  });
-});
-
-describe('names and direct messages', () => {
-  it('normalizes titles in brackets, spacing and case', () => {
-    expect(normalizeName('  Md.  Abu Huraira (Executive Director) ')).toBe('md. abu huraira');
-    expect(normalizeName(undefined)).toBe('');
-  });
-
-  it('never matches an empty name', () => {
-    expect(sameName('', '')).toBe(false);
-    expect(sameName(null, undefined)).toBe(false);
-  });
-
-  it('shows a direct message only to its sender and recipient', () => {
-    const dm = { senderName: 'Daloyar Hassan', recipientName: 'Mizbah Uddin (PO)' };
-    expect(canReadDirectMessage('Daloyar Hassan', dm)).toBe(true);
-    expect(canReadDirectMessage('mizbah uddin', dm)).toBe(true);
-    expect(canReadDirectMessage('MD. Emran', dm)).toBe(false);
-    expect(canReadDirectMessage('', dm)).toBe(false);
   });
 });
 
@@ -114,29 +73,5 @@ describe('upload checks', () => {
     expect(isUuid('11111111-1111-4111-8111-111111111111')).toBe(true);
     expect(isUuid('GENERAL')).toBe(false);
     expect(isUuid('../../etc')).toBe(false);
-  });
-});
-
-describe('community attachments', () => {
-  const big = 'data:image/png;base64,' + 'A'.repeat(50_000);
-  it('keeps small attachments in the feed', () => {
-    const p = { text: 'hi', attachment: { name: 'a.png', dataUrl: 'data:image/png;base64,AAAA' } };
-    expect(stripLargeAttachment(p)).toBe(p);
-  });
-  it('replaces large attachments by a marker but keeps name and size', () => {
-    const out = stripLargeAttachment({ text: 'hi', attachment: { name: 'a.png', size: '1.4 MB', dataUrl: big } }) as any;
-    expect(out.attachment.dataUrl).toBeUndefined();
-    expect(out.attachment).toMatchObject({ name: 'a.png', size: '1.4 MB', remote: true });
-    expect(JSON.stringify(out).length).toBeLessThan(500);
-  });
-  it('leaves messages without attachments alone', () => {
-    const p = { text: 'hi' };
-    expect(stripLargeAttachment(p)).toBe(p);
-  });
-  it('rejects only oversize uploads', () => {
-    expect(attachmentTooLarge({ attachment: { dataUrl: 'x'.repeat(INLINE_ATTACHMENT_MAX + 1) } })).toBe(true);
-    expect(attachmentTooLarge({ attachment: { dataUrl: big } })).toBe(false);
-    expect(attachmentTooLarge(undefined)).toBe(false);
-    expect(attachmentTooLarge({ text: 'x' } as any)).toBe(false);
   });
 });

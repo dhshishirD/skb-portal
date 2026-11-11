@@ -43,10 +43,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { CommunityRealtimeService } from '@/server/services/communityRealtimeService';
-import { 
-  UserApprovalService, 
-  UserProfileRecord 
-} from '@/server/services/userApprovalService';
+import { fetchStaffDirectory, type UserProfileRecord } from '@/lib/staffDirectory';
 import { getOfficialAvatar } from '@/lib/avatarPresets';
 
 export interface AttachmentFile {
@@ -109,92 +106,9 @@ export interface StaffContact {
   bio?: string;
 }
 
-const INITIAL_STAFF_CONTACTS: StaffContact[] = [
-  {
-    id: '10000000-0000-0000-0000-000000000003',
-    name: 'Dr. Orakatul Jannat',
-    role: 'Chairman',
-    status: 'online',
-    phone: '+880 1711-000002',
-    email: 'dr.orakatul@skb.org.bd',
-    dutyStation: 'Dhaka HQ',
-    employeeId: 'SKB-CHM-001',
-    department: 'Directorate General HQ',
-    bio: 'Chairman of the Board steering humanitarian vision, strategic donor relations, and high-level organizational leadership.',
-  },
-  {
-    id: '10000000-0000-0000-0000-000000000002',
-    name: 'Md. Abu Huraira',
-    role: 'Executive Director',
-    status: 'online',
-    phone: '+880 1711-000001',
-    email: 'kindnessforbeauty@gmail.com',
-    dutyStation: 'Dhaka HQ',
-    employeeId: 'SKB-DIR-001',
-    department: 'Directorate General HQ',
-    bio: 'Executive Director managing operational execution, project sign-offs, and humanitarian governance across Bangladesh.',
-  },
-  {
-    id: '0a88393f-1283-42d2-b4c2-31c502b1d538',
-    name: 'Daloyar Hassan',
-    role: 'Program Officer',
-    status: 'online',
-    phone: '+880 1711-000005',
-    email: 'daloyar.pro@gmail.com',
-    dutyStation: 'Dhaka HQ',
-    employeeId: 'SKB-PRG-001',
-    department: 'HR & Admin',
-    bio: 'Program Officer leading HR administration, operational personnel management, and project coordination.',
-  },
-  {
-    id: '10000000-0000-0000-0000-000000000004',
-    name: 'Emran Ahmed',
-    role: 'Program Officer',
-    status: 'online',
-    phone: '+880 1711-000003',
-    email: 'emran.ahmed@skb.org.bd',
-    dutyStation: 'Dhaka HQ',
-    employeeId: 'SKB-PRG-002',
-    department: 'Programs Directorate',
-    bio: 'Program Officer managing project planning, Form-3 charters, logframe deliverables, and donor milestone reporting.',
-  },
-  {
-    id: '10000000-0000-0000-0000-000000000005',
-    name: 'Mizbah Uddin',
-    role: 'Program Officer',
-    status: 'online',
-    phone: '+880 1711-000004',
-    email: 'mizbah.uddin@skb.org.bd',
-    dutyStation: 'Dhaka HQ',
-    employeeId: 'SKB-PRG-003',
-    department: 'Programs Directorate',
-    bio: 'Program Officer overseeing field implementation, distribution logistics, and partner operational alignment.',
-  },
-  {
-    id: '10000000-0000-0000-0000-000000000006',
-    name: 'Muktadir Rahaman',
-    role: 'IT Officer',
-    status: 'online',
-    phone: '+880 1711-000006',
-    email: 'muktadir.rahaman@skb.org.bd',
-    dutyStation: 'Dhaka HQ',
-    employeeId: 'SKB-IT-001',
-    department: 'IT & Systems Desk',
-    bio: 'Official IT Officer profile. Systems, Cloud Storage & Portal Security.',
-  },
-  {
-    id: '10000000-0000-0000-0000-000000000007',
-    name: 'Aminul Islam Bulbul',
-    role: 'Law Officer',
-    status: 'online',
-    phone: '+880 1711-000007',
-    email: 'aminul.bulbul@skb.org.bd',
-    dutyStation: 'Dhaka HQ',
-    employeeId: 'SKB-LAW-001',
-    department: 'Legal & Compliance Desk',
-    bio: 'Official Law Officer profile. Legal Vetting, NGOAB FD-6/FD-7 & Compliance.',
-  }
-];
+// No staff are written into the code. The list comes from the portal database (see /api/staff-directory).
+const INITIAL_STAFF_CONTACTS: StaffContact[] = [];
+const NO_CONTACT: StaffContact = { id: '', name: '', role: '', status: 'offline' };
 
 const INITIAL_DIRECT_MESSAGES: Record<string, DirectMessage[]> = {};
 
@@ -322,7 +236,7 @@ export default function StaffCommunityPage() {
 
   // Personal Direct Messages State
   const [staffContacts, setStaffContacts] = useState<StaffContact[]>(INITIAL_STAFF_CONTACTS);
-  const [selectedContact, setSelectedContact] = useState<StaffContact>(INITIAL_STAFF_CONTACTS[1] || INITIAL_STAFF_CONTACTS[0]);
+  const [selectedContact, setSelectedContact] = useState<StaffContact>(NO_CONTACT);
   const [directMessages, setDirectMessages] = useState<Record<string, DirectMessage[]>>(INITIAL_DIRECT_MESSAGES);
   const [dmInputText, setDmInputText] = useState('');
   const [dmAttachment, setDmAttachment] = useState<AttachmentFile | null>(null);
@@ -475,42 +389,19 @@ export default function StaffCommunityPage() {
 
     // 1. Load official organogram officers
     const loadCommunityData = async () => {
-      const users = await UserApprovalService.getAllUsers();
+      const users = await fetchStaffDirectory();
       setAllOfficers(users);
 
-      // Check authenticated Supabase user or active session
-      const storedAuthor = typeof window !== 'undefined' ? localStorage.getItem('skb_current_community_author') : null;
-      const storedEmail = typeof window !== 'undefined' ? localStorage.getItem('skb_current_user_email') : null;
-
+      // The signed-in person, matched by account id (no name guessing, no default user).
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-
-      let activeUser: UserProfileRecord | undefined;
-      if (user) {
-        const email = user.email || '';
-        const metaName = user.user_metadata?.full_name;
-        activeUser = users.find(
-          u => u.email.toLowerCase() === email.toLowerCase() || (metaName && u.fullName.toLowerCase() === metaName.toLowerCase())
-        );
-      }
-
-      if (!activeUser && (storedAuthor || storedEmail)) {
-        activeUser = users.find(
-          u => (storedAuthor && u.fullName.toLowerCase() === storedAuthor.toLowerCase()) ||
-               (storedEmail && u.email.toLowerCase() === storedEmail.toLowerCase())
-        );
-      }
-
-      if (!activeUser) {
-        activeUser = users[2] || users[0]; // Daloyar Hassan (Super Admin / HR)
-      }
+      const activeUser: UserProfileRecord | undefined = user ? users.find((u) => u.id === user.id) : undefined;
 
       if (activeUser) {
         setCurrentAuthor(activeUser.fullName);
         setCurrentRole(activeUser.designation || activeUser.requestedRole);
         if (typeof window !== 'undefined') {
           localStorage.setItem('skb_current_community_author', activeUser.fullName);
-          localStorage.setItem('skb_current_user_email', activeUser.email);
           localStorage.setItem('skb_current_user_role', activeUser.designation || activeUser.requestedRole);
         }
       }
@@ -522,19 +413,11 @@ export default function StaffCommunityPage() {
         role: u.designation || u.requestedRole,
         avatar: getOfficialAvatar(u),
         status: 'online',
-        phone: u.phone || '+880 1711-000000',
-        email: u.email,
-        dutyStation: u.dutyStation || 'Dhaka HQ',
-        employeeId: u.employeeId || 'SKB-001',
-        department: u.department,
-        bio: u.bio,
+        department: u.department || undefined,
       }));
       setStaffContacts(contacts);
-      if (contacts.length > 1) {
-        setSelectedContact(contacts[1]); // default to Executive Director
-      } else if (contacts.length > 0) {
-        setSelectedContact(contacts[0]);
-      }
+      const firstOther = contacts.find((c) => c.id !== user?.id) ?? contacts[0];
+      if (firstOther) setSelectedContact(firstOther);
 
       // 2. Load posts from Supabase or localStorage
       const dbPosts = await CommunityRealtimeService.fetchPosts();
@@ -2054,17 +1937,10 @@ SKB Operations Portal - https://skbportal.online
         const officerRole = isUserRecord 
           ? (inspectingOfficer.designation || inspectingOfficer.requestedRole) 
           : inspectingOfficer.role;
-        const officerEmail = inspectingOfficer.email || 'officer@skb.org.bd';
-        const officerPhone = inspectingOfficer.phone || '+880 1711-000000';
-        const officerDutyStation = inspectingOfficer.dutyStation || 'Dhaka HQ';
-        const officerEmployeeId = inspectingOfficer.employeeId || 'SKB-001';
-        const officerDepartment = inspectingOfficer.department || 'Directorate General HQ';
-        const officerBio = inspectingOfficer.bio || 'Official Small Kindness Bangladesh Officer.';
         const officerAvatar = isUserRecord 
           ? getOfficialAvatar(inspectingOfficer) 
           : getOfficialAvatar({ fullName: inspectingOfficer.name, requestedRole: inspectingOfficer.role, avatarUrl: inspectingOfficer.avatar });
         const isOnline = isOfficerOnline(officerName);
-        const cleanPhone = officerPhone.replace(/[^0-9]/g, '');
 
         return (
           <div className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -2107,9 +1983,6 @@ SKB Operations Portal - https://skbportal.online
                       }`}>
                         {isOnline ? '● Online & Active' : '● Available'}
                       </span>
-                      <span className="text-[10px] bg-white/10 text-white font-mono px-2 py-0.5 rounded-full">
-                        {officerEmployeeId}
-                      </span>
                     </div>
                   </div>
                 </div>
@@ -2117,43 +1990,12 @@ SKB Operations Portal - https://skbportal.online
 
               {/* Profile Details Body */}
               <div className="p-6 space-y-4 text-xs">
-                {/* Meta details grid */}
-                <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                      <Building2 className="w-3 h-3 text-slate-500" /> Department
-                    </span>
-                    <p className="font-bold text-slate-800 truncate">{officerDepartment}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-slate-500" /> Duty Station
-                    </span>
-                    <p className="font-bold text-slate-800 truncate">{officerDutyStation}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                      <Mail className="w-3 h-3 text-slate-500" /> Official Email
-                    </span>
-                    <p className="font-semibold text-slate-800 truncate select-all">{officerEmail}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                      <Phone className="w-3 h-3 text-slate-500" /> Phone / WhatsApp
-                    </span>
-                    <p className="font-semibold text-slate-800 truncate select-all">{officerPhone}</p>
-                  </div>
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-1">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                    <Building2 className="w-3 h-3 text-slate-500" /> Designation
+                  </span>
+                  <p className="font-bold text-slate-800 truncate">{officerRole || '—'}</p>
                 </div>
-
-                {/* Bio statement */}
-                {officerBio && (
-                  <div className="bg-blue-50/50 p-3.5 rounded-2xl border border-blue-100 space-y-1">
-                    <span className="text-[10px] text-blue-700 font-bold uppercase tracking-wider flex items-center gap-1">
-                      <Award className="w-3 h-3" /> Responsibility & Bio
-                    </span>
-                    <p className="text-slate-700 leading-relaxed italic">{officerBio}</p>
-                  </div>
-                )}
 
                 {/* Direct Realtime Contact Action Buttons */}
                 <div className="space-y-2 pt-1">
@@ -2161,7 +2003,7 @@ SKB Operations Portal - https://skbportal.online
                     Instant Communication Channels
                   </span>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2">
                     {/* Portal 1-on-1 Chat */}
                     <button
                       type="button"
@@ -2172,34 +2014,6 @@ SKB Operations Portal - https://skbportal.online
                       <span>Start Portal Chat</span>
                     </button>
 
-                    {/* WhatsApp Direct */}
-                    <a
-                      href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Assalamu Alaikum ${officerName}, contacting from SKB Operations Portal.`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition"
-                    >
-                      <Phone className="w-4 h-4" />
-                      <span>WhatsApp Chat</span>
-                    </a>
-
-                    {/* Direct Call */}
-                    <a
-                      href={`tel:${officerPhone}`}
-                      className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl flex items-center justify-center gap-1.5 border border-slate-200 transition"
-                    >
-                      <PhoneCall className="w-4 h-4 text-blue-600" />
-                      <span>Direct Phone Call</span>
-                    </a>
-
-                    {/* Email Mailto */}
-                    <a
-                      href={`mailto:${officerEmail}?subject=SKB Operations Communication`}
-                      className="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl flex items-center justify-center gap-1.5 border border-slate-200 transition"
-                    >
-                      <Mail className="w-4 h-4 text-indigo-600" />
-                      <span>Send Official Email</span>
-                    </a>
                   </div>
                 </div>
 

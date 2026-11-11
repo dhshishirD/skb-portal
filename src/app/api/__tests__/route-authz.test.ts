@@ -49,7 +49,6 @@ vi.mock('@/server/services/notificationService', () => ({
   sendWhatsAppNotification: async (p: unknown) => (state.sent.push(p), { success: true }),
 }));
 
-import { GET as syncGet, POST as syncPost } from '../community/sync/route';
 import { POST as notifyPost } from '../notifications/send/route';
 
 const post = (body: unknown) => new Request('http://x/api', { method: 'POST', body: JSON.stringify(body) });
@@ -60,71 +59,6 @@ beforeEach(() => {
   state.inserts = [];
   state.updates = [];
   state.sent = [];
-});
-
-describe('community sync', () => {
-  it('refuses signed-out, deactivated, donor and partner callers', async () => {
-    state.me = null;
-    expect((await syncGet()).status).toBe(401);
-    for (const me of [
-      { roles: ['project_officer'] as AppRole[], fullName: 'X', active: false },
-      { roles: ['donor'] as AppRole[], fullName: 'X', active: true },
-      { roles: ['partner'] as AppRole[], fullName: 'X', active: true },
-    ]) {
-      state.me = me;
-      expect((await syncGet()).status).toBe(403);
-      expect((await syncPost(post({ type: 'LIKE', payload: { postId: 'p', likesCount: 1 } }))).status).toBe(403);
-    }
-  });
-
-  it('returns only my own direct messages', async () => {
-    const dm = (id: string, s: string, r: string) => ({
-      id: `r${id}`,
-      kind: 'community_dm',
-      created_at: '2026-11-04T00:00:00Z',
-      payload: { id, senderName: s, recipientName: r, text: 't' },
-    });
-    state.rows = [dm('1', 'Mizbah Uddin', 'Daloyar Hassan'), dm('2', 'MD. Emran', 'Mizbah Uddin'), dm('3', 'Daloyar Hassan', 'MD. Emran')];
-    const body = await (await syncGet()).json();
-    expect(body.directMessages.map((d: any) => d.id).sort()).toEqual(['1', '2']);
-  });
-
-  it('hides donor tickets from roles that do not handle donors', async () => {
-    state.rows = [{ id: 'r1', kind: 'donor_ticket', created_at: '2026-11-04T00:00:00Z', payload: { id: 't1' } }];
-    state.me = { roles: ['it_officer'], fullName: 'Khondokar', active: true };
-    expect((await (await syncGet()).json()).donorTickets).toHaveLength(0);
-    state.me = { roles: ['executive'], fullName: 'Md. Abu Huraira', active: true };
-    expect((await (await syncGet()).json()).donorTickets).toHaveLength(1);
-  });
-
-  it('stamps the real sender on a DM, ignoring the name in the request', async () => {
-    const res = await syncPost(post({ type: 'DM', payload: { dm: { id: 'd1', senderName: 'Md. Abu Huraira', recipientName: 'Daloyar Hassan', text: 'hi' } } }));
-    expect(res.status).toBe(200);
-    expect(state.inserts[0].payload.senderName).toBe('Mizbah Uddin');
-  });
-
-  it('stamps the real author on comments and new posts', async () => {
-    await syncPost(post({ type: 'COMMENT', payload: { postId: 'p1', comment: { id: 'c1', authorName: 'Someone Else', text: 'x' } } }));
-    expect(state.inserts[0].payload.comment.authorName).toBe('Mizbah Uddin');
-    await syncPost(post({ type: 'POST', payload: { id: 'p9', title: 'T', authorName: 'Dr. Orakatul Jannat' } }));
-    expect(state.inserts[1].payload.authorName).toBe('Mizbah Uddin');
-  });
-
-  it("does not let an officer overwrite someone else's post, but lets the ED", async () => {
-    state.rows = [{ id: 'r1', kind: 'community_post', payload: { id: 'p1', authorName: 'Daloyar Hassan', title: 'Old' } }];
-    const attempt = () => syncPost(post({ type: 'POST', payload: { id: 'p1', title: 'Hacked' } }));
-    expect((await attempt()).status).toBe(403);
-    expect(state.updates).toHaveLength(0);
-
-    state.me = { roles: ['executive'], fullName: 'Md. Abu Huraira', active: true };
-    expect((await attempt()).status).toBe(200);
-    expect(state.updates[0].payload.authorName).toBe('Daloyar Hassan'); // original author kept
-  });
-
-  it('only executive-level roles may create donor tickets', async () => {
-    state.me = { roles: ['it_officer'], fullName: 'K', active: true };
-    expect((await syncPost(post({ type: 'DONOR_TICKET', payload: { ticket: { id: 't' } } }))).status).toBe(403);
-  });
 });
 
 describe('notifications/send', () => {

@@ -75,21 +75,13 @@ export default function LoginPage() {
     setErrorMsg('');
     try {
       const supabase = createClient();
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (error) {
         throw error;
-      }
-
-      const user = data.user;
-      const resolvedName = user?.user_metadata?.full_name || email.split('@')[0];
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('skb_current_community_author', resolvedName);
-        localStorage.setItem('skb_current_user_email', email);
-        localStorage.setItem(`skb_presence_${resolvedName.trim().toLowerCase()}`, Date.now().toString());
       }
 
       setSuccessMsg('Authentication successful! Navigating to your workspace...');

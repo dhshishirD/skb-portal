@@ -19,59 +19,6 @@ export const isStaff = (roles: readonly AppRole[]) => has(roles, STAFF_ROLES);
 export const NOTIFY_ROLES: AppRole[] = ['super_admin', 'executive', 'programme_manager', 'project_officer'];
 export const canSendNotifications = (roles: readonly AppRole[]) => has(roles, NOTIFY_ROLES);
 
-/** Roles that may see donor tickets in the community sync feed. */
-export const DONOR_TICKET_ROLES: AppRole[] = ['super_admin', 'executive', 'programme_manager', 'project_officer'];
-export const canSeeDonorTickets = (roles: readonly AppRole[]) => has(roles, DONOR_TICKET_ROLES);
-
-/** Roles that may remove or overwrite another person's community post. */
-export const canModerateCommunity = (roles: readonly AppRole[]) => has(roles, ['super_admin', 'executive']);
-
-// ----- names (community messages are still keyed by display name; see PR notes) -----
-
-/** "Md. Abu Huraira (Executive Director)" -> "md. abu huraira" */
-export function normalizeName(name: unknown): string {
-  return String(name ?? '')
-    .split('(')[0]
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase();
-}
-
-export const sameName = (a: unknown, b: unknown) => {
-  const x = normalizeName(a);
-  return x !== '' && x === normalizeName(b);
-};
-
-/** A direct message is private to the sender and the recipient. */
-export function canReadDirectMessage(myName: string, dm: { senderName?: unknown; recipientName?: unknown }): boolean {
-  return sameName(myName, dm.senderName) || sameName(myName, dm.recipientName);
-}
-
-// ----- community attachments -----
-
-/** Files are stored inline in the message as a data URL. Above this size they are not sent with the feed. */
-export const INLINE_ATTACHMENT_FEED_LIMIT = 20_000;
-/** The largest inline file the feed will accept (characters of the data URL, about 1.5 MB of file). */
-export const INLINE_ATTACHMENT_MAX = 2_000_000;
-
-/**
- * Returns the payload with a large inline attachment replaced by a marker (name and size are kept),
- * so the feed that every user polls stays small. The file is fetched on demand when it is opened.
- */
-export function stripLargeAttachment<T extends object>(payload: T): T {
-  const att = (payload as { attachment?: unknown } | null)?.attachment as { dataUrl?: unknown } | undefined | null;
-  if (!att || typeof att !== 'object' || typeof att.dataUrl !== 'string') return payload;
-  if (att.dataUrl.length <= INLINE_ATTACHMENT_FEED_LIMIT) return payload;
-  const { dataUrl: _omitted, ...rest } = att as Record<string, unknown>;
-  return { ...payload, attachment: { ...rest, remote: true } };
-}
-
-/** True when the inline attachment is bigger than the feed accepts. */
-export function attachmentTooLarge(payload: { attachment?: unknown } | null | undefined): boolean {
-  const att = payload?.attachment as { dataUrl?: unknown } | undefined | null;
-  return typeof att?.dataUrl === 'string' && att.dataUrl.length > INLINE_ATTACHMENT_MAX;
-}
-
 // ----- notification input -----
 
 export const notificationInputSchema = z.object({

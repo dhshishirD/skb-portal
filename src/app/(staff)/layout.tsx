@@ -84,7 +84,7 @@ export default function StaffLayout({
     { href: '/projects', label: navT('projects'), icon: FolderKanban },
     { href: '/finance/approvals', label: 'Finance & Approvals', icon: Receipt },
     { href: '/community', label: 'HQ Staff Community', icon: MessageSquare },
-    { href: '/me/dashboard', label: 'M&E Analytics', icon: BarChart2 },
+    { href: '/me/dashboard', label: 'M&E Overview', icon: BarChart2 },
     { href: '/me/report-generator', label: 'Donor Report Generator', icon: Sparkles },
     { href: '/admin/users', label: 'Admin & Governance', icon: ShieldCheck },
     { href: '/admin/audit-log', label: 'Audit Log', icon: ShieldCheck },

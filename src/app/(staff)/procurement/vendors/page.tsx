@@ -1,108 +1,145 @@
 'use client';
 
-import { useState } from 'react';
-import { Store, ShieldAlert, CheckCircle2, UserX } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Store } from 'lucide-react';
+import { CommentBox, Empty, Notice, Pill, dangerButton, inputClass, labelClass, primaryButton, quietButton } from '@/components/finance/shared';
+import { listVendorsAction, saveVendorAction, setBlacklistAction } from '@/server/actions/procurement';
+import { EMPTY_VENDOR_FORM, type VendorFormValues, type VendorRow } from '@/lib/procurement';
 
-interface VendorItem {
-  id: string;
-  name: string;
-  contactPerson: string;
-  phone: string;
-  isBlacklisted: boolean;
-  blacklistReason?: string;
-}
-
-const MOCK_VENDORS: VendorItem[] = [];
-
+/* Vendor registry. Procurement and the Executive Director manage it; only the Executive Director lifts a blacklist. */
 export default function VendorsPage() {
-  const [vendors, setVendors] = useState<VendorItem[]>(MOCK_VENDORS);
+  const [vendors, setVendors] = useState<VendorRow[] | null>(null);
+  const [form, setForm] = useState<VendorFormValues>(EMPTY_VENDOR_FORM);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [asking, setAsking] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
-  const toggleBlacklist = (id: string) => {
-    setVendors((prev) =>
-      prev.map((v) =>
-        v.id === id ? { ...v, isBlacklisted: !v.isBlacklisted, blacklistReason: !v.isBlacklisted ? 'Administrative flag' : undefined } : v
-      )
-    );
-  };
+  const load = useCallback(async () => {
+    try {
+      const r = await listVendorsAction();
+      if (r.ok) setVendors(r.data);
+      else setMsg({ kind: 'error', text: r.error });
+    } catch {
+      setMsg({ kind: 'error', text: 'Could not reach the server. Reload the page (Ctrl+F5) and try again.' });
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const canManage = vendors?.[0]?.canManage ?? false;
+  const set = (k: keyof VendorFormValues, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setMsg(null);
+    const r = await saveVendorAction(form, editing ?? undefined);
+    setBusy(false);
+    if (r.ok) {
+      setMsg({ kind: 'ok', text: r.message ?? 'Saved.' });
+      setForm(EMPTY_VENDOR_FORM);
+      setEditing(null);
+      load();
+    } else setMsg({ kind: 'error', text: r.error });
+  }
+
+  async function blacklist(id: string, on: boolean, reason?: string) {
+    setBusy(true);
+    setMsg(null);
+    const r = await setBlacklistAction(id, on, reason);
+    setBusy(false);
+    setAsking(null);
+    setMsg(r.ok ? { kind: 'ok', text: r.message ?? 'Done.' } : { kind: 'error', text: r.error });
+    load();
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
-            <Link href="/dashboard" className="hover:underline">Procurement</Link> &rsaquo;
-            <span className="font-semibold text-slate-800">Vendors</span>
-          </div>
-          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <Store className="w-5 h-5 text-blue-600" />
-            Vendor Registry & Blacklist Management
-          </h1>
-          <p className="text-xs text-slate-500">
-            Maintain approved vendor directory and enforce system-wide blacklist flags.
-          </p>
+      <div>
+        <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
+          <Link href="/dashboard" className="hover:underline">Procurement</Link> &rsaquo;
+          <span className="font-semibold text-slate-800">Vendors</span>
         </div>
+        <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+          <Store className="w-5 h-5 text-blue-600" />
+          Vendors and Blacklist
+        </h1>
+        <p className="text-xs text-slate-500">A blacklisted vendor cannot give quotations or receive orders. A reason is required; only the Executive Director can lift it.</p>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-600">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold">
-              <tr>
-                <th className="px-4 py-3">Vendor Name</th>
-                <th className="px-4 py-3">Contact Person</th>
-                <th className="px-4 py-3">Phone</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {vendors.length > 0 ? (
-                vendors.map((v) => (
-                  <tr key={v.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-4 py-3 font-bold text-slate-900">{v.name}</td>
-                    <td className="px-4 py-3 text-slate-700">{v.contactPerson}</td>
-                    <td className="px-4 py-3 font-mono text-slate-500">{v.phone}</td>
-                    <td className="px-4 py-3">
-                      {v.isBlacklisted ? (
-                        <span className="inline-flex items-center gap-1 text-red-700 bg-red-50 px-2 py-0.5 rounded-full text-[10px] font-bold border border-red-200">
-                          <ShieldAlert className="w-3 h-3 text-red-600" /> Blacklisted ({v.blacklistReason})
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[10px] font-medium border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Approved Vendor
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => toggleBlacklist(v.id)}
-                        className={`px-3 py-1 text-[11px] rounded-lg font-medium transition-colors ${
-                          v.isBlacklisted
-                            ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
-                            : 'bg-red-50 hover:bg-red-100 text-red-700'
-                        }`}
-                      >
-                        {v.isBlacklisted ? 'Remove Blacklist' : 'Blacklist Vendor'}
-                      </button>
-                    </td>
-                  </tr>
-                ))
+      {msg && <Notice kind={msg.kind}>{msg.text}</Notice>}
+
+      {canManage && (
+        <form onSubmit={save} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+          <h2 className="text-sm font-bold text-slate-900">{editing ? 'Edit vendor' : 'Add vendor'}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass} htmlFor="v-name">Vendor name</label>
+              <input id="v-name" className={inputClass} maxLength={200} value={form.name} onChange={(e) => set('name', e.target.value)} required />
+            </div>
+            <div>
+              <label className={labelClass} htmlFor="v-contact">Contact person</label>
+              <input id="v-contact" className={inputClass} maxLength={120} value={form.contactPerson} onChange={(e) => set('contactPerson', e.target.value)} />
+            </div>
+            <div>
+              <label className={labelClass} htmlFor="v-phone">Phone</label>
+              <input id="v-phone" className={inputClass} maxLength={30} value={form.phone} onChange={(e) => set('phone', e.target.value)} />
+            </div>
+            <div>
+              <label className={labelClass} htmlFor="v-email">Email</label>
+              <input id="v-email" className={inputClass} maxLength={254} value={form.email} onChange={(e) => set('email', e.target.value)} />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button type="submit" className={primaryButton} disabled={busy}>{editing ? 'Save changes' : 'Add vendor'}</button>
+            {editing && (
+              <button type="button" className={quietButton} onClick={() => { setEditing(null); setForm(EMPTY_VENDOR_FORM); }}>Cancel</button>
+            )}
+          </div>
+        </form>
+      )}
+
+      {vendors === null ? (
+        <p className="text-xs text-slate-500">Loading…</p>
+      ) : vendors.length === 0 ? (
+        <Empty title="No vendors yet">{canManage ? 'Add the first vendor above.' : 'Procurement adds vendors here.'}</Empty>
+      ) : (
+        <div className="space-y-3">
+          {vendors.map((v) => (
+            <div key={v.id} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-bold text-slate-900">{v.name}</p>
+                  <p className="text-xs text-slate-500">{[v.contactPerson, v.phone, v.email].filter(Boolean).join(' · ') || 'No contact details'}</p>
+                </div>
+                {v.isBlacklisted ? <Pill tone="red">Blacklisted</Pill> : <Pill tone="green">Active</Pill>}
+              </div>
+              {v.isBlacklisted && v.blacklistReason && <p className="text-xs text-red-700">Reason: {v.blacklistReason}</p>}
+              {asking === v.id ? (
+                <CommentBox label="Why is this vendor blacklisted?" minLength={5} busy={busy} confirmLabel="Blacklist vendor" onCancel={() => setAsking(null)} onSubmit={(r) => blacklist(v.id, true, r)} />
               ) : (
-                <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center text-slate-500">
-                    <Store className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                    <p className="font-bold text-slate-700">No Vendors Registered</p>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      New vendor profiles will register here upon procurement onboarding.
-                    </p>
-                  </td>
-                </tr>
+                v.canManage && (
+                  <div className="flex justify-end gap-2">
+                    <button className={quietButton} disabled={busy} onClick={() => { setEditing(v.id); setForm({ name: v.name, contactPerson: v.contactPerson ?? '', phone: v.phone ?? '', email: v.email ?? '' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                      Edit
+                    </button>
+                    {!v.isBlacklisted && (
+                      <button className={dangerButton} disabled={busy} onClick={() => setAsking(v.id)}>Blacklist</button>
+                    )}
+                    {v.isBlacklisted && v.canLift && (
+                      <button className={quietButton} disabled={busy} onClick={() => blacklist(v.id, false)}>Remove from blacklist</button>
+                    )}
+                  </div>
+                )
               )}
-            </tbody>
-          </table>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -1,121 +1,147 @@
 'use client';
 
-import { useState } from 'react';
-import { Receipt, Camera, Sparkles, CheckCircle2, DollarSign } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Receipt } from 'lucide-react';
+import { ExpenseCard } from '@/components/finance/ExpenseCard';
+import { Empty, Notice, inputClass, labelClass, primaryButton } from '@/components/finance/shared';
+import { actOnExpenseAction, fileExpenseAction, listExpensesAction } from '@/server/actions/expenses';
+import { listProjectsAction } from '@/server/actions/projects';
+import { EMPTY_EXPENSE_FORM, EXPENSE_CURRENCIES, type ExpenseAction, type ExpenseClaimFormValues, type ExpenseRow } from '@/lib/finance';
+import type { ProjectRow } from '@/lib/projects';
 
+/*
+ * Expense claims. Everything comes from the database; the approval rules are enforced there.
+ * Receipt photo upload is not built yet: a voucher/receipt number can be written instead.
+ */
 export default function ExpenseClaimsPage() {
-  const [amount, setAmount] = useState('12500');
-  const [vendor, setVendor] = useState('Teknaf Nursery Supplies');
-  const [expenseDate, setExpenseDate] = useState('2026-09-22');
-  const [ocrActive, setOcrActive] = useState(false);
-  const [ocrMsg, setOcrMsg] = useState('');
+  const [claims, setClaims] = useState<ExpenseRow[] | null>(null);
+  const [projects, setProjects] = useState<ProjectRow[]>([]);
+  const [form, setForm] = useState<ExpenseClaimFormValues>(EMPTY_EXPENSE_FORM);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
-  const triggerOcrScan = () => {
-    setOcrActive(true);
-    setTimeout(() => {
-      setAmount('12500.00');
-      setVendor('Teknaf Nursery Supplies Ltd.');
-      setExpenseDate('2026-09-22');
-      setOcrMsg('OCR Suggestion applied from receipt photo! Please confirm or edit.');
-      setOcrActive(false);
-    }, 800);
-  };
+  const load = useCallback(async () => {
+    try {
+      const [c, p] = await Promise.all([listExpensesAction(), listProjectsAction()]);
+      if (c.ok) setClaims(c.data);
+      else setMsg({ kind: 'error', text: c.error });
+      if (p.ok) setProjects(p.data.projects.filter((x) => x.stage !== 'closed'));
+    } catch {
+      setMsg({ kind: 'error', text: 'Could not reach the server. Reload the page (Ctrl+F5) and try again.' });
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const set = (k: keyof ExpenseClaimFormValues, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setMsg(null);
+    const r = await fileExpenseAction(form);
+    setBusy(false);
+    if (r.ok) {
+      setMsg({ kind: 'ok', text: r.message ?? 'Claim filed.' });
+      setForm({ ...EMPTY_EXPENSE_FORM, projectId: form.projectId });
+      load();
+    } else {
+      setMsg({ kind: 'error', text: r.error });
+    }
+  }
+
+  async function act(id: string, action: ExpenseAction, comment?: string) {
+    setBusy(true);
+    setMsg(null);
+    const r = await actOnExpenseAction(id, action, comment);
+    setBusy(false);
+    setMsg(r.ok ? { kind: 'ok', text: r.message ?? 'Done.' } : { kind: 'error', text: r.error });
+    load();
+  }
+
+  const mine = claims;
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
-            <Link href="/dashboard" className="hover:underline">Finance</Link> &rsaquo;
-            <span className="font-semibold text-slate-800">Expense Claims</span>
-          </div>
-          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <Receipt className="w-5 h-5 text-blue-600" />
-            Expense Claim & Receipt OCR Scanner
-          </h1>
-          <p className="text-xs text-slate-500">
-            Submit expense claims with automated receipt OCR suggestions.
-          </p>
+      <div>
+        <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
+          <Link href="/dashboard" className="hover:underline">Finance</Link> &rsaquo;
+          <span className="font-semibold text-slate-800">Expense Claims</span>
         </div>
+        <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+          <Receipt className="w-5 h-5 text-blue-600" />
+          Expense Claims
+        </h1>
+        <p className="text-xs text-slate-500">File a claim. It goes to the Programme Manager, then Finance, then the Executive Director, then Finance marks it paid.</p>
       </div>
 
-      {ocrMsg && (
-        <div className="bg-blue-50 border border-blue-200 text-blue-800 p-3 rounded-xl text-xs flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-blue-600" /> {ocrMsg}
-        </div>
-      )}
+      {msg && <Notice kind={msg.kind}>{msg.text}</Notice>}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Receipt Upload & OCR Card */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <Camera className="w-4 h-4 text-slate-600" /> 1. Upload Receipt Photo
-          </h2>
-
-          <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center space-y-2 hover:border-blue-400 transition-colors">
-            <Receipt className="w-10 h-10 text-slate-400 mx-auto" />
-            <p className="text-xs text-slate-600">Drag & drop receipt photo or click to upload</p>
-            <p className="text-[10px] text-slate-400">Supports JPG, PNG (Max 10 MB)</p>
+      <form onSubmit={submit} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+        <h2 className="text-sm font-bold text-slate-900">New claim</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="md:col-span-2">
+            <label className={labelClass} htmlFor="ec-project">Project</label>
+            <select id="ec-project" className={inputClass} value={form.projectId} onChange={(e) => set('projectId', e.target.value)} required>
+              <option value="">Choose a project</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.code} · {p.title}</option>
+              ))}
+            </select>
           </div>
-
-          <button
-            onClick={triggerOcrScan}
-            disabled={ocrActive}
-            className="w-full py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl flex items-center justify-center gap-2 border border-indigo-200 transition-colors"
-          >
-            <Sparkles className="w-4 h-4 text-indigo-600" />
-            {ocrActive ? 'Scanning Receipt with OCR...' : 'Run Receipt OCR Scanner'}
-          </button>
+          <div>
+            <label className={labelClass} htmlFor="ec-amount">Amount</label>
+            <input id="ec-amount" className={inputClass} inputMode="decimal" value={form.amount} onChange={(e) => set('amount', e.target.value)} required />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="ec-currency">Currency</label>
+            <select id="ec-currency" className={inputClass} value={form.currency} onChange={(e) => set('currency', e.target.value)}>
+              {EXPENSE_CURRENCIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          {form.currency !== 'BDT' && (
+            <div>
+              <label className={labelClass} htmlFor="ec-fx">Exchange rate (1 {form.currency} = ? BDT)</label>
+              <input id="ec-fx" className={inputClass} inputMode="decimal" value={form.fxRate} onChange={(e) => set('fxRate', e.target.value)} required />
+            </div>
+          )}
+          <div>
+            <label className={labelClass} htmlFor="ec-date">Expense date</label>
+            <input id="ec-date" type="date" className={inputClass} value={form.expenseDate} onChange={(e) => set('expenseDate', e.target.value)} required />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="ec-vendor">Paid to (optional)</label>
+            <input id="ec-vendor" className={inputClass} maxLength={200} value={form.vendorName} onChange={(e) => set('vendorName', e.target.value)} />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="ec-ref">Receipt or voucher number (optional)</label>
+            <input id="ec-ref" className={inputClass} maxLength={100} value={form.receiptRef} onChange={(e) => set('receiptRef', e.target.value)} />
+          </div>
+          <div className="md:col-span-2">
+            <label className={labelClass} htmlFor="ec-desc">What was it for?</label>
+            <textarea id="ec-desc" className={inputClass} rows={2} maxLength={1000} value={form.description} onChange={(e) => set('description', e.target.value)} required />
+          </div>
         </div>
+        <button type="submit" className={primaryButton} disabled={busy}>
+          {busy ? 'Saving…' : 'File claim'}
+        </button>
+      </form>
 
-        {/* Claim Form */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-          <h2 className="text-sm font-bold text-slate-900">2. Confirm Claim Details</h2>
-
-          <form onSubmit={(e) => { e.preventDefault(); alert('Expense claim submitted for PM approval!'); }} className="space-y-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Amount (BDT)</label>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Vendor Name</label>
-              <input
-                type="text"
-                value={vendor}
-                onChange={(e) => setVendor(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Expense Date</label>
-              <input
-                type="date"
-                value={expenseDate}
-                onChange={(e) => setExpenseDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors"
-            >
-              Submit Claim for Approval
-            </button>
-          </form>
-        </div>
-      </div>
+      <section className="space-y-3">
+        <h2 className="text-sm font-bold text-slate-900">Claims you can see</h2>
+        {mine === null ? (
+          <p className="text-xs text-slate-500">Loading…</p>
+        ) : mine.length === 0 ? (
+          <Empty title="No claims yet">Claims you file, and claims you may review, appear here.</Empty>
+        ) : (
+          mine.map((c) => <ExpenseCard key={c.id} claim={c} busy={busy} onAct={act} />)
+        )}
+      </section>
     </div>
   );
 }

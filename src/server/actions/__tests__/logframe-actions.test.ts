@@ -34,7 +34,7 @@ vi.mock('@/server/services/projectsData', () => ({
     isUuid: (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v),
 }));
 
-import { addNodeAction, addIndicatorValueAction, validateIndicatorValueAction, deleteNodeAction, getLogframeAction } from '../logframe';
+import { addNodeAction, addNodesFromLinesAction, addIndicatorValueAction, validateIndicatorValueAction, deleteNodeAction, getLogframeAction } from '../logframe';
 
 const PID = '11111111-1111-4111-8111-111111111111';
 const NID = '33333333-3333-4333-8333-333333333333';
@@ -48,6 +48,22 @@ beforeEach(() => {
   state.project = proj();
   state.results = {};
   state.calls = [];
+});
+
+describe('addNodesFromLinesAction', () => {
+  it('adds one item per line with automatic numbers', async () => {
+    state.results.logframe_nodes = { data: [{ code: 'G', parent_id: null }], error: null };
+    const r = await addNodesFromLinesAction(PID, null, 'goal', '- Better lives\n\n');
+    expect(r.ok).toBe(true);
+    const rows = state.calls.find((c) => c.method === 'insert')?.args[0] as Array<{ code: string; title: string }>;
+    expect(rows.map((x) => [x.code, x.title])).toEqual([['G2', 'Better lives']]);
+  });
+  it('refuses empty text and a closed project', async () => {
+    expect((await addNodesFromLinesAction(PID, null, 'goal', '  \n ')).ok).toBe(false);
+    state.project = proj('closed');
+    expect((await addNodesFromLinesAction(PID, null, 'goal', 'Something good')).ok).toBe(false);
+    expect(state.calls.some((c) => c.method === 'insert')).toBe(false);
+  });
 });
 
 describe('addNodeAction', () => {

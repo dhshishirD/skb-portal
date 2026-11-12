@@ -18,6 +18,13 @@ export const KIND_LABELS: Record<LogframeKind, string> = {
   output: 'Output',
   activity: 'Activity',
 };
+/** Matrix names: the donor logframe calls the outcome level "Purpose". */
+export const MATRIX_LABELS: Record<LogframeKind, string> = {
+  goal: 'Goal',
+  outcome: 'Purpose (Outcome)',
+  output: 'Outputs',
+  activity: 'Activities',
+};
 export const isKind = (v: unknown): v is LogframeKind => KINDS.includes(v as LogframeKind);
 /** The level a child must have under a parent of the given level; null for an activity. */
 export const childKind = (k: LogframeKind): LogframeKind | null => KINDS[KINDS.indexOf(k) + 1] ?? null;
@@ -59,6 +66,8 @@ export interface LogframeNode {
   code: string;
   title: string;
   description: string | null;
+  /** Things that must hold true for this level to work (the fourth logframe column). */
+  assumptions: string | null;
 }
 
 export interface LogframeData {
@@ -105,6 +114,47 @@ export function buildTree(nodes: LogframeNode[]): TreeNode[] {
 /** Everything under a node, including itself (used to warn before deleting). */
 export function descendantCount(tree: TreeNode): number {
   return 1 + tree.children.reduce((s, c) => s + descendantCount(c), 0);
+}
+
+// ===== Easy entry: automatic numbers and "one per line" =====
+/** The next free code under a parent: outcomes are 1, 2, 3; outputs 1.1, 1.2; activities 1.1.1 ... */
+export function nextCode(kind: LogframeKind, parentCode: string | null, siblingCount: number, taken: ReadonlySet<string>): string {
+  if (kind === 'goal') {
+    let c = 'G';
+    for (let i = 2; taken.has(c); i += 1) c = `G${i}`;
+    return c;
+  }
+  const base = kind === 'outcome' || !parentCode ? '' : `${parentCode}.`;
+  let n = siblingCount + 1;
+  while (taken.has(`${base}${n}`)) n += 1;
+  return `${base}${n}`;
+}
+
+/** Lines typed in one box become separate items; blank lines are skipped and a leading "1." or "-" is dropped. */
+export function splitLines(text: string, max = 20): string[] {
+  return text
+    .split(/\r?\n/)
+    .map((l) => l.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').trim())
+    .filter((l) => l.length > 0)
+    .slice(0, max);
+}
+
+// ===== Matrix (the donor-style table) =====
+export interface MatrixRow {
+  node: LogframeNode;
+  depth: number;
+  indicators: Indicator[];
+}
+
+/** Every item in reading order (goal, then each outcome with its outputs and activities). */
+export function matrixRows(nodes: LogframeNode[], indicators: Indicator[]): MatrixRow[] {
+  const out: MatrixRow[] = [];
+  const walk = (t: TreeNode, depth: number) => {
+    out.push({ node: t.node, depth, indicators: indicators.filter((i) => i.nodeId === t.node.id) });
+    t.children.forEach((c) => walk(c, depth + 1));
+  };
+  buildTree(nodes).forEach((t) => walk(t, 0));
+  return out;
 }
 
 // ===== Progress (validated values only) =====
@@ -176,9 +226,15 @@ const amount = (label: string) =>
 
 export const nodeSchema = z.object({
   kind: z.enum(['goal', 'outcome', 'output', 'activity'], { errorMap: () => ({ message: 'Choose a level' }) }),
-  code: z.string().trim().min(1, 'Code is required').max(20, 'Code must be 20 characters or fewer'),
+  /** Optional: when blank the portal numbers the item itself (1, 1.1, 1.1.1). */
+  code: z
+    .string()
+    .trim()
+    .max(20, 'Code must be 20 characters or fewer')
+    .transform((v) => (v === '' ? null : v)),
   title: z.string().trim().min(2, 'Title must be at least 2 characters').max(300, 'Title must be 300 characters or fewer'),
   description: optionalText(2000, 'Description'),
+  assumptions: optionalText(2000, 'Assumptions').optional().transform((v) => v ?? null),
 });
 export type NodeFormValues = z.input<typeof nodeSchema>;
 

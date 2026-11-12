@@ -11,7 +11,9 @@ import {
   indicatorSchema,
   isKind,
   KIND_LABELS,
+  nextCode,
   nodeSchema,
+  splitLines,
   valueSchema,
   type Indicator,
   type IndicatorFormValues,
@@ -46,6 +48,7 @@ interface NodeRow {
   code: string;
   title: string;
   description: string | null;
+  assumptions: string | null;
 }
 interface IndicatorRow {
   id: string;
@@ -79,7 +82,7 @@ export async function getLogframeAction(projectId: string): Promise<LogframeData
 
     const supabase = await createClient();
     const nodesRes = await (supabase.from('logframe_nodes') as any)
-      .select('id, parent_id, kind, code, title, description')
+      .select('id, parent_id, kind, code, title, description, assumptions')
       .eq('project_id', projectId);
     if (nodesRes.error) return fail('Could not load the logframe. Please refresh the page.');
     const nodeRows = (nodesRes.data ?? []) as NodeRow[];
@@ -115,7 +118,7 @@ export async function getLogframeAction(projectId: string): Promise<LogframeData
 
     const nodes: LogframeNode[] = nodeRows
       .filter((n) => isKind(n.kind))
-      .map((n) => ({ id: n.id, parentId: n.parent_id, kind: n.kind as LogframeKind, code: n.code, title: n.title, description: n.description }));
+      .map((n) => ({ id: n.id, parentId: n.parent_id, kind: n.kind as LogframeKind, code: n.code, title: n.title, description: n.description, assumptions: n.assumptions ?? null }));
     const indicators: Indicator[] = indicatorRows.map((i) => ({
       id: i.id,
       nodeId: i.node_id,
@@ -181,7 +184,36 @@ async function guard(projectId: string, need: 'structure' | 'indicators' | 'vali
 }
 const denied = (g: Guard): g is Failure => g.ok === false;
 
-/** Add a goal (parentId null) or a child one level below the parent. */
+/** Finds the parent, checks the level, and works out the next free code. */
+async function prepareNode(
+  supabase: any,
+  projectId: string,
+  parentId: string | null,
+  kind: LogframeKind,
+): Promise<{ ok: true; taken: Set<string>; parentCode: string | null; siblings: number } | Failure> {
+  let expected: LogframeKind = 'goal';
+  let parentCode: string | null = null;
+  if (parentId) {
+    const { data: parent, error } = await (supabase.from('logframe_nodes') as any)
+      .select('id, kind, code')
+      .eq('id', parentId)
+      .eq('project_id', projectId)
+      .maybeSingle();
+    if (error) return fail('Could not check the parent. Please try again.');
+    if (!parent || !isKind(parent.kind)) return fail('The parent was not found in this project.');
+    const next = childKind(parent.kind);
+    if (!next) return fail('An activity cannot have items under it.');
+    expected = next;
+    parentCode = parent.code as string;
+  }
+  if (kind !== expected) return fail(`Under this parent you can only add: ${KIND_LABELS[expected].toLowerCase()}.`);
+  const { data: all, error: allErr } = await (supabase.from('logframe_nodes') as any).select('code, parent_id').eq('project_id', projectId);
+  if (allErr) return fail('Could not check the existing items. Please try again.');
+  const rows = (Array.isArray(all) ? all : []) as Array<{ code: string; parent_id: string | null }>;
+  return { ok: true, taken: new Set(rows.map((r) => r.code)), parentCode, siblings: rows.filter((r) => r.parent_id === parentId).length };
+}
+
+/** Add a goal (parentId null) or a child one level below the parent. A blank code is numbered automatically. */
 export async function addNodeAction(projectId: string, parentId: string | null, values: NodeFormValues): Promise<LogframeActionResult> {
   try {
     const g = await guard(projectId, 'structure');
@@ -191,28 +223,18 @@ export async function addNodeAction(projectId: string, parentId: string | null, 
     if (!parsed.success) return fail(firstIssue(parsed.error));
 
     const supabase = await createClient();
-    let expected: LogframeKind = 'goal';
-    if (parentId) {
-      const { data: parent, error } = await (supabase.from('logframe_nodes') as any)
-        .select('id, kind')
-        .eq('id', parentId)
-        .eq('project_id', projectId)
-        .maybeSingle();
-      if (error) return fail('Could not check the parent. Please try again.');
-      if (!parent || !isKind(parent.kind)) return fail('The parent was not found in this project.');
-      const next = childKind(parent.kind);
-      if (!next) return fail('An activity cannot have items under it.');
-      expected = next;
-    }
-    if (parsed.data.kind !== expected) return fail(`Under this parent you can only add: ${KIND_LABELS[expected].toLowerCase()}.`);
+    const prep = await prepareNode(supabase, projectId, parentId, parsed.data.kind);
+    if (!prep.ok) return prep;
+    const code = parsed.data.code ?? nextCode(parsed.data.kind, prep.parentCode, prep.siblings, prep.taken);
 
     const { error } = await (supabase.from('logframe_nodes') as any).insert({
       project_id: projectId,
       parent_id: parentId,
       kind: parsed.data.kind,
-      code: parsed.data.code,
+      code,
       title: parsed.data.title,
       description: parsed.data.description,
+      assumptions: parsed.data.assumptions,
     });
     if (error) return fail(friendlyLogframeError(error));
     revalidatePath(path(projectId));
@@ -222,7 +244,40 @@ export async function addNodeAction(projectId: string, parentId: string | null, 
   }
 }
 
-export async function updateNodeAction(projectId: string, nodeId: string, values: NodeFormValues): Promise<LogframeActionResult> {
+/** Several items at once: one per line. Each gets the next number automatically. */
+export async function addNodesFromLinesAction(projectId: string, parentId: string | null, kind: LogframeKind, text: string): Promise<LogframeActionResult> {
+  try {
+    const g = await guard(projectId, 'structure');
+    if (denied(g)) return g;
+    if (parentId !== null && !isUuid(parentId)) return fail('Invalid request.');
+    if (!isKind(kind)) return fail('Invalid request.');
+    const titles = splitLines(text);
+    if (titles.length === 0) return fail('Write at least one line.');
+    for (const t of titles) {
+      const check = nodeSchema.safeParse({ kind, code: '', title: t, description: '' });
+      if (!check.success) return fail(`"${t.slice(0, 40)}": ${firstIssue(check.error)}`);
+    }
+    const supabase = await createClient();
+    const prep = await prepareNode(supabase, projectId, parentId, kind);
+    if (!prep.ok) return prep;
+    const taken = prep.taken;
+    let siblings = prep.siblings;
+    const rows = titles.map((title) => {
+      const code = nextCode(kind, prep.parentCode, siblings, taken);
+      taken.add(code);
+      siblings += 1;
+      return { project_id: projectId, parent_id: parentId, kind, code, title };
+    });
+    const { error } = await (supabase.from('logframe_nodes') as any).insert(rows);
+    if (error) return fail(friendlyLogframeError(error));
+    revalidatePath(path(projectId));
+    return { ok: true, message: `${rows.length} added.` };
+  } catch {
+    return fail('Something went wrong. Please try again.');
+  }
+}
+
+export async function updateNodeAction(projectId: string, nodeId: string, values: Omit<NodeFormValues, 'kind'>): Promise<LogframeActionResult> {
   try {
     if (!isUuid(nodeId)) return fail('Invalid request.');
     const g = await guard(projectId, 'structure');
@@ -231,8 +286,10 @@ export async function updateNodeAction(projectId: string, nodeId: string, values
     if (!parsed.success) return fail(firstIssue(parsed.error));
 
     const supabase = await createClient();
+    const changes: Record<string, unknown> = { title: parsed.data.title, description: parsed.data.description, assumptions: parsed.data.assumptions };
+    if (parsed.data.code) changes.code = parsed.data.code; // a blank code keeps the current one
     const { data, error } = await (supabase.from('logframe_nodes') as any)
-      .update({ code: parsed.data.code, title: parsed.data.title, description: parsed.data.description })
+      .update(changes)
       .eq('id', nodeId)
       .eq('project_id', projectId)
       .select('id');

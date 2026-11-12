@@ -223,8 +223,8 @@ export default function UsersAdminPage() {
       )}
 
       <div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-sm">
-        <table className="w-full text-xs">
-          <thead className="bg-slate-50 text-slate-600 text-left">
+        <table className="w-full text-xs block lg:table">
+          <thead className="bg-slate-50 text-slate-600 text-left hidden lg:table-header-group">
             <tr>
               <th className="px-4 py-3">Name &amp; designation</th>
               <th className="px-4 py-3">Reports to</th>
@@ -234,17 +234,17 @@ export default function UsersAdminPage() {
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 block lg:table-row-group">
             {loading && (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+              <tr className="block lg:table-row">
+                <td colSpan={6} className="block lg:table-cell px-4 py-6 text-center text-slate-500">
                   Loading staff…
                 </td>
               </tr>
             )}
             {!loading && staff.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+              <tr className="block lg:table-row">
+                <td colSpan={6} className="block lg:table-cell px-4 py-6 text-center text-slate-500">
                   No staff accounts yet.
                 </td>
               </tr>
@@ -252,14 +252,14 @@ export default function UsersAdminPage() {
             {staff.map((u) => {
               const st = statusOf(u);
               return (
-                <tr key={u.id} className={u.isActive ? '' : 'opacity-60'}>
-                  <td className="px-4 py-3">
+                <tr key={u.id} className={`block lg:table-row py-3 lg:py-0 ${u.isActive ? '' : 'opacity-60'}`}>
+                  <td className="block lg:table-cell px-4 py-1.5 lg:py-3">
                     <div className="font-semibold text-slate-900">{u.fullName}</div>
                     <div className="text-slate-500">{u.designation ?? 'n/a'}</div>
                     <div className="text-slate-400">{u.email}</div>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{u.reportsTo ? nameOf.get(u.reportsTo) ?? 'n/a' : 'n/a'}</td>
-                  <td className="px-4 py-3">
+                  <td data-label="Reports to" className="block lg:table-cell px-4 py-1.5 lg:py-3 text-slate-600 before:content-[attr(data-label)] before:block before:text-[10px] before:font-bold before:uppercase before:text-slate-400 before:mb-0.5 lg:before:hidden">{u.reportsTo ? nameOf.get(u.reportsTo) ?? 'n/a' : 'n/a'}</td>
+                  <td data-label="Roles" className="block lg:table-cell px-4 py-1.5 lg:py-3 before:content-[attr(data-label)] before:block before:text-[10px] before:font-bold before:uppercase before:text-slate-400 before:mb-0.5 lg:before:hidden">
                     <div className="flex flex-wrap gap-1">
                       {u.roles.length === 0 && <span className="text-red-600">none</span>}
                       {u.roles.map((r: AppRole) => (
@@ -269,13 +269,13 @@ export default function UsersAdminPage() {
                       ))}
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td data-label="Status" className="block lg:table-cell px-4 py-1.5 lg:py-3 before:content-[attr(data-label)] before:block before:text-[10px] before:font-bold before:uppercase before:text-slate-400 before:mb-0.5 lg:before:hidden">
                     <span className={`px-2 py-0.5 rounded-full border ${st.cls}`}>{st.label}</span>
                   </td>
-                  <td className="px-4 py-3 text-slate-500">
+                  <td data-label="Last sign-in" className="block lg:table-cell px-4 py-1.5 lg:py-3 text-slate-500 before:content-[attr(data-label)] before:block before:text-[10px] before:font-bold before:uppercase before:text-slate-400 before:mb-0.5 lg:before:hidden">
                     {u.lastSignInAt ? new Date(u.lastSignInAt).toLocaleDateString() : 'never'}
                   </td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap space-x-1">
+                  <td className="block lg:table-cell px-4 py-1.5 lg:py-3 lg:text-right lg:whitespace-nowrap space-x-1">
                     {u.isActive && (
                       <button
                         onClick={() => run(() => resendAccessEmailAction(u.id))}

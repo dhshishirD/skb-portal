@@ -158,8 +158,8 @@ export function FundReceiptsPanel({ projectId }: { projectId: string }) {
         {data.receipts.length === 0 ? (
           <p className="text-sm text-slate-500">No transfer recorded yet.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
+          <table className="w-full text-sm block lg:table">
+            <thead className="hidden lg:table-header-group">
               <tr className="text-left text-[11px] uppercase text-slate-500">
                 <th className="pb-1 pr-2">Date</th>
                 <th className="pb-1 pr-2 text-right">Amount</th>
@@ -168,16 +168,16 @@ export function FundReceiptsPanel({ projectId }: { projectId: string }) {
                 <th className="pb-1" />
               </tr>
             </thead>
-            <tbody>
+            <tbody className="block lg:table-row-group">
               {data.receipts.map((r) => (
-                <tr key={r.id} className="border-t border-slate-100 align-top">
-                  <td className="py-2 pr-2 whitespace-nowrap">{formatDate(r.receivedOn)}</td>
-                  <td className="py-2 pr-2 text-right whitespace-nowrap">{r.currency} {formatMoney(Math.round(r.amount * 100))}</td>
-                  <td className="py-2 pr-2">
+                <tr key={r.id} className="block lg:table-row border-t border-slate-100 align-top py-2 lg:py-0">
+                  <td data-label="Date" className="block lg:table-cell py-1 lg:py-2 pr-2 whitespace-nowrap before:content-[attr(data-label)] before:block before:text-[10px] before:font-bold before:uppercase before:text-slate-400 before:mb-0.5 lg:before:hidden">{formatDate(r.receivedOn)}</td>
+                  <td data-label="Amount" className="block lg:table-cell py-1 lg:py-2 pr-2 lg:text-right whitespace-nowrap before:content-[attr(data-label)] before:block before:text-[10px] before:font-bold before:uppercase before:text-slate-400 before:mb-0.5 lg:before:hidden">{r.currency} {formatMoney(Math.round(r.amount * 100))}</td>
+                  <td data-label="Bank reference" className="block lg:table-cell py-1 lg:py-2 pr-2 break-words before:content-[attr(data-label)] before:block before:text-[10px] before:font-bold before:uppercase before:text-slate-400 before:mb-0.5 lg:before:hidden">
                     {r.reference ?? '—'}
                     {r.note && <div className="text-xs text-slate-500">{r.note}</div>}
                   </td>
-                  <td className="py-2 pr-2">
+                  <td data-label="Acknowledgement letter" className="block lg:table-cell py-1 lg:py-2 pr-2 before:content-[attr(data-label)] before:block before:text-[10px] before:font-bold before:uppercase before:text-slate-400 before:mb-0.5 lg:before:hidden">
                     {data.canRecord ? (
                       <select
                         aria-label={`Letter status for ${formatDate(r.receivedOn)}`}
@@ -192,7 +192,7 @@ export function FundReceiptsPanel({ projectId }: { projectId: string }) {
                       ACK_LABELS[r.ackStatus]
                     )}
                   </td>
-                  <td className="py-2 text-right whitespace-nowrap">
+                  <td className="block lg:table-cell py-1 lg:py-2 lg:text-right whitespace-nowrap">
                     {data.canRecord && (
                       <>
                         <button aria-label="Make acknowledgement letter (PDF)" title="Make acknowledgement letter (PDF)" className="p-1.5 text-slate-500 hover:text-slate-900" disabled={busy} onClick={() => makeLetter(r.id)}>

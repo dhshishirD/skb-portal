@@ -92,6 +92,43 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
+  responsive:
+    name: Every page fits phone, tablet and desktop widths
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Build
+        run: pnpm build
+      - name: Start the app
+        run: |
+          nohup pnpm start > app.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:3000/login >/dev/null && break; sleep 1; done
+      - name: Open every page at 360, 390, 768 and 1280 px (made-up data, no real database)
+        run: pnpm check:responsive
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: responsive-screenshots
+          path: /tmp/responsive-out/
+          retention-days: 7
+
   database:
     name: Migrations + RLS tests (local Supabase)
     runs-on: ubuntu-latest

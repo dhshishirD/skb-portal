@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { OfficerAssignment } from '@/components/projects/OfficerAssignment';
+import { ProjectHealthPanel } from '@/components/projects/ProjectHealthPanel';
 import { ProjectAreasPanel } from '@/components/projects/ProjectAreasPanel';
 import { ProjectOverviewActions } from '@/components/projects/ProjectOverviewActions';
 import {
@@ -10,6 +11,7 @@ import {
   formatMoney,
 } from '@/lib/projects';
 import { canReadAreas } from '@/lib/projectAreas';
+import { getProjectHealthAction } from '@/server/actions/projectHealth';
 import { getActor, getProjectById } from '@/server/services/projectsData';
 
 const dash = (v: string | number | null | undefined) => (v === null || v === undefined || v === '' ? '—' : String(v));
@@ -18,6 +20,7 @@ export default async function ProjectOverviewPage({ params }: { params: Promise<
   const { id } = await params;
   const [project, actor] = await Promise.all([getProjectById(id), getActor()]);
   if (!project || !actor) notFound();
+  const health = await getProjectHealthAction(project.id);
 
   const rows: Array<[string, string]> = [
     ['Stage', STAGE_LABELS[project.stage]],
@@ -54,6 +57,8 @@ export default async function ProjectOverviewPage({ params }: { params: Promise<
           ))}
         </dl>
       </section>
+
+      {health.ok && <ProjectHealthPanel projectId={project.id} health={health.data} />}
 
       {canReadAreas(actor.roles) && <ProjectAreasPanel projectId={project.id} />}
 

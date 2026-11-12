@@ -9,7 +9,10 @@ import type { AppRole } from './database.types';
 const VIEWERS: AppRole[] = ['super_admin', 'executive', 'auditor', 'board', 'legal_officer', 'it_officer'];
 export const canViewAuditLog = (roles: readonly AppRole[]) => roles.some((r) => VIEWERS.includes(r));
 
-export const PAGE_SIZE = 50;
+export const PAGE_SIZE = 20;
+
+/** Automatic system messages: hidden unless asked for, so real changes are easy to find. */
+export const SYSTEM_TABLES = ['notifications'];
 
 export const TABLE_LABELS: Record<string, string> = {
   organizations: 'Organisation',
@@ -41,6 +44,7 @@ export const TABLE_LABELS: Record<string, string> = {
   donor_reports: 'Donor report',
   donor_report_templates: 'Report template',
   ai_report_narratives: 'Report narrative',
+  notifications: 'System notification',
 };
 
 export const TABLE_OPTIONS = Object.keys(TABLE_LABELS);
@@ -117,6 +121,8 @@ export interface AuditFilter {
   /** yyyy-mm-dd in Bangladesh time */
   from?: string;
   to?: string;
+  /** Also show automatic system notifications. */
+  includeSystem?: boolean;
   page: number;
 }
 
@@ -130,7 +136,7 @@ export function cleanFilter(raw: Partial<Record<keyof AuditFilter, unknown>>): A
   const actorId = typeof raw.actorId === 'string' && UUID.test(raw.actorId) ? raw.actorId : undefined;
   const ok = (d: unknown) => (typeof d === 'string' && DATE.test(d) && !Number.isNaN(Date.parse(d + 'T00:00:00Z')) ? d : undefined);
   const page = Number.isInteger(raw.page) && (raw.page as number) >= 1 && (raw.page as number) <= 100000 ? (raw.page as number) : 1;
-  return { table, action, actorId, from: ok(raw.from), to: ok(raw.to), page };
+  return { table, action, actorId, from: ok(raw.from), to: ok(raw.to), includeSystem: raw.includeSystem === true, page };
 }
 
 /** Bangladesh midnight (UTC+6) as an ISO instant. */

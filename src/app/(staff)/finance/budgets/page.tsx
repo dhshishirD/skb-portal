@@ -86,7 +86,7 @@ export default function GrantBudgetsPage() {
                     </div>
                   </div>
                 )}
-                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-xs">
                   <div>
                     <p className="text-[10px] text-slate-400">Donor budget</p>
                     <p className="font-bold text-slate-900">{formatMoney(budget, p.budget_currency)}</p>

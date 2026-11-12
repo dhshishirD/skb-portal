@@ -60,13 +60,18 @@ export interface OrganizationDetails {
   name: string;
   registration_no: string | null;
   registration_authority: string | null;
+  address: string | null;
+  phone: string | null;
+  fax: string | null;
+  email: string | null;
+  website: string | null;
 }
 
 /** SKB's own organisation record (the first active internal one), or null. */
 export async function getOwnOrganization(): Promise<OrganizationDetails | null> {
   const supabase = await createClient();
   const { data, error } = await (supabase.from('organizations') as any)
-    .select('id, name, registration_no, registration_authority')
+    .select('id, name, registration_no, registration_authority, address, phone, fax, email, website')
     .eq('type', 'internal')
     .eq('is_active', true)
     .order('created_at', { ascending: true })

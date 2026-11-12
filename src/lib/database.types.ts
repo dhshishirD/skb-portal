@@ -38,6 +38,11 @@ export interface Database {
           country: string | null
           registration_no: string | null
           registration_authority: string | null
+          address: string | null
+          phone: string | null
+          fax: string | null
+          email: string | null
+          website: string | null
           is_active: boolean
           created_at: string
           created_by: string | null
@@ -50,6 +55,11 @@ export interface Database {
           country?: string | null
           registration_no?: string | null
           registration_authority?: string | null
+          address?: string | null
+          phone?: string | null
+          fax?: string | null
+          email?: string | null
+          website?: string | null
           is_active?: boolean
           created_at?: string
           created_by?: string | null
@@ -62,6 +72,11 @@ export interface Database {
           country?: string | null
           registration_no?: string | null
           registration_authority?: string | null
+          address?: string | null
+          phone?: string | null
+          fax?: string | null
+          email?: string | null
+          website?: string | null
           is_active?: boolean
           created_at?: string
           created_by?: string | null

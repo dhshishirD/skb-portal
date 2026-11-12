@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { OfficerAssignment } from '@/components/projects/OfficerAssignment';
+import { ProjectAreasPanel } from '@/components/projects/ProjectAreasPanel';
 import { ProjectOverviewActions } from '@/components/projects/ProjectOverviewActions';
 import {
   STAGE_LABELS,
@@ -8,6 +9,7 @@ import {
   canEditProjects,
   formatMoney,
 } from '@/lib/projects';
+import { canReadAreas } from '@/lib/projectAreas';
 import { getActor, getProjectById } from '@/server/services/projectsData';
 
 const dash = (v: string | number | null | undefined) => (v === null || v === undefined || v === '' ? '—' : String(v));
@@ -52,6 +54,8 @@ export default async function ProjectOverviewPage({ params }: { params: Promise<
           ))}
         </dl>
       </section>
+
+      {canReadAreas(actor.roles) && <ProjectAreasPanel projectId={project.id} />}
 
       {canAssignOfficers(actor.roles) && <OfficerAssignment projectId={project.id} />}
     </div>

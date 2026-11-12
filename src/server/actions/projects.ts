@@ -254,12 +254,27 @@ export async function setProjectOfficersAction(projectId: string, userIds: strin
 const orgSchema = z.object({
   registration_no: z.string().trim().max(100, 'Registration number is too long').transform((v) => (v === '' ? null : v)),
   registration_authority: z.string().trim().max(200, 'Authority name is too long').transform((v) => (v === '' ? null : v)),
+  address: z.string().trim().max(300, 'Address is too long').transform((v) => (v === '' ? null : v)),
+  phone: z.string().trim().max(40, 'Phone number is too long').transform((v) => (v === '' ? null : v)),
+  fax: z.string().trim().max(40, 'Fax number is too long').transform((v) => (v === '' ? null : v)),
+  email: z
+    .string()
+    .trim()
+    .max(200, 'E-mail is too long')
+    .refine((v) => v === '' || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), 'Please enter a valid e-mail address')
+    .transform((v) => (v === '' ? null : v)),
+  website: z.string().trim().max(200, 'Website is too long').transform((v) => (v === '' ? null : v)),
 });
 
 export interface OrganizationFormData {
   name: string;
   registration_no: string;
   registration_authority: string;
+  address: string;
+  phone: string;
+  fax: string;
+  email: string;
+  website: string;
   canEdit: boolean;
 }
 
@@ -275,6 +290,11 @@ export async function getOrganizationDetailsAction(): Promise<DataResult<Organiz
         name: org.name,
         registration_no: org.registration_no ?? '',
         registration_authority: org.registration_authority ?? '',
+        address: org.address ?? '',
+        phone: org.phone ?? '',
+        fax: org.fax ?? '',
+        email: org.email ?? '',
+        website: org.website ?? '',
         canEdit: actor.roles.includes('super_admin'),
       },
     };
@@ -286,6 +306,11 @@ export async function getOrganizationDetailsAction(): Promise<DataResult<Organiz
 export async function updateOrganizationDetailsAction(values: {
   registration_no: string;
   registration_authority: string;
+  address: string;
+  phone: string;
+  fax: string;
+  email: string;
+  website: string;
 }): Promise<ActionResult> {
   try {
     const actor = await getActor();

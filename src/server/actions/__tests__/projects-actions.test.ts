@@ -154,15 +154,15 @@ describe('setProjectOfficersAction', () => {
 describe('updateOrganizationDetailsAction', () => {
   it('is for Super Admins only', async () => {
     state.actor = { userId: USER, roles: ['executive'] };
-    expect(await updateOrganizationDetailsAction({ registration_no: '123', registration_authority: 'NGOAB' })).toMatchObject({ ok: false });
+    expect(await updateOrganizationDetailsAction({ registration_no: '123', registration_authority: 'NGOAB', address: '', phone: '', fax: '', email: '', website: '' })).toMatchObject({ ok: false });
     expect(state.calls).toHaveLength(0);
   });
 
   it('saves for a Super Admin, turning empty text into null', async () => {
     state.actor = { userId: USER, roles: ['super_admin'] };
     state.result = { data: [{ id: 'org-1' }], error: null };
-    const r = await updateOrganizationDetailsAction({ registration_no: ' 123/2026 ', registration_authority: '' });
+    const r = await updateOrganizationDetailsAction({ registration_no: ' 123/2026 ', registration_authority: '', address: ' Dhaka ', phone: '', fax: '', email: '', website: '' });
     expect(r).toMatchObject({ ok: true });
-    expect(state.calls.find((c) => c.method === 'update')?.args[0]).toEqual({ registration_no: '123/2026', registration_authority: null });
+    expect(state.calls.find((c) => c.method === 'update')?.args[0]).toEqual({ registration_no: '123/2026', registration_authority: null, address: 'Dhaka', phone: null, fax: null, email: null, website: null });
   });
 });

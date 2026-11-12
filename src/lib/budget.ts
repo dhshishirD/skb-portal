@@ -255,7 +255,7 @@ export const formatMilli = (milli: number | null): string =>
 export const formatBp = (bp: number | null): string => (bp === null ? '—' : `${(bp / 100).toFixed(2)}%`);
 
 // ===== Typed values (the forms hold text) =====
-function decimalText(label: string, opts: { decimals: number; max: number; positive?: boolean }) {
+export function decimalText(label: string, opts: { decimals: number; max: number; positive?: boolean }) {
   return z
     .string()
     .trim()
@@ -276,7 +276,7 @@ function decimalText(label: string, opts: { decimals: number; max: number; posit
     });
 }
 
-const optionalText = (max: number, label: string) =>
+export const optionalText = (max: number, label: string) =>
   z
     .string()
     .trim()

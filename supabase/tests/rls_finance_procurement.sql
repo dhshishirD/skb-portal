@@ -93,6 +93,13 @@ begin
     values (pid, 1, current_date + 3, 'Future dated');
   exception when others then denied := true; end;
   assert denied, 'a future expense date is refused';
+  -- tomorrow is allowed (UTC database, Bangladesh is UTC+6); the insert is rolled back by the inner block
+  begin
+    insert into public.expenses (project_id, amount, expense_date, description)
+      values (pid, 1, current_date + 1, 'Dated tomorrow in UTC');
+    raise exception 'inserted_ok' using errcode = 'P0001';
+  exception when sqlstate 'P0001' then null;
+  end;
   denied := false;
   begin insert into public.expenses (project_id, amount, expense_date, description, currency, fx_rate_to_bdt)
     values (pid, 1, current_date, 'Zero rate', 'EUR', 0);

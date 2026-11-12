@@ -38,7 +38,6 @@ export const DESK_RULES: DeskRule[] = [
 
   // Programme work
   { prefix: '/projects', roles: [...OPERATIONAL, ...OVERSIGHT, 'auditor', 'partner'] },
-  { prefix: '/beneficiaries', roles: ['project_officer', 'field_officer', 'me_officer', 'programme_manager', 'legal_officer'] },
   { prefix: '/me', roles: ['me_officer', 'programme_manager', 'project_officer', 'executive', 'board'] },
   { prefix: '/finance', roles: ['finance', 'programme_manager', 'project_officer', 'executive', 'board', 'auditor'] },
   { prefix: '/procurement', roles: ['procurement', 'programme_manager', 'project_officer', 'finance', 'executive', 'board'] },

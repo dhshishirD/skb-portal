@@ -56,14 +56,12 @@ describe('canOpenPath', () => {
     expect(canOpenPath('/donor-dashboard', ['donor'])).toBe(true);
     expect(canOpenPath('/dashboard', ['donor'])).toBe(false);
     expect(canOpenPath('/community', ['donor'])).toBe(false);
-    expect(canOpenPath('/beneficiaries', ['donor'])).toBe(false);
+    expect(canOpenPath('/projects/abc/beneficiaries', ['donor'])).toBe(false);
   });
 
-  it('beneficiary registry: field staff and Law Officer, not Board or IT', () => {
-    expect(canOpenPath('/beneficiaries', ['project_officer', 'field_officer'])).toBe(true);
-    expect(canOpenPath('/beneficiaries', ['legal_officer'])).toBe(true);
-    expect(canOpenPath('/beneficiaries', ['board'])).toBe(false);
-    expect(canOpenPath('/beneficiaries', ['it_officer'])).toBe(false);
+  it('beneficiary lists live inside projects: Board and IT cannot open them', () => {
+    expect(canOpenPath('/projects/abc/beneficiaries', ['project_officer'])).toBe(true);
+    expect(canOpenPath('/projects/abc/beneficiaries', ['it_officer'])).toBe(false);
   });
 
   it('Program Officers can use the field app', () => {

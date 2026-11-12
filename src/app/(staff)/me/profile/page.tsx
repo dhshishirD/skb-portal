@@ -46,9 +46,9 @@ export default async function MyProfilePage() {
       </div>
       <dl className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100">
         {rows.map(([k, v]) => (
-          <div key={k} className="grid grid-cols-3 gap-3 px-5 py-3 text-sm">
+          <div key={k} className="grid grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-3 px-5 py-3 text-sm">
             <dt className="text-slate-500">{k}</dt>
-            <dd className="col-span-2 font-medium text-slate-900 break-words">{v}</dd>
+            <dd className="sm:col-span-2 font-medium text-slate-900 break-words">{v}</dd>
           </div>
         ))}
       </dl>

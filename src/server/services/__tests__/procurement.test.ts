@@ -20,28 +20,39 @@ describe('Phase 5 Beneficiary Dedup & Procurement Rules', () => {
     expect(isDup).toBe(true);
   });
 
-  it('should DENY purchase order issuance if fewer than 3 quotations exist above threshold', () => {
-    const res = validateProcurementOrder({
-      estimatedAmount: 75000,
-      quotations: [
-        { vendorId: 'v1', vendorName: 'Vendor A', amount: 70000, isBlacklisted: false },
-        { vendorId: 'v2', vendorName: 'Vendor B', amount: 72000, isBlacklisted: false },
-      ],
-      selectedVendorId: 'v1',
-    });
+  const q = (vendorId: string, amount: number, isBlacklisted = false) => ({ vendorId, vendorName: 'Vendor ' + vendorId, amount, isBlacklisted });
+
+  it('should DENY purchase order issuance if fewer than 3 vendors quoted above the threshold', () => {
+    const res = validateProcurementOrder({ estimatedAmount: 75000, quotations: [q('v1', 70000), q('v2', 72000)], selectedVendorId: 'v1' });
     expect(res.allowed).toBe(false);
-    expect(res.reason).toContain('require at least 3 competitive vendor quotations');
+    expect(res.reason).toContain('3 different vendors');
   });
 
   it('should DENY purchase order to blacklisted vendors', () => {
-    const res = validateProcurementOrder({
-      estimatedAmount: 20000,
-      quotations: [
-        { vendorId: 'v1', vendorName: 'Blacklisted Supplies Ltd', amount: 18000, isBlacklisted: true },
-      ],
-      selectedVendorId: 'v1',
-    });
+    const res = validateProcurementOrder({ estimatedAmount: 20000, quotations: [q('v1', 18000, true)], selectedVendorId: 'v1' });
     expect(res.allowed).toBe(false);
-    expect(res.reason).toContain('is blacklisted');
+    expect(res.reason).toContain('blacklisted');
+  });
+
+  it('should count different vendors, not rows (three quotes from one vendor are one vendor)', () => {
+    const res = validateProcurementOrder({ estimatedAmount: 75000, quotations: [q('v1', 70000), q('v1', 71000), q('v1', 72000)], selectedVendorId: 'v1' });
+    expect(res.allowed).toBe(false);
+  });
+
+  it('should use the highest quote when the estimate is understated', () => {
+    const res = validateProcurementOrder({ estimatedAmount: 10000, quotations: [q('v1', 60000)], selectedVendorId: 'v1' });
+    expect(res.allowed).toBe(false);
+  });
+
+  it('should refuse a vendor that did not quote, and refuse bad amounts', () => {
+    expect(validateProcurementOrder({ estimatedAmount: 1000, quotations: [q('v1', 900)], selectedVendorId: 'v9' }).allowed).toBe(false);
+    expect(validateProcurementOrder({ estimatedAmount: 1000, quotations: [q('v1', Number.NaN)], selectedVendorId: 'v1' }).allowed).toBe(false);
+    expect(validateProcurementOrder({ estimatedAmount: 1000, quotations: [q('v1', -5)], selectedVendorId: 'v1' }).allowed).toBe(false);
+    expect(validateProcurementOrder({ estimatedAmount: Number.NaN, quotations: [q('v1', 900)], selectedVendorId: 'v1' }).allowed).toBe(false);
+  });
+
+  it('should ALLOW three different clean vendors above the threshold', () => {
+    const res = validateProcurementOrder({ estimatedAmount: 75000, quotations: [q('v1', 70000), q('v2', 72000), q('v3', 74000)], selectedVendorId: 'v1' });
+    expect(res.allowed).toBe(true);
   });
 });

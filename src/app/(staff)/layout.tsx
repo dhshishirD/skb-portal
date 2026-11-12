@@ -14,7 +14,6 @@ import {
   ShieldCheck, 
   BarChart2, 
   Users, 
-  Sparkles,
   Menu, 
   X,
   Building2,
@@ -85,7 +84,6 @@ export default function StaffLayout({
     { href: '/finance/approvals', label: 'Finance & Approvals', icon: Receipt },
     { href: '/community', label: 'HQ Staff Community', icon: MessageSquare },
     { href: '/me/dashboard', label: 'M&E Overview', icon: BarChart2 },
-    { href: '/me/report-generator', label: 'Donor Report Generator', icon: Sparkles },
     { href: '/admin/users', label: 'Admin & Governance', icon: ShieldCheck },
     { href: '/admin/audit-log', label: 'Audit Log', icon: ShieldCheck },
   ];

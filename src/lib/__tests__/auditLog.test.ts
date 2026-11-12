@@ -42,7 +42,7 @@ describe('headline', () => {
 describe('cleanFilter', () => {
   it('drops odd input and keeps valid input', () => {
     expect(cleanFilter({ table: 'x; drop', action: 'TRUNCATE', actorId: 'nope', from: '2026-13-99x', page: -4 })).toEqual({
-      table: undefined, action: undefined, actorId: undefined, from: undefined, to: undefined, page: 1,
+      table: undefined, action: undefined, actorId: undefined, from: undefined, to: undefined, includeSystem: false, page: 1,
     });
     const ok = cleanFilter({ table: 'expenses', action: 'UPDATE', actorId: '11111111-1111-4111-8111-111111111111', from: '2026-11-01', to: '2026-11-12', page: 3 });
     expect(ok).toMatchObject({ table: 'expenses', action: 'UPDATE', from: '2026-11-01', to: '2026-11-12', page: 3 });

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import {
   PAGE_SIZE,
+  SYSTEM_TABLES,
   canViewAuditLog,
   changedFields,
   cleanFilter,
@@ -50,6 +51,7 @@ export async function getAuditLogAction(rawFilter: Partial<Record<keyof AuditFil
       .order('occurred_at', { ascending: false })
       .order('id', { ascending: false });
     if (f.table) q = q.eq('table_name', f.table);
+    else if (!f.includeSystem) q = q.not('table_name', 'in', `(${SYSTEM_TABLES.join(',')})`);
     if (f.action) q = q.eq('action', f.action);
     if (f.actorId) q = q.eq('actor_id', f.actorId);
     if (f.from) q = q.gte('occurred_at', dhakaStart(f.from));

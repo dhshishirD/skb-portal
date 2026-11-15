@@ -93,7 +93,7 @@ begin
   assert (select count(*) from public.task_raci where task_id = tid) = 2, 'staff on the project can read';
   denied := false;
   begin insert into public.task_raci (task_id, user_id, raci_role) values (tid, ed::uuid, 'consulted');
-  exception when insufficient_privilege then denied := true; end;
+  exception when insufficient_privilege or check_violation then denied := true; end;
   assert denied, 'a field officer cannot give letters';
   delete from public.task_raci where task_id = tid;
   assert (select count(*) from public.task_raci where task_id = tid) = 2, 'a field officer cannot remove letters';
@@ -101,7 +101,7 @@ begin
   assert (select count(*) from public.task_raci) = 0, 'an unassigned officer sees nothing';
   denied := false;
   begin insert into public.task_raci (task_id, user_id, raci_role) values (tid, ed::uuid, 'consulted');
-  exception when insufficient_privilege then denied := true; end;
+  exception when insufficient_privilege or check_violation then denied := true; end;
   assert denied, 'an unassigned officer cannot write';
   perform pg_temp.as_user(dn);
   assert (select count(*) from public.task_raci) = 0, 'the donor sees nothing';

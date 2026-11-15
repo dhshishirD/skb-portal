@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { AppRole } from './database.types';
+import type { TaskRaci } from './taskRaci';
 
 /**
  * Tasks and workplan. The database (migration 0020) enforces the rules; these helpers drive what the
@@ -35,6 +36,8 @@ export interface Task {
   nodeLabel: string | null;
   completedAt: string | null;
   comments: TaskComment[];
+  /** Accountable, Consulted and Informed (the assignee is the Responsible one). */
+  raci: TaskRaci;
 }
 
 export interface TeamMember {
@@ -50,6 +53,8 @@ export interface TasksData {
   projectId: string;
   tasks: Task[];
   team: TeamMember[];
+  /** Names of everyone who appears on a task (team members and people who have left). */
+  names: Record<string, string>;
   nodes: NodeOption[];
   userId: string;
   closed: boolean;

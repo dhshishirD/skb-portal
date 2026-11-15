@@ -16,6 +16,7 @@ import {
   type TasksData,
 } from '@/lib/tasks';
 import { KIND_LABELS, isKind } from '@/lib/logframe';
+import { EMPTY_RACI, friendlyRaciError, isRaciRole, planRaciChanges, raciSchema, type RaciFormValues, type TaskRaci } from '@/lib/taskRaci';
 import { getActor, getProjectById, isUuid } from '@/server/services/projectsData';
 
 /*
@@ -77,6 +78,20 @@ export async function getTasksAction(projectId: string): Promise<TaskDataResult<
       comments = (cRes.data ?? []) as CommentRow[];
     }
 
+    const raciByTask = new Map<string, TaskRaci>();
+    if (rows.length > 0) {
+      const rRes = await (supabase.from('task_raci') as any).select('task_id, user_id, raci_role').in('task_id', rows.map((r) => r.id));
+      if (rRes.error) return fail('Could not load the task roles. Please refresh the page.');
+      for (const r of (rRes.data ?? []) as Array<{ task_id: string; user_id: string; raci_role: string }>) {
+        if (!isRaciRole(r.raci_role)) continue;
+        const cur = raciByTask.get(r.task_id) ?? { accountableId: null, consultedIds: [], informedIds: [] };
+        if (r.raci_role === 'accountable') cur.accountableId = r.user_id;
+        else if (r.raci_role === 'consulted') cur.consultedIds.push(r.user_id);
+        else cur.informedIds.push(r.user_id);
+        raciByTask.set(r.task_id, cur);
+      }
+    }
+
     const teamRes = await (supabase as any).rpc('project_team', { _project_id: projectId });
     const team = ((teamRes.data ?? []) as Array<{ id: string; full_name: string | null }>).map((t) => ({
       id: t.id,
@@ -84,7 +99,8 @@ export async function getTasksAction(projectId: string): Promise<TaskDataResult<
     }));
     const names = new Map(team.map((t) => [t.id, t.name]));
     // names of people who are no longer on the team but wrote a comment or hold a task
-    const missing = [...new Set([...rows.map((r) => r.assignee_id), ...comments.map((c) => c.author_id)].filter((x): x is string => !!x && !names.has(x)))];
+    const raciUsers = [...raciByTask.values()].flatMap((r) => [r.accountableId, ...r.consultedIds, ...r.informedIds]);
+    const missing = [...new Set([...rows.map((r) => r.assignee_id), ...comments.map((c) => c.author_id), ...raciUsers].filter((x): x is string => !!x && !names.has(x)))];
     if (missing.length > 0) {
       const { data } = await (supabase.from('profiles') as any).select('id, full_name').in('id', missing);
       for (const p of (data ?? []) as Array<{ id: string; full_name: string | null }>) {
@@ -113,6 +129,7 @@ export async function getTasksAction(projectId: string): Promise<TaskDataResult<
         nodeId: r.node_id,
         nodeLabel: r.node_id ? nodeLabel.get(r.node_id) ?? null : null,
         completedAt: r.completed_at,
+        raci: raciByTask.get(r.id) ?? { ...EMPTY_RACI },
         comments: comments
           .filter((c) => c.task_id === r.id)
           .map((c) => ({ id: c.id, authorName: c.author_id ? names.get(c.author_id) ?? null : null, body: c.body, createdAt: c.created_at })),
@@ -125,6 +142,7 @@ export async function getTasksAction(projectId: string): Promise<TaskDataResult<
         projectId,
         tasks,
         team,
+        names: Object.fromEntries(names),
         nodes,
         userId: actor.userId,
         closed,
@@ -244,6 +262,46 @@ export async function addTaskCommentAction(projectId: string, taskId: string, bo
     if (error) return fail(friendlyTaskError(error));
     revalidatePath(path(projectId));
     return { ok: true, message: 'Comment added.' };
+  } catch {
+    return fail('Something went wrong. Please try again.');
+  }
+}
+
+/** Set Accountable, Consulted and Informed for a task. The Responsible person is the assignee. */
+export async function setTaskRaciAction(projectId: string, taskId: string, values: RaciFormValues): Promise<TaskActionResult> {
+  try {
+    if (!isUuid(taskId)) return fail('Invalid request.');
+    const g = await guard(projectId, 'manage');
+    if (denied(g)) return g;
+    const parsed = raciSchema.safeParse(values);
+    if (!parsed.success) return fail(firstIssue(parsed.error));
+
+    const supabase = await createClient();
+    const { data: task } = await (supabase.from('tasks') as any).select('id').eq('id', taskId).eq('project_id', projectId).maybeSingle();
+    if (!task) return fail('Task not found in this project.');
+
+    const cur = await (supabase.from('task_raci') as any).select('user_id, raci_role').eq('task_id', taskId);
+    if (cur.error) return fail('Could not read the current roles. Please try again.');
+    const current: TaskRaci = { accountableId: null, consultedIds: [], informedIds: [] };
+    for (const r of (cur.data ?? []) as Array<{ user_id: string; raci_role: string }>) {
+      if (r.raci_role === 'accountable') current.accountableId = r.user_id;
+      else if (r.raci_role === 'consulted') current.consultedIds.push(r.user_id);
+      else if (r.raci_role === 'informed') current.informedIds.push(r.user_id);
+    }
+
+    for (const op of planRaciChanges(current, parsed.data)) {
+      const table = supabase.from('task_raci') as any;
+      const res =
+        op.type === 'delete'
+          ? await table.delete().eq('task_id', taskId).eq('user_id', op.userId).select('id')
+          : op.type === 'update'
+            ? await table.update({ raci_role: op.role }).eq('task_id', taskId).eq('user_id', op.userId).select('id')
+            : await table.insert({ task_id: taskId, user_id: op.userId, raci_role: op.role }).select('id');
+      if (res.error) return fail(friendlyRaciError(res.error));
+      if (!res.data || res.data.length === 0) return fail('Could not save the roles. You may not have permission on this project.');
+    }
+    revalidatePath(path(projectId));
+    return { ok: true, message: 'Roles saved.' };
   } catch {
     return fail('Something went wrong. Please try again.');
   }

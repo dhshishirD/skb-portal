@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { MessageSquare, Plus, Trash2 } from 'lucide-react';
+import { RaciEditor, RaciLine, RaciMatrixView } from './TaskRaci';
 import {
   PRIORITIES,
   PRIORITY_LABELS,
@@ -22,6 +23,7 @@ import {
   addTaskCommentAction,
   deleteTaskAction,
   getTasksAction,
+  setTaskRaciAction,
   setTaskStatusAction,
   updateTaskAction,
   type TaskActionResult,
@@ -50,6 +52,7 @@ export function TasksPanel({ projectId }: { projectId: string }) {
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);
   const [filter, setFilter] = useState<'all' | 'mine' | TaskStatus>('all');
+  const [view, setView] = useState<'list' | 'raci'>('list');
 
   const load = useCallback(async () => {
     try {
@@ -97,6 +100,14 @@ export function TasksPanel({ projectId }: { projectId: string }) {
   return (
     <div className="space-y-4">
       {data.closed && <p className="text-sm text-slate-600">This project is closed, so the tasks are read-only.</p>}
+      <div className="inline-flex rounded-xl border border-slate-300 p-0.5" role="tablist" aria-label="Tasks view">
+        {(['list', 'raci'] as const).map((v) => (
+          <button key={v} type="button" role="tab" aria-selected={view === v} onClick={() => setView(v)} className={`px-3.5 py-1.5 text-xs font-bold rounded-lg ${view === v ? 'bg-slate-900 text-white' : 'text-slate-700'}`}>
+            {v === 'list' ? 'Task list' : 'RACI table'}
+          </button>
+        ))}
+      </div>
+      {view === 'raci' ? <RaciMatrixView tasks={data.tasks} names={data.names} /> : (<>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-slate-700">
           <b>{counts.done}</b> of <b>{counts.total}</b> done ({counts.percentDone}%)
@@ -141,6 +152,7 @@ export function TasksPanel({ projectId }: { projectId: string }) {
           <TaskRowView key={t.id} task={t} data={data} busy={busy} run={run} projectId={projectId} today={today} />
         ))}
       </ul>
+      </>)}
     </div>
   );
 }
@@ -148,6 +160,7 @@ export function TasksPanel({ projectId }: { projectId: string }) {
 function TaskRowView({ task, data, busy, run, projectId, today }: { task: Task; data: TasksData; busy: boolean; run: Run; projectId: string; today: string }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [roles, setRoles] = useState(false);
   const [comment, setComment] = useState('');
   const overdue = isOverdue(task, today);
   const mayStatus = !data.closed && canChangeStatus(task, data.userId, data.canManage);
@@ -162,6 +175,7 @@ function TaskRowView({ task, data, busy, run, projectId, today }: { task: Task; 
             {task.dueDate && <span className={overdue ? 'text-red-700 font-bold' : ''}> · due {task.dueDate}{overdue ? ' (overdue)' : ''}</span>}
             {task.nodeLabel && ` · ${task.nodeLabel}`}
           </p>
+          <RaciLine task={task} names={data.names} />
         </div>
         <div className="flex items-center gap-2">
           {mayStatus ? (
@@ -185,6 +199,9 @@ function TaskRowView({ task, data, busy, run, projectId, today }: { task: Task; 
             <>
               <button type="button" className={ghostCls} onClick={() => setEditing((v) => !v)}>
                 Edit
+              </button>
+              <button type="button" className={ghostCls} onClick={() => setRoles((v) => !v)}>
+                Roles
               </button>
               <button
                 type="button"
@@ -212,6 +229,18 @@ function TaskRowView({ task, data, busy, run, projectId, today }: { task: Task; 
           onCancel={() => setEditing(false)}
           onSubmit={async (v) => {
             if (await run(() => updateTaskAction(projectId, task.id, v))) setEditing(false);
+          }}
+        />
+      )}
+
+      {roles && data.canManage && (
+        <RaciEditor
+          task={task}
+          team={data.team}
+          busy={busy}
+          onCancel={() => setRoles(false)}
+          onSave={async (v) => {
+            if (await run(() => setTaskRaciAction(projectId, task.id, v))) setRoles(false);
           }}
         />
       )}

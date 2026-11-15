@@ -3,7 +3,7 @@ import { canChangeStatus, canCommentOnTasks, canManageTasks, commentSchema, coun
 
 const t = (over: Partial<Task>): Task => ({
   id: 'x', title: 'T', description: null, status: 'todo', priority: 'medium', dueDate: null, assigneeId: null,
-  assigneeName: null, nodeId: null, nodeLabel: null, completedAt: null, comments: [], ...over,
+  assigneeName: null, nodeId: null, nodeLabel: null, completedAt: null, comments: [], raci: { accountableId: null, consultedIds: [], informedIds: [] }, ...over,
 });
 
 describe('who can do what', () => {

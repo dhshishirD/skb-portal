@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   buildTree, childKind, canEditStructure, canEditIndicators, canValidateValues, descendantCount,
   indicatorProgress, indicatorSchema, nodeSchema, valueSchema, formatNumber, formatPercent,
+  nextCode, splitLines, matrixRows,
   type LogframeNode, type IndicatorValue,
 } from '../logframe';
 
-const n = (id: string, parentId: string | null, kind: LogframeNode['kind'], code: string): LogframeNode => ({ id, parentId, kind, code, title: 'T ' + code, description: null });
+const n = (id: string, parentId: string | null, kind: LogframeNode['kind'], code: string): LogframeNode => ({ id, parentId, kind, code, title: 'T ' + code, description: null, assumptions: null });
 const v = (periodStart: string, periodEnd: string, value: number, validated: boolean): IndicatorValue => ({
   id: periodStart + value, periodStart, periodEnd, value, validatedAt: validated ? '2026-01-01T00:00:00Z' : null,
   validatedByName: null, createdByName: null, createdBy: null,
@@ -60,7 +61,8 @@ describe('progress counts validated values only', () => {
 
 describe('forms', () => {
   it('checks a node', () => {
-    expect(nodeSchema.safeParse({ kind: 'goal', code: '', title: 'Goal', description: '' }).success).toBe(false);
+    expect(nodeSchema.safeParse({ kind: 'goal', code: '', title: 'G', description: '' }).success).toBe(false); // title too short
+    expect(nodeSchema.safeParse({ kind: 'goal', code: 'x'.repeat(21), title: 'Goal', description: '' }).success).toBe(false);
     const ok = nodeSchema.parse({ kind: 'goal', code: '1', title: 'Goal', description: '' });
     expect(ok.description).toBeNull();
   });
@@ -74,5 +76,34 @@ describe('forms', () => {
   it('checks a value period', () => {
     expect(valueSchema.safeParse({ periodStart: '2026-02-01', periodEnd: '2026-01-01', value: '5' }).success).toBe(false);
     expect(valueSchema.parse({ periodStart: '2026-01-01', periodEnd: '2026-01-31', value: '5' }).value).toBe(5);
+  });
+});
+
+describe('easy entry', () => {
+  it('numbers items itself', () => {
+    expect(nextCode('goal', null, 0, new Set())).toBe('G');
+    expect(nextCode('goal', null, 0, new Set(['G']))).toBe('G2');
+    expect(nextCode('outcome', 'G', 0, new Set(['G']))).toBe('1');
+    expect(nextCode('outcome', 'G', 1, new Set(['G', '1']))).toBe('2');
+    expect(nextCode('output', '1', 0, new Set(['1']))).toBe('1.1');
+    expect(nextCode('activity', '1.2', 2, new Set(['1.2.1', '1.2.2']))).toBe('1.2.3');
+    // an own number that is in the way is skipped, not reused
+    expect(nextCode('output', '1', 0, new Set(['1', '1.1']))).toBe('1.2');
+  });
+  it('splits one box into lines and drops list marks', () => {
+    expect(splitLines('1. Kits given\n\n- Teachers trained\r\n  * Awareness\n')).toEqual(['Kits given', 'Teachers trained', 'Awareness']);
+    expect(splitLines(Array.from({ length: 30 }, (_, i) => `Item ${i}`).join('\n')).length).toBe(20);
+  });
+  it('accepts a blank code and an optional assumption', () => {
+    const r = nodeSchema.parse({ kind: 'output', code: '  ', title: 'Kits given', description: '', assumptions: ' Roads open ' });
+    expect(r.code).toBeNull();
+    expect(r.assumptions).toBe('Roads open');
+    expect(nodeSchema.parse({ kind: 'goal', code: '', title: 'Goal here', description: '' }).assumptions).toBeNull();
+  });
+  it('lists rows for the table in reading order with their indicators', () => {
+    const nodes = [n('3', '2', 'output', '1.1'), n('1', null, 'goal', 'G'), n('2', '1', 'outcome', '1')];
+    const rows = matrixRows(nodes, []);
+    expect(rows.map((r) => r.node.id)).toEqual(['1', '2', '3']);
+    expect(rows.map((r) => r.depth)).toEqual([0, 1, 2]);
   });
 });

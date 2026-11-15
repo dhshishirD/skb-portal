@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Check, Plus, Trash2 } from 'lucide-react';
+import { Check, Pencil, Plus, Trash2 } from 'lucide-react';
+import { LogframeMatrix } from './LogframeMatrix';
 import {
   KIND_LABELS,
   MEASURE_LABELS,
@@ -21,10 +22,13 @@ import {
   addIndicatorAction,
   addIndicatorValueAction,
   addNodeAction,
+  addNodesFromLinesAction,
   deleteIndicatorAction,
   deleteIndicatorValueAction,
   deleteNodeAction,
   getLogframeAction,
+  updateIndicatorAction,
+  updateNodeAction,
   validateIndicatorValueAction,
   type LogframeActionResult,
 } from '@/server/actions/logframe';
@@ -42,6 +46,7 @@ export function LogframePanel({ projectId }: { projectId: string }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [note, setNote] = useState<Note>(null);
   const [busy, setBusy] = useState(false);
+  const [view, setView] = useState<'list' | 'matrix'>('list');
 
   const load = useCallback(async () => {
     try {
@@ -85,6 +90,23 @@ export function LogframePanel({ projectId }: { projectId: string }) {
   const tree = buildTree(data.nodes);
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 print:hidden" role="tablist" aria-label="Logframe view">
+        <div className="inline-flex rounded-xl border border-slate-300 p-0.5">
+          {(['list', 'matrix'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              role="tab"
+              aria-selected={view === v}
+              onClick={() => setView(v)}
+              className={`px-3.5 py-1.5 text-xs font-bold rounded-lg ${view === v ? 'bg-slate-900 text-white' : 'text-slate-700'}`}
+            >
+              {v === 'list' ? 'List (edit here)' : 'Table (as the donor sees it)'}
+            </button>
+          ))}
+        </div>
+      </div>
+      {view === 'matrix' ? <LogframeMatrix data={data} /> : (<>
       {data.closed && <p className="text-sm text-slate-600">This project is closed, so the logframe is read-only.</p>}
       {note && (
         <p role="status" className={`text-sm ${note.kind === 'ok' ? 'text-emerald-700' : 'text-red-700'}`}>
@@ -98,8 +120,9 @@ export function LogframePanel({ projectId }: { projectId: string }) {
         ))}
       </ul>
       {data.canEditStructure && !tree.some((t) => t.node.kind === 'goal') && (
-        <AddNodeForm kind="goal" busy={busy} onSubmit={async (v) => { await run(() => addNodeAction(projectId, null, v)); }} />
+        <AddNodeForm kind="goal" busy={busy} onSubmit={async (v) => { await run(() => addNodeAction(projectId, null, v)); }} onLines={async (t) => run(() => addNodesFromLinesAction(projectId, null, 'goal', t))} />
       )}
+      </>)}
     </div>
   );
 }
@@ -122,6 +145,7 @@ function NodeView({
   const indicators = data.indicators.filter((i) => i.nodeId === node.id);
   const [adding, setAdding] = useState(false);
   const [addingInd, setAddingInd] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   return (
     <li className="rounded-xl border border-slate-200 bg-white p-3">
@@ -132,8 +156,13 @@ function NodeView({
             {node.code}. {node.title}
           </p>
           {node.description && <p className="text-xs text-slate-600 mt-0.5">{node.description}</p>}
+          {node.assumptions && <p className="text-xs text-slate-600 mt-0.5"><b>Assumes:</b> {node.assumptions}</p>}
         </div>
         {data.canEditStructure && (
+          <div className="flex items-center gap-2">
+          <button type="button" aria-label={`Edit ${node.code}`} disabled={busy} className="text-slate-400 hover:text-slate-700 disabled:opacity-50" onClick={() => setEditing((v) => !v)}>
+            <Pencil size={14} />
+          </button>
           <button
             type="button"
             aria-label={`Remove ${node.code}`}
@@ -147,8 +176,19 @@ function NodeView({
           >
             <Trash2 size={14} />
           </button>
+          </div>
         )}
       </div>
+      {editing && (
+        <EditNodeForm
+          node={node}
+          busy={busy}
+          onSubmit={async (v) => {
+            if (await run(() => updateNodeAction(projectId, node.id, v))) setEditing(false);
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      )}
 
       {indicators.map((ind) => (
         <IndicatorView key={ind.id} ind={ind} data={data} busy={busy} run={run} projectId={projectId} />
@@ -181,6 +221,11 @@ function NodeView({
           onSubmit={async (v) => {
             if (await run(() => addNodeAction(projectId, node.id, v))) setAdding(false);
           }}
+          onLines={async (t) => {
+            const ok = await run(() => addNodesFromLinesAction(projectId, node.id, next, t));
+            if (ok) setAdding(false);
+            return ok;
+          }}
         />
       )}
 
@@ -210,6 +255,7 @@ function IndicatorView({
 }) {
   const p = indicatorProgress(ind);
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [value, setValue] = useState('');
@@ -227,19 +273,43 @@ function IndicatorView({
           {ind.meansOfVerification && <p className="text-[11px] text-slate-500">Proof: {ind.meansOfVerification}</p>}
         </div>
         {data.canEditIndicators && (
-          <button
-            type="button"
-            aria-label={`Remove indicator ${ind.name}`}
-            disabled={busy}
-            className="text-slate-400 hover:text-red-600 disabled:opacity-50"
-            onClick={() => {
-              if (window.confirm('Remove this indicator and its values?')) void run(() => deleteIndicatorAction(projectId, ind.id));
-            }}
-          >
-            <Trash2 size={13} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button type="button" aria-label={`Edit indicator ${ind.name}`} disabled={busy} className="text-slate-400 hover:text-slate-700 disabled:opacity-50" onClick={() => setEditing((v) => !v)}>
+              <Pencil size={13} />
+            </button>
+            <button
+              type="button"
+              aria-label={`Remove indicator ${ind.name}`}
+              disabled={busy}
+              className="text-slate-400 hover:text-red-600 disabled:opacity-50"
+              onClick={() => {
+                if (window.confirm('Remove this indicator and its values?')) void run(() => deleteIndicatorAction(projectId, ind.id));
+              }}
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
         )}
       </div>
+      {editing && (
+        <AddIndicatorForm
+          busy={busy}
+          submitLabel="Save"
+          initial={{
+            name: ind.name,
+            unit: ind.unit,
+            baseline: String(ind.baseline),
+            target: String(ind.target),
+            frequency: ind.frequency ?? '',
+            meansOfVerification: ind.meansOfVerification ?? '',
+            measure: ind.measure,
+          }}
+          onCancel={() => setEditing(false)}
+          onSubmit={async (v) => {
+            if (await run(() => updateIndicatorAction(projectId, ind.id, v))) setEditing(false);
+          }}
+        />
+      )}
       <div className="mt-1.5 h-2 rounded-full bg-slate-200 overflow-hidden" aria-hidden>
         <div className="h-full bg-emerald-600" style={{ width: `${pct}%` }} />
       </div>
@@ -324,43 +394,158 @@ function IndicatorView({
   );
 }
 
-function AddNodeForm({ kind, busy, onSubmit }: { kind: LogframeKind; busy: boolean; onSubmit: (v: { kind: LogframeKind; code: string; title: string; description: string }) => void | Promise<void> }) {
-  const [code, setCode] = useState('');
+const HINTS: Record<LogframeKind, string> = {
+  goal: 'The big change this project helps bring about',
+  outcome: 'What changes for the people (the "Purpose")',
+  output: 'What the project delivers',
+  activity: 'What the team does',
+};
+
+function AddNodeForm({
+  kind,
+  busy,
+  onSubmit,
+  onLines,
+}: {
+  kind: LogframeKind;
+  busy: boolean;
+  onSubmit: (v: { kind: LogframeKind; code: string; title: string; description: string; assumptions: string }) => void | Promise<void>;
+  onLines: (text: string) => Promise<boolean>;
+}) {
+  const [many, setMany] = useState(false);
+  const [more, setMore] = useState(false);
   const [title, setTitle] = useState('');
+  const [lines, setLines] = useState('');
   const [description, setDescription] = useState('');
+  const [assumptions, setAssumptions] = useState('');
+  const [code, setCode] = useState('');
   return (
     <form
-      className="mt-2 grid gap-2 sm:grid-cols-[100px_1fr] items-end rounded-lg border border-slate-200 p-2.5"
+      className="mt-2 space-y-2 rounded-lg border border-slate-200 p-2.5"
       onSubmit={async (e) => {
         e.preventDefault();
-        await onSubmit({ kind, code, title, description });
-        setCode('');
+        if (many) {
+          if (await onLines(lines)) setLines('');
+          return;
+        }
+        await onSubmit({ kind, code, title, description, assumptions });
         setTitle('');
         setDescription('');
+        setAssumptions('');
+        setCode('');
       }}
     >
-      <label>
-        <span className={labelCls}>Code</span>
-        <input className={inputCls} value={code} onChange={(e) => setCode(e.target.value)} placeholder="1.1" required />
-      </label>
-      <label>
-        <span className={labelCls}>{KIND_LABELS[kind]} title</span>
-        <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} required />
-      </label>
-      <label className="sm:col-span-2">
-        <span className={labelCls}>Description (optional)</span>
-        <textarea className={inputCls} rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
-      </label>
-      <button className={btnCls} disabled={busy}>
-        Add {KIND_LABELS[kind].toLowerCase()}
-      </button>
+      {many ? (
+        <label className="block">
+          <span className={labelCls}>{KIND_LABELS[kind]}s, one on each line</span>
+          <textarea className={inputCls} rows={4} value={lines} onChange={(e) => setLines(e.target.value)} placeholder={'First one\nSecond one\nThird one'} required />
+          <span className="text-[11px] text-slate-500">Numbers (1, 1.1 ...) are added for you.</span>
+        </label>
+      ) : (
+        <label className="block">
+          <span className={labelCls}>{KIND_LABELS[kind]}: {HINTS[kind]}</span>
+          <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus />
+        </label>
+      )}
+      {!many && more && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          <label className="sm:col-span-2">
+            <span className={labelCls}>More detail (optional)</span>
+            <textarea className={inputCls} rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
+          </label>
+          <label className="sm:col-span-2">
+            <span className={labelCls}>Assumptions (optional): what must stay true for this to work</span>
+            <textarea className={inputCls} rows={2} value={assumptions} onChange={(e) => setAssumptions(e.target.value)} />
+          </label>
+          <label>
+            <span className={labelCls}>Own number (leave empty to number automatically)</span>
+            <input className={inputCls} value={code} onChange={(e) => setCode(e.target.value)} maxLength={20} placeholder="1.1" />
+          </label>
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <button className={btnCls} disabled={busy}>
+          {many ? 'Add all' : `Add ${KIND_LABELS[kind].toLowerCase()}`}
+        </button>
+        {!many && (
+          <button type="button" className="text-[11px] font-bold text-slate-700 underline" onClick={() => setMore((v) => !v)}>
+            {more ? 'Fewer fields' : 'More fields (detail, assumptions)'}
+          </button>
+        )}
+        <button type="button" className="text-[11px] font-bold text-slate-700 underline" onClick={() => setMany((v) => !v)}>
+          {many ? 'Add one at a time' : 'Add many at once'}
+        </button>
+      </div>
     </form>
   );
 }
 
-function AddIndicatorForm({ busy, onSubmit }: { busy: boolean; onSubmit: (v: { name: string; unit: string; baseline: string; target: string; frequency: string; meansOfVerification: string; measure: IndicatorMeasure }) => void | Promise<void> }) {
-  const [f, setF] = useState({ name: '', unit: '', baseline: '0', target: '', frequency: '', meansOfVerification: '', measure: 'cumulative' as IndicatorMeasure });
+function EditNodeForm({
+  node,
+  busy,
+  onSubmit,
+  onCancel,
+}: {
+  node: { code: string; title: string; description: string | null; assumptions: string | null };
+  busy: boolean;
+  onSubmit: (v: { code: string; title: string; description: string; assumptions: string }) => void | Promise<void>;
+  onCancel: () => void;
+}) {
+  const [f, setF] = useState({ code: node.code, title: node.title, description: node.description ?? '', assumptions: node.assumptions ?? '' });
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((s) => ({ ...s, [k]: e.target.value }));
+  return (
+    <form
+      className="mt-2 grid gap-2 sm:grid-cols-[100px_1fr] rounded-lg border border-slate-200 p-2.5"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        await onSubmit(f);
+      }}
+    >
+      <label>
+        <span className={labelCls}>Number</span>
+        <input className={inputCls} value={f.code} onChange={set('code')} maxLength={20} required />
+      </label>
+      <label>
+        <span className={labelCls}>Title</span>
+        <input className={inputCls} value={f.title} onChange={set('title')} required />
+      </label>
+      <label className="sm:col-span-2">
+        <span className={labelCls}>More detail</span>
+        <textarea className={inputCls} rows={2} value={f.description} onChange={set('description')} />
+      </label>
+      <label className="sm:col-span-2">
+        <span className={labelCls}>Assumptions: what must stay true for this to work</span>
+        <textarea className={inputCls} rows={2} value={f.assumptions} onChange={set('assumptions')} />
+      </label>
+      <div className="sm:col-span-2 flex gap-2">
+        <button className={btnCls} disabled={busy}>Save</button>
+        <button type="button" className={ghostCls} onClick={onCancel}>Cancel</button>
+      </div>
+    </form>
+  );
+}
+
+type IndicatorForm = { name: string; unit: string; baseline: string; target: string; frequency: string; meansOfVerification: string; measure: IndicatorMeasure };
+
+const UNIT_CHIPS = ['people', 'families', 'kits', 'sessions', '%'];
+
+/** Name, unit and target are all most indicators need; the rest is under "More fields". */
+function AddIndicatorForm({
+  busy,
+  onSubmit,
+  initial,
+  submitLabel = 'Add indicator',
+  onCancel,
+}: {
+  busy: boolean;
+  onSubmit: (v: IndicatorForm) => void | Promise<void>;
+  initial?: IndicatorForm;
+  submitLabel?: string;
+  onCancel?: () => void;
+}) {
+  const [f, setF] = useState<IndicatorForm>(initial ?? { name: '', unit: '', baseline: '0', target: '', frequency: '', meansOfVerification: '', measure: 'cumulative' });
+  const [more, setMore] = useState(!!initial);
+  const set = (k: keyof IndicatorForm) => (e: { target: { value: string } }) => setF((s) => ({ ...s, [k]: e.target.value }));
   return (
     <form
       className="mt-2 grid gap-2 sm:grid-cols-2 rounded-lg border border-slate-200 p-2.5"
@@ -370,42 +555,63 @@ function AddIndicatorForm({ busy, onSubmit }: { busy: boolean; onSubmit: (v: { n
       }}
     >
       <label className="sm:col-span-2">
-        <span className={labelCls}>Indicator</span>
-        <input className={inputCls} value={f.name} onChange={set('name')} required />
+        <span className={labelCls}>What will be measured? (for example: Families receiving food packs)</span>
+        <input className={inputCls} value={f.name} onChange={set('name')} required autoFocus={!initial} />
       </label>
       <label>
-        <span className={labelCls}>Unit (people, %, kits…)</span>
-        <input className={inputCls} value={f.unit} onChange={set('unit')} required />
-      </label>
-      <label>
-        <span className={labelCls}>How progress is counted</span>
-        <select className={inputCls} value={f.measure} onChange={set('measure')}>
-          {(Object.keys(MEASURE_LABELS) as IndicatorMeasure[]).map((m) => (
-            <option key={m} value={m}>
-              {MEASURE_LABELS[m]}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        <span className={labelCls}>Baseline</span>
-        <input className={inputCls} inputMode="decimal" value={f.baseline} onChange={set('baseline')} required />
-      </label>
-      <label>
-        <span className={labelCls}>Target</span>
+        <span className={labelCls}>Target (the number to reach)</span>
         <input className={inputCls} inputMode="decimal" value={f.target} onChange={set('target')} required />
       </label>
       <label>
-        <span className={labelCls}>How often measured (optional)</span>
-        <input className={inputCls} value={f.frequency} onChange={set('frequency')} />
+        <span className={labelCls}>Counted in</span>
+        <input className={inputCls} list="logframe-units" value={f.unit} onChange={set('unit')} required placeholder="people, families, kits…" />
+        <datalist id="logframe-units">
+          {UNIT_CHIPS.map((u) => (
+            <option key={u} value={u} />
+          ))}
+        </datalist>
       </label>
-      <label>
-        <span className={labelCls}>Proof / source (optional)</span>
-        <input className={inputCls} value={f.meansOfVerification} onChange={set('meansOfVerification')} />
-      </label>
-      <button className={btnCls} disabled={busy}>
-        Add indicator
-      </button>
+      {more && (
+        <>
+          <label>
+            <span className={labelCls}>Starting number (baseline)</span>
+            <input className={inputCls} inputMode="decimal" value={f.baseline} onChange={set('baseline')} required />
+          </label>
+          <label>
+            <span className={labelCls}>How progress is counted</span>
+            <select className={inputCls} value={f.measure} onChange={set('measure')}>
+              {(Object.keys(MEASURE_LABELS) as IndicatorMeasure[]).map((m) => (
+                <option key={m} value={m}>
+                  {MEASURE_LABELS[m]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span className={labelCls}>How often measured (optional)</span>
+            <input className={inputCls} value={f.frequency} onChange={set('frequency')} />
+          </label>
+          <label>
+            <span className={labelCls}>Proof / source (optional)</span>
+            <input className={inputCls} value={f.meansOfVerification} onChange={set('meansOfVerification')} />
+          </label>
+        </>
+      )}
+      <div className="sm:col-span-2 flex flex-wrap items-center gap-2">
+        <button className={btnCls} disabled={busy}>
+          {submitLabel}
+        </button>
+        {onCancel && (
+          <button type="button" className={ghostCls} onClick={onCancel}>
+            Cancel
+          </button>
+        )}
+        {!initial && (
+          <button type="button" className="text-[11px] font-bold text-slate-700 underline" onClick={() => setMore((v) => !v)}>
+            {more ? 'Fewer fields' : 'More fields (starting number, proof, how often)'}
+          </button>
+        )}
+      </div>
     </form>
   );
 }

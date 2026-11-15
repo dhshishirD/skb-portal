@@ -17,7 +17,7 @@ import type { FundReceipt } from '../fundReceipts';
 
 const task = (o: Partial<Task>): Task => ({
   id: 't', title: 'T', description: null, status: 'todo', priority: 'medium', dueDate: null,
-  assigneeId: null, assigneeName: null, nodeId: null, nodeLabel: null, completedAt: null, comments: [], ...o,
+  assigneeId: null, assigneeName: null, nodeId: null, nodeLabel: null, completedAt: null, comments: [], raci: { accountableId: null, consultedIds: [], informedIds: [] }, ...o,
 });
 
 describe('project health', () => {

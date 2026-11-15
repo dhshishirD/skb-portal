@@ -34,7 +34,7 @@ vi.mock('@/server/services/projectsData', () => ({
     isUuid: (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v),
 }));
 
-import { addTaskAction, setTaskStatusAction, deleteTaskAction, addTaskCommentAction, getTasksAction } from '../tasks';
+import { setTaskRaciAction, addTaskAction, setTaskStatusAction, deleteTaskAction, addTaskCommentAction, getTasksAction } from '../tasks';
 
 const PID = '11111111-1111-4111-8111-111111111111';
 const TID = '33333333-3333-4333-8333-333333333333';
@@ -114,5 +114,41 @@ describe('getTasksAction', () => {
       expect(r.data.tasks).toEqual([]);
       expect(r.data.canManage).toBe(true);
     }
+  });
+});
+
+describe('setTaskRaciAction', () => {
+  const X = '44444444-4444-4444-8444-444444444444';
+  const Y = '55555555-5555-4555-8555-555555555555';
+  const roles = { accountableId: Y, consultedIds: [] as string[], informedIds: [] as string[] };
+
+  it('needs a manager role and an open project', async () => {
+    state.actor = { userId: USER, roles: ['field_officer'] };
+    expect((await setTaskRaciAction(PID, TID, roles)).ok).toBe(false);
+    state.actor = { userId: USER, roles: ['project_officer'] };
+    state.project = proj('closed');
+    expect((await setTaskRaciAction(PID, TID, roles)).ok).toBe(false);
+    expect(state.calls.some((c) => c.table === 'task_raci')).toBe(false);
+  });
+  it('refuses one person with two letters', async () => {
+    const r = await setTaskRaciAction(PID, TID, { accountableId: Y, consultedIds: [Y], informedIds: [] });
+    expect(r.ok).toBe(false);
+    expect(state.calls.some((c) => c.method === 'insert' || c.method === 'delete')).toBe(false);
+  });
+  it('removes the old person and adds the new accountable one', async () => {
+    state.results.tasks = { data: { id: TID }, error: null };
+    state.results.task_raci = { data: [{ user_id: X, raci_role: 'consulted' }], error: null };
+    const r = await setTaskRaciAction(PID, TID, roles);
+    expect(r.ok).toBe(true);
+    const methods = state.calls.filter((c) => c.table === 'task_raci').map((c) => c.method);
+    expect(methods).toContain('delete');
+    expect(methods).toContain('insert');
+    expect(methods.indexOf('delete')).toBeLessThan(methods.indexOf('insert'));
+  });
+  it('shows a plain message when the database refuses', async () => {
+    state.results.tasks = { data: { id: TID }, error: null };
+    state.results.task_raci = { data: null, error: { code: '23505', message: 'duplicate' } };
+    const r = await setTaskRaciAction(PID, TID, roles);
+    expect(r.ok).toBe(false);
   });
 });

@@ -22,7 +22,7 @@ export function ProjectTabs({ projectId }: { projectId: string }) {
   ];
 
   return (
-    <nav aria-label="Project sections" className="flex items-center gap-1.5 overflow-x-auto pb-1">
+    <nav aria-label="Project sections" className="flex items-center gap-1.5 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const active = pathname.startsWith(tab.href);

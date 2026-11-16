@@ -157,6 +157,39 @@ export function matrixRows(nodes: LogframeNode[], indicators: Indicator[]): Matr
   return out;
 }
 
+/** One level of the compact (donor style) logframe: every item of that level, listed with its number. */
+export interface CompactRow {
+  kind: LogframeKind;
+  label: string;
+  narrative: string[];
+  indicators: string[];
+  verification: string[];
+  assumptions: string[];
+}
+
+const KIND_ORDER: LogframeKind[] = ['goal', 'outcome', 'output', 'activity'];
+
+/** Four rows (goal, purpose, outputs, activities). Levels with nothing in them are left out. */
+export function compactRows(nodes: LogframeNode[], indicators: Indicator[]): CompactRow[] {
+  const ordered = matrixRows(nodes, indicators);
+  const rows: CompactRow[] = [];
+  for (const kind of KIND_ORDER) {
+    const items = ordered.filter((r) => r.node.kind === kind);
+    if (items.length === 0) continue;
+    const row: CompactRow = { kind, label: MATRIX_LABELS[kind], narrative: [], indicators: [], verification: [], assumptions: [] };
+    for (const { node, indicators: inds } of items) {
+      row.narrative.push(`${node.code}  ${node.title}${node.description ? ` - ${node.description}` : ''}`);
+      for (const i of inds) {
+        row.indicators.push(`${node.code}  ${i.name}: baseline ${formatNumber(Math.round(i.baseline * 100))}, target ${formatNumber(Math.round(i.target * 100))} ${i.unit}`);
+        if (i.meansOfVerification) row.verification.push(`${node.code}  ${i.meansOfVerification}`);
+      }
+      if (node.assumptions) row.assumptions.push(`${node.code}  ${node.assumptions}`);
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
 // ===== Progress (validated values only) =====
 const cents = (n: number) => Math.round(n * 100);
 

@@ -27,7 +27,7 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       docx:
-        specifier: ^9.15.4
+        specifier: 9.15.4
         version: 9.15.4
       jszip:
         specifier: ^3.10.2

@@ -41,7 +41,7 @@ const btnCls = 'px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-900 text-white
 const ghostCls = 'px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-300 text-slate-700 disabled:opacity-50';
 
 /** Logframe tab: goal, outcomes, outputs, activities, with indicators and validated progress. */
-export function LogframePanel({ projectId }: { projectId: string }) {
+export function LogframePanel({ projectId, projectTitle }: { projectId: string; projectTitle?: string }) {
   const [data, setData] = useState<LogframeData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [note, setNote] = useState<Note>(null);
@@ -106,7 +106,7 @@ export function LogframePanel({ projectId }: { projectId: string }) {
           ))}
         </div>
       </div>
-      {view === 'matrix' ? <LogframeMatrix data={data} /> : (<>
+      {view === 'matrix' ? <LogframeMatrix data={data} projectTitle={projectTitle} /> : (<>
       {data.closed && <p className="text-sm text-slate-600">This project is closed, so the logframe is read-only.</p>}
       {note && (
         <p role="status" className={`text-sm ${note.kind === 'ok' ? 'text-emerald-700' : 'text-red-700'}`}>

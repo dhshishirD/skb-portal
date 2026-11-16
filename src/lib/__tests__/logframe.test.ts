@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildTree, childKind, canEditStructure, canEditIndicators, canValidateValues, descendantCount,
   indicatorProgress, indicatorSchema, nodeSchema, valueSchema, formatNumber, formatPercent,
-  nextCode, splitLines, matrixRows,
+  nextCode, splitLines, matrixRows, compactRows,
   type LogframeNode, type IndicatorValue,
 } from '../logframe';
 
@@ -105,5 +105,25 @@ describe('easy entry', () => {
     const rows = matrixRows(nodes, []);
     expect(rows.map((r) => r.node.id)).toEqual(['1', '2', '3']);
     expect(rows.map((r) => r.depth)).toEqual([0, 1, 2]);
+  });
+});
+
+describe('compact (donor style) rows', () => {
+  it('lists every item of a level together, with numbers, and skips empty levels', () => {
+    const nodes: LogframeNode[] = [
+      { ...n('1', null, 'goal', 'G'), assumptions: 'Peace holds' },
+      n('2', '1', 'outcome', '1'),
+      n('3', '2', 'output', '1.1'),
+      n('4', '2', 'output', '1.2'),
+    ];
+    const ind = [{ id: 'i', nodeId: '3', name: 'Kits given', unit: 'kits', baseline: 0, target: 1000, frequency: null, meansOfVerification: 'Distribution lists', measure: 'cumulative' as const, values: [] }];
+    const rows = compactRows(nodes, ind);
+    expect(rows.map((r) => r.kind)).toEqual(['goal', 'outcome', 'output']);
+    const out = rows[2];
+    expect(out.narrative).toEqual(['1.1  T 1.1', '1.2  T 1.2']);
+    expect(out.indicators).toEqual(['1.1  Kits given: baseline 0, target 1,000 kits']);
+    expect(out.verification).toEqual(['1.1  Distribution lists']);
+    expect(rows[0].assumptions).toEqual(['G  Peace holds']);
+    expect(rows[1].indicators).toEqual([]);
   });
 });

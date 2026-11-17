@@ -83,7 +83,11 @@ export default function DonorsPage() {
                 <li key={o.id} className="py-3 space-y-2">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <p className="text-sm font-semibold text-slate-900">{o.name}{o.country ? <span className="font-normal text-slate-500"> · {o.country}</span> : null}</p>
-                    <p className="text-xs text-slate-500">{o.projectCount} {o.projectCount === 1 ? 'project' : 'projects'}</p>
+                    <p className="text-xs text-slate-500">
+                      {o.projectCount} {o.projectCount === 1 ? 'project' : 'projects'}
+                      {' · '}
+                      <a href={`/donor-dashboard?org=${o.id}`} className="font-semibold text-blue-700 hover:underline">Preview what they see</a>
+                    </p>
                   </div>
                   {people.length === 0 ? (
                     <p className="text-xs text-slate-500">No one from this donor can sign in yet.</p>

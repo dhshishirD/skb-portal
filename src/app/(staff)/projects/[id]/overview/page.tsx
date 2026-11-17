@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation';
 import { OfficerAssignment } from '@/components/projects/OfficerAssignment';
 import { ProjectHealthPanel } from '@/components/projects/ProjectHealthPanel';
 import { Form3ExportPanel } from '@/components/projects/Form3ExportPanel';
+import { canSeeBudgetVsActual } from '@/lib/budgetVsActual';
+import { Form7ExportPanel } from '@/components/projects/Form7ExportPanel';
 import { Form3ImportPanel } from '@/components/projects/Form3ImportPanel';
 import { ProjectAreasPanel } from '@/components/projects/ProjectAreasPanel';
 import { ProjectOverviewActions } from '@/components/projects/ProjectOverviewActions';
@@ -67,6 +69,8 @@ export default async function ProjectOverviewPage({ params }: { params: Promise<
       {canEditProjects(actor.roles) && <Form3ImportPanel projectId={project.id} />}
 
       {canEditProjects(actor.roles) && <Form3ExportPanel projectId={project.id} />}
+
+      {canSeeBudgetVsActual(actor.roles) && <Form7ExportPanel projectId={project.id} />}
 
       {canAssignOfficers(actor.roles) && <OfficerAssignment projectId={project.id} />}
     </div>

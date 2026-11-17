@@ -3,26 +3,26 @@ import { money, type Form3Data } from './form3Export';
 
 /** Builds the Word file of a donor Form 3 (IHH layout) from Form3Data. Runs in the browser. */
 
-const FONT = 'Arial';
-const border = { style: BorderStyle.SINGLE, size: 4, color: '808080' };
-const borders = { top: border, bottom: border, left: border, right: border };
-const W = 9600; // usable width in twips on A4 with 2 cm margins
+export const FONT = 'Arial';
+export const border = { style: BorderStyle.SINGLE, size: 4, color: '808080' };
+export const borders = { top: border, bottom: border, left: border, right: border };
+export const W = 9600; // usable width in twips on A4 with 2 cm margins
 
-const run = (text: string, o: { bold?: boolean; size?: number; italics?: boolean; color?: string } = {}) =>
+export const run = (text: string, o: { bold?: boolean; size?: number; italics?: boolean; color?: string } = {}) =>
   new TextRun({ text, font: FONT, size: o.size ?? 20, bold: o.bold, italics: o.italics, color: o.color });
 
-const para = (text: string, o: { bold?: boolean; size?: number; italics?: boolean; align?: (typeof AlignmentType)[keyof typeof AlignmentType]; after?: number; before?: number } = {}) =>
+export const para = (text: string, o: { bold?: boolean; size?: number; italics?: boolean; align?: (typeof AlignmentType)[keyof typeof AlignmentType]; after?: number; before?: number } = {}) =>
   new Paragraph({ alignment: o.align, spacing: { after: o.after ?? 80, before: o.before ?? 0 }, children: [run(text, o)] });
 
-const multi = (text: string, o: { bold?: boolean } = {}): Paragraph[] => {
+export const multi = (text: string, o: { bold?: boolean } = {}): Paragraph[] => {
   const lines = text.split('\n');
   return (lines.length ? lines : ['']).map((l) => new Paragraph({ spacing: { after: 60 }, children: [run(l, o)] }));
 };
 
-const heading = (text: string) => para(text, { bold: true, size: 24, before: 200, after: 100 });
-const sub = (text: string) => para(text, { bold: true, size: 21, before: 120, after: 80 });
+export const heading = (text: string) => para(text, { bold: true, size: 24, before: 200, after: 100 });
+export const sub = (text: string) => para(text, { bold: true, size: 21, before: 120, after: 80 });
 
-function cell(children: Paragraph[], width: number, o: { fill?: string; span?: number } = {}) {
+export function cell(children: Paragraph[], width: number, o: { fill?: string; span?: number } = {}) {
   return new TableCell({
     width: { size: width, type: WidthType.DXA },
     columnSpan: o.span,
@@ -32,17 +32,17 @@ function cell(children: Paragraph[], width: number, o: { fill?: string; span?: n
     children,
   });
 }
-const t = (text: string, bold = false) => multi(text, { bold });
-const table = (widths: number[], rows: TableRow[]) => new Table({ width: { size: widths.reduce((a, b) => a + b, 0), type: WidthType.DXA }, columnWidths: widths, rows });
-const row = (cells: TableCell[], header = false) => new TableRow({ tableHeader: header, cantSplit: true, children: cells });
-const spacer = () => new Paragraph({ spacing: { after: 80 }, children: [] });
+export const t = (text: string, bold = false) => multi(text, { bold });
+export const table = (widths: number[], rows: TableRow[]) => new Table({ width: { size: widths.reduce((a, b) => a + b, 0), type: WidthType.DXA }, columnWidths: widths, rows });
+export const row = (cells: TableCell[], header = false) => new TableRow({ tableHeader: header, cantSplit: true, children: cells });
+export const spacer = () => new Paragraph({ spacing: { after: 80 }, children: [] });
 
 /** "Label: value" in one cell, the label in bold. */
-const labelled = (label: string, value: string, width: number, span?: number) =>
+export const labelled = (label: string, value: string, width: number, span?: number) =>
   cell([new Paragraph({ spacing: { after: 40 }, children: [run(`${label}: `, { bold: true }), run(value)] })], width, { span });
 
 /** Two columns: the label cell ends with a colon, the answer sits in the next cell. */
-const twoCol = (label: string, value: string) => row([cell(t(label, true), 3000, { fill: 'F2F2F2' }), cell(t(value), W - 3000)]);
+export const twoCol = (label: string, value: string) => row([cell(t(label, true), 3000, { fill: 'F2F2F2' }), cell(t(value), W - 3000)]);
 
 export function buildForm3Document(d: Form3Data): Document {
   const a = d.applicant;

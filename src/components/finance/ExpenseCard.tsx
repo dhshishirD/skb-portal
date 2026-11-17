@@ -51,6 +51,7 @@ export function ExpenseCard({
           Expense date {formatDate(claim.expenseDate)} · filed {formatDate(claim.submittedAt)}
           {claim.vendorName ? ` · ${claim.vendorName}` : ''}
           {claim.receiptRef ? ` · receipt ${claim.receiptRef}` : ''}
+          {claim.quantity ? ` · ${claim.quantity.toLocaleString('en-US')}${claim.measure ? ` ${claim.measure}` : ''}` : ''}
         </p>
       </div>
 

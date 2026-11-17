@@ -66,7 +66,7 @@ declare
   fin2 text := 'f1000000-0000-0000-0000-00000000000a';
   pid uuid := 'f3000000-0000-0000-0000-00000000000a';
   oid uuid := 'f3000000-0000-0000-0000-00000000000b';
-  ex uuid; ex2 uuid; req uuid; req2 uuid; v1 uuid; v2 uuid; v3 uuid; q1 uuid; q2 uuid; q3 uuid;
+  ex uuid; ex2 uuid; exq uuid; req uuid; req2 uuid; v1 uuid; v2 uuid; v3 uuid; q1 uuid; q2 uuid; q3 uuid;
   n int; denied boolean; st text;
 begin
   ---------------------------------------------------------------- EXPENSES
@@ -76,6 +76,30 @@ begin
     values (pid, 12500, current_date, 'Nursery seedlings', 'Test Nursery') returning id into ex;
   assert (select status from public.expenses where id = ex) = 'submitted', 'a new claim is submitted';
   assert (select claimant_id from public.expenses where id = ex) = po::uuid, 'claimant is the signed-in user';
+
+  -- 0035: quantity and measure are optional, must be sensible, and are frozen once the claim is filed
+  -- (run in a sub-block that is rolled back, so later counts are unchanged)
+  begin
+  insert into public.expenses (project_id, amount, expense_date, description, vendor_name, quantity, measure)
+    values (pid, 500, current_date, 'Rice for the kitchen', 'Rahim Store', 25.5, 'kg') returning id into exq;
+  assert (select quantity from public.expenses where id = exq) = 25.5, 'quantity is kept';
+  denied := false;
+  begin insert into public.expenses (project_id, amount, expense_date, description, quantity)
+    values (pid, 1, current_date, 'Zero quantity', 0);
+  exception when check_violation then denied := true; end;
+  assert denied, 'quantity must be above zero';
+  denied := false;
+  begin insert into public.expenses (project_id, amount, expense_date, description, measure)
+    values (pid, 1, current_date, 'Blank unit', '   ');
+  exception when check_violation then denied := true; end;
+  assert denied, 'a blank measure is refused';
+  denied := false;
+  begin update public.expenses set quantity = 99 where id = exq;
+  exception when insufficient_privilege then denied := true; end;
+  assert denied, 'quantity cannot be changed after filing';
+    raise exception 'rollback_0035' using errcode = 'P0001';
+  exception when sqlstate 'P0001' then null;
+  end;
 
   -- forged status / claimant / dates / currency are refused
   denied := false;

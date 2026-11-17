@@ -122,6 +122,14 @@ export default function ExpenseClaimsPage() {
             <label className={labelClass} htmlFor="ec-ref">Receipt or voucher number (optional)</label>
             <input id="ec-ref" className={inputClass} maxLength={100} value={form.receiptRef} onChange={(e) => set('receiptRef', e.target.value)} />
           </div>
+          <div>
+            <label className={labelClass} htmlFor="ec-qty">Quantity (optional)</label>
+            <input id="ec-qty" className={inputClass} inputMode="decimal" value={form.quantity} onChange={(e) => set('quantity', e.target.value)} />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="ec-measure">Unit, e.g. kg, pcs, bag (optional)</label>
+            <input id="ec-measure" className={inputClass} maxLength={30} value={form.measure} onChange={(e) => set('measure', e.target.value)} />
+          </div>
           <div className="md:col-span-2">
             <label className={labelClass} htmlFor="ec-desc">What was it for?</label>
             <textarea id="ec-desc" className={inputClass} rows={2} maxLength={1000} value={form.description} onChange={(e) => set('description', e.target.value)} required />

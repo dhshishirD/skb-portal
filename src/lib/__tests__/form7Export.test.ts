@@ -68,6 +68,12 @@ describe('buildForm7Data', () => {
     expect(x.spend.rows[0]).toMatchObject({ name: 'Rice', measure: 'kg', quantity: 150, unitLocal: 50, totalLocal: 7500 });
     expect(x.invoices).toHaveLength(2);
   });
+  it('puts the local-support text in section 4.2', async () => {
+    const x = buildForm7Data({ ...base, claims: [], orders: [], receipts: [], texts: { rationale: '', experience: '', internalControl: '', otherFunding: '', sustainability: '', localSupport: 'Bought from local farmers.' } });
+    const buf = await Packer.toBuffer(buildForm7Document(x));
+    const tables = await readDocxTables(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer);
+    expect(JSON.stringify(tables)).toContain('Bought from local farmers.');
+  });
   it('formats dates', () => {
     expect(longDate('2026-05-20')).toBe('20 May 2026');
     expect(longDate(null)).toBe('');

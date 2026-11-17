@@ -8,6 +8,8 @@ import { getBudgetAction } from '@/server/actions/budget';
 import { getCharterAction } from '@/server/actions/charter';
 import { getForm7ActualsAction } from '@/server/actions/form7Actuals';
 import { getProjectAreasAction } from '@/server/actions/projectAreas';
+import { getFormTextsAction } from '@/server/actions/formTexts';
+import { EMPTY_FORM_TEXTS } from '@/lib/formTexts';
 import { FIELDS, loadApplicant, STORE_KEY } from './Form3ExportPanel';
 
 const btnCls = 'px-3.5 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white disabled:opacity-50';
@@ -30,7 +32,7 @@ export function Form7ExportPanel({ projectId }: { projectId: string }) {
     setOpen(true);
     setError(null);
     setApplicant(loadApplicant());
-    const [c, b, a, x] = await Promise.all([getCharterAction(projectId), getBudgetAction(projectId), getProjectAreasAction(projectId), getForm7ActualsAction(projectId)]);
+    const [c, b, a, x, f] = await Promise.all([getCharterAction(projectId), getBudgetAction(projectId), getProjectAreasAction(projectId), getForm7ActualsAction(projectId), getFormTextsAction(projectId)]);
     if (!x.ok) {
       setError(x.error);
       return;
@@ -49,6 +51,7 @@ export function Form7ExportPanel({ projectId }: { projectId: string }) {
       claims: x.data.claims,
       orders: x.data.orders,
       receipts: x.data.receipts,
+      texts: f.ok ? f.data.texts : EMPTY_FORM_TEXTS,
     });
   };
 
@@ -58,6 +61,7 @@ export function Form7ExportPanel({ projectId }: { projectId: string }) {
     if (!loaded.charter) gaps.push('The charter is empty, so the description, objectives and risks boxes will be blank.');
     if (loaded.areas.length === 0) gaps.push('No areas are entered, so the area table will be empty.');
     if (!loaded.facts.startDate || !loaded.facts.endDate) gaps.push('The project has no start or end date.');
+    if (!loaded.texts?.localSupport.trim()) gaps.push('"Support to local people and economy" is not written yet in "Donor form texts", so section 4.2 will be blank.');
     gaps.push(...data.notes);
   }
 

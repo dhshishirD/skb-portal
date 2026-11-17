@@ -6,6 +6,8 @@ import { buildForm3Data, EMPTY_APPLICANT, type Form3Applicant, type Form3Data } 
 import { getBudgetAction } from '@/server/actions/budget';
 import { getCharterAction } from '@/server/actions/charter';
 import { getProjectAreasAction } from '@/server/actions/projectAreas';
+import { getFormTextsAction } from '@/server/actions/formTexts';
+import { EMPTY_FORM_TEXTS, FORM_TEXT_FIELDS } from '@/lib/formTexts';
 
 const btnCls = 'px-3.5 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white disabled:opacity-50';
 const ghostCls = 'px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 text-slate-700 disabled:opacity-50';
@@ -38,7 +40,7 @@ export const loadApplicant = (): Form3Applicant => {
   return EMPTY_APPLICANT;
 };
 
-type Loaded = { facts: NonNullable<Parameters<typeof buildForm3Data>[0]['facts']>; charter: CharterText | null; areas: Parameters<typeof buildForm3Data>[0]['areas']; items: Parameters<typeof buildForm3Data>[0]['items']; settings: Parameters<typeof buildForm3Data>[0]['settings'] };
+type Loaded = { facts: NonNullable<Parameters<typeof buildForm3Data>[0]['facts']>; charter: CharterText | null; areas: Parameters<typeof buildForm3Data>[0]['areas']; items: Parameters<typeof buildForm3Data>[0]['items']; settings: Parameters<typeof buildForm3Data>[0]['settings']; texts: Parameters<typeof buildForm3Data>[0]['texts'] };
 
 /** Makes the donor's Form 3 (Word) from the project's areas, charter and budget. Section 1 and the signatories are typed here. */
 export function Form3ExportPanel({ projectId }: { projectId: string }) {
@@ -52,13 +54,13 @@ export function Form3ExportPanel({ projectId }: { projectId: string }) {
     setOpen(true);
     setError(null);
     setApplicant(loadApplicant());
-    const [c, b, a] = await Promise.all([getCharterAction(projectId), getBudgetAction(projectId), getProjectAreasAction(projectId)]);
+    const [c, b, a, f] = await Promise.all([getCharterAction(projectId), getBudgetAction(projectId), getProjectAreasAction(projectId), getFormTextsAction(projectId)]);
     if (!c.ok || !b.ok || !a.ok) {
       setError('Could not load the project. Please refresh the page and try again.');
       return;
     }
     const latest = c.data.versions[0];
-    setLoaded({ facts: c.data.facts, charter: latest ? (textOf(latest) as CharterText) : null, areas: a.data.areas, items: b.data.items, settings: b.data.settings });
+    setLoaded({ facts: c.data.facts, charter: latest ? (textOf(latest) as CharterText) : null, areas: a.data.areas, items: b.data.items, settings: b.data.settings, texts: f.ok ? f.data.texts : EMPTY_FORM_TEXTS });
   };
 
   const data: Form3Data | null = loaded ? buildForm3Data({ applicant, ...loaded }) : null;
@@ -67,6 +69,8 @@ export function Form3ExportPanel({ projectId }: { projectId: string }) {
   if (loaded && data) {
     if (!loaded.charter) gaps.push('The charter is empty, so the description, objectives and risks boxes will be blank.');
     if (loaded.areas.length === 0) gaps.push('No areas are entered, so the area table will be empty.');
+    const empty = FORM_TEXT_FIELDS.filter((f) => f.key !== 'localSupport' && !(loaded.texts ?? EMPTY_FORM_TEXTS)[f.key].trim());
+    if (empty.length > 0) gaps.push(`Not written yet in "Donor form texts": ${empty.map((f) => f.label.replace(/ \(.*\)$/, '')).join(', ')}. Those boxes will be blank.`);
     gaps.push(...data.cost.notes);
     if (!loaded.facts.donorName) gaps.push('The project has no donor name; the form will say "the donor".');
     if (!loaded.facts.startDate || !loaded.facts.endDate) gaps.push('The project has no start or end date, so the duration will be blank.');

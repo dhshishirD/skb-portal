@@ -1,3 +1,4 @@
+import { EMPTY_FORM_TEXTS, type FormTexts } from './formTexts';
 import type { BudgetItem, BudgetSettings } from './budget';
 import type { CharterProjectFacts, CharterText } from './charter';
 import type { ProjectArea } from './projectAreas';
@@ -72,6 +73,8 @@ export interface Form3Data {
     problems: string;
   };
   implementation: string;
+  /** The written answers kept once per project (migration 0036). */
+  texts: FormTexts;
   cost: {
     rows: Form3CostRow[];
     purchasedLocal: number;
@@ -139,8 +142,10 @@ export function buildForm3Data(input: {
   areas: ProjectArea[];
   items: BudgetItem[];
   settings: BudgetSettings;
+  texts?: FormTexts;
 }): Form3Data {
   const { applicant, facts, charter, areas, items, settings } = input;
+  const texts = input.texts ?? EMPTY_FORM_TEXTS;
   const currency = facts.currency || 'EUR';
   const rate = currency === 'BDT' ? 1 : settings.exchangeRate;
   const toDonor = (local: number): number | null => (rate && rate > 0 ? round2(local / rate) : null);
@@ -210,7 +215,7 @@ export function buildForm3Data(input: {
     },
     details: {
       brief: charter?.background ?? '',
-      rationale: '',
+      rationale: texts.rationale,
       objectives: charter?.objectives ?? '',
       targetGroup: targetGroupOf(charter?.scopeIn ?? ''),
       beneficiaries: families > 0 ? `${families} families` : facts.beneficiaryTarget ? `${facts.beneficiaryTarget}` : '',
@@ -218,6 +223,7 @@ export function buildForm3Data(input: {
       problems: risks.problems,
     },
     implementation: charter?.deliverables ?? '',
+    texts,
     cost: {
       rows,
       purchasedLocal,

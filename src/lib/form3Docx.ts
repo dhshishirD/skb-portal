@@ -111,9 +111,9 @@ export function buildForm3Document(d: Form3Data): Document {
   children.push(sub('3.1 Explain step by step how your foundation will implement the project, mentioning all the details.'));
   children.push(table([W], [row([cell(t(d.implementation), W)])]));
   children.push(sub("3.2 Please state the experience and ability of your foundation to successfully carry out this project."));
-  children.push(table([W], [row([cell(t(''), W)])]));
+  children.push(table([W], [row([cell(t(d.texts.experience), W)])]));
   children.push(sub("3.3 Provide detailed information about your foundation's internal control mechanism for the implementation of this project."));
-  children.push(table([W], [row([cell(t(''), W)])]));
+  children.push(table([W], [row([cell(t(d.texts.internalControl), W)])]));
 
   children.push(heading('Section 4: Project Cost and Sustainability'));
   children.push(sub('4.1 Write the cost items of the project.'));
@@ -139,9 +139,9 @@ export function buildForm3Document(d: Form3Data): Document {
   children.push(sub('4.2 Is this proposal to fund an existing project?   Yes  /  No'));
   children.push(table([W], [row([cell(t('If your answer is Yes, write your evaluations of the current project.'), W)])]));
   children.push(sub('4.3 Provide details on other institutions where you submitted this project and the funds obtained.'));
-  children.push(table([W], [row([cell(t(''), W)])]));
+  children.push(table([W], [row([cell(t(d.texts.otherFunding), W)])]));
   children.push(sub('4.4 Sustainability of the Project (For Permanent Projects)'));
-  children.push(table([W], [row([cell(t(''), W)])]));
+  children.push(table([W], [row([cell(t(d.texts.sustainability), W)])]));
 
   children.push(heading('Section 5: Control List'));
   for (const x of ['At least 3 offers that indicate market prices', 'Region Map', 'Detailed Case Studies / Social-Economic Evaluations', 'Others']) children.push(para(`☐  ${x}`));

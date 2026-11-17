@@ -73,7 +73,7 @@ export function buildForm7Document(d: Form7Data): Document {
   children.push(sub('4.1 Summarize your goals, targets, and follow-up and success in achieving those goals.'));
   children.push(table([W], [row([cell(t(b.details.objectives), W)])]));
   children.push(sub('4.2 Explain how the project supported the local people and the local economy.'));
-  children.push(table([W], [row([cell(t(''), W)])]));
+  children.push(table([W], [row([cell(t(b.texts.localSupport), W)])]));
 
   children.push(heading('Section 5: Financial Summary'));
   children.push(

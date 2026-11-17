@@ -78,6 +78,23 @@ describe('Form 3 Word file', () => {
   });
 });
 
+describe('Form 3 with the project form texts', () => {
+  const texts = { rationale: 'Meat is rare for poor families.', experience: 'Ten years of Qurbani distribution.', internalControl: 'Three-step approval and audit.', otherFunding: 'None.', sustainability: 'Local committees continue.', localSupport: '' };
+  it('puts each text in its own box of the Word file', async () => {
+    const d = buildForm3Data({ applicant, facts, charter, areas, items, settings, texts });
+    expect(d.details.rationale).toBe(texts.rationale);
+    const buf = await Packer.toBuffer(buildForm3Document(d));
+    const tables = await readDocxTables(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer);
+    const all = JSON.stringify(tables);
+    for (const v of [texts.rationale, texts.experience, texts.internalControl, texts.otherFunding, texts.sustainability]) expect(all).toContain(v);
+  });
+  it('leaves the boxes blank when nothing is written', () => {
+    const d = buildForm3Data({ applicant, facts, charter, areas, items, settings });
+    expect(d.texts.experience).toBe('');
+    expect(d.details.rationale).toBe('');
+  });
+});
+
 describe('buildForm3Data notes', () => {
   it('warns when the donor amount and the budget total differ', () => {
     const x = buildForm3Data({ applicant, facts, charter, areas, items, settings });

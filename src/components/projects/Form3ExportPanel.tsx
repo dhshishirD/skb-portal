@@ -10,9 +10,9 @@ import { getProjectAreasAction } from '@/server/actions/projectAreas';
 const btnCls = 'px-3.5 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white disabled:opacity-50';
 const ghostCls = 'px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 text-slate-700 disabled:opacity-50';
 const inputCls = 'w-full px-3 py-2 text-sm rounded-lg border border-slate-300 bg-white';
-const STORE_KEY = 'skb-form3-applicant';
+export const STORE_KEY = 'skb-form3-applicant';
 
-const FIELDS: Array<{ key: keyof Form3Applicant; label: string; wide?: boolean }> = [
+export const FIELDS: Array<{ key: keyof Form3Applicant; label: string; wide?: boolean }> = [
   { key: 'officialName', label: 'Official name of your organization' },
   { key: 'workName', label: 'Short name' },
   { key: 'address', label: 'Official address', wide: true },
@@ -28,7 +28,7 @@ const FIELDS: Array<{ key: keyof Form3Applicant; label: string; wide?: boolean }
   { key: 'generalManagerName', label: 'General Manager / Secretary full name' },
 ];
 
-const loadApplicant = (): Form3Applicant => {
+export const loadApplicant = (): Form3Applicant => {
   try {
     const raw = window.localStorage.getItem(STORE_KEY);
     if (raw) return { ...EMPTY_APPLICANT, ...(JSON.parse(raw) as Partial<Form3Applicant>) };

@@ -85,6 +85,7 @@ export default function StaffLayout({
     { href: '/community', label: 'HQ Staff Community', icon: MessageSquare },
     { href: '/me/dashboard', label: 'M&E Overview', icon: BarChart2 },
     { href: '/admin/users', label: 'Admin & Governance', icon: ShieldCheck },
+    { href: '/admin/donors', label: 'Donors', icon: ShieldCheck },
     { href: '/admin/audit-log', label: 'Audit Log', icon: ShieldCheck },
   ];
   // Show only what this person's roles can open (the middleware enforces the same rules).

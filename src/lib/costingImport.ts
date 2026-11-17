@@ -31,32 +31,32 @@ const text = (s: string | undefined) => (s ?? '').replace(/\s+/g, ' ').trim();
 
 type Cols = { name: number; measure: number; qty: number; unit: number; total: number };
 
-function findHeaders(rows: string[][]): Array<{ row: number; cols: Cols }> {
-  const found: Array<{ row: number; cols: Cols }> = [];
+function findHeaders(rows: string[][]): Array<{ row: number; cols: Cols; skip: number }> {
+  const found: Array<{ row: number; cols: Cols; skip: number }> = [];
   for (let r = 0; r < rows.length; r++) {
     const row = rows[r] ?? [];
-    const name = row.findIndex((c) => /^(items?( to be (purchased|puchased|buy))?|items to buy|particulars)\b/.test(low(c)));
+    const name = row.findIndex((c) => /^(items?( to be (purchased|puchased|buy))?|items to buy|particulars|definition)\b/.test(low(c)));
     if (name < 0) continue;
-    const hasQty = row.some((c) => /^(quantity|qty|amount)$/.test(low(c)));
-    const hasUnit = row.some((c) => /unit/.test(low(c)));
-    if (!hasQty || !hasUnit) continue;
+    const qty = row.findIndex((c) => /^(quantity|qty|amount)$/.test(low(c)));
+    if (qty < 0) continue;
+    const measure = row.findIndex((c) => /measur|unit of/.test(low(c)));
+
+    // Layout 1: the heading says "Unit Price (Local)" / "Total Price (Local)" in one line (the donor Form 3 and Form 7 cost tables).
+    const unitOne = row.findIndex((c) => /unit (price|cost)/.test(low(c)) && /local|bdt|taka/.test(low(c)));
+    if (unitOne >= 0) {
+      const totalOne = row.findIndex((c) => /total/.test(low(c)) && /local|bdt|taka/.test(low(c)));
+      found.push({ row: r, skip: 1, cols: { name, measure, qty, unit: unitOne, total: totalOne } });
+      continue;
+    }
+
+    // Layout 2: "Unit Cost" on one line and BDT / EURO under it on the next (SKB's own costing sheets).
     const sub = rows[r + 1] ?? [];
     const unitHeader = row.findIndex((c) => /unit[: ]*(cost|price)/.test(low(c)));
-    // The BDT column under "Unit Cost": the first "BDT" in the line below the heading, at or after the heading.
     const unit = sub.findIndex((c, i) => i >= unitHeader && /^bdt$/.test(low(c)));
     if (unitHeader < 0 || unit < 0) continue;
     const totalHeader = row.findIndex((c) => /total/.test(low(c)));
     const total = totalHeader >= 0 ? sub.findIndex((c, i) => i >= totalHeader && /^bdt$/.test(low(c))) : -1;
-    found.push({
-      row: r,
-      cols: {
-        name,
-        measure: row.findIndex((c) => /measur|unit of/.test(low(c))),
-        qty: row.findIndex((c) => /^(quantity|qty|amount)$/.test(low(c))),
-        unit,
-        total,
-      },
-    });
+    found.push({ row: r, skip: 2, cols: { name, measure, qty, unit, total } });
   }
   return found;
 }
@@ -81,7 +81,7 @@ export function parseCosting(rows: string[][]): CostingParsed {
     const end = headers[idx + 1]?.row ?? rows.length;
     const above = rows.slice(Math.max(0, h.row - 3), h.row).map((r) => (r ?? []).map(text).filter(Boolean).join(' ')).filter((t) => t && !/^project cost$/i.test(t));
     const section = headers.length > 1 ? (above[above.length - 1] ?? null) : null;
-    for (let r = h.row + 2; r < end; r++) {
+    for (let r = h.row + h.skip; r < end; r++) {
       const row = rows[r] ?? [];
       const name = text(row[h.cols.name]);
       if (/^(sub-?total|grand total|total)\b/.test(low(name))) {
@@ -91,9 +91,10 @@ export function parseCosting(rows: string[][]): CostingParsed {
         }
         break;
       }
-      if (!name || /^admin/.test(low(name))) continue;
+      if (!name || /^admin/.test(low(name)) || /^etc\.?$/.test(low(name))) continue;
       const qty = parseAmount(row[h.cols.qty]);
       const price = parseAmount(row[h.cols.unit]);
+      if ((qty === null || qty === 0) && (price === null || price === 0)) continue;
       if (qty === null || price === null || qty <= 0) {
         warnings.push(`Row "${name}" was skipped: it has no quantity or no BDT unit cost.`);
         continue;

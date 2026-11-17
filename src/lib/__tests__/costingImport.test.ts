@@ -103,3 +103,28 @@ describe('readXlsxSheets', () => {
     await expect(readXlsxSheets(new TextEncoder().encode('hello').buffer as ArrayBuffer)).rejects.toThrow('not an Excel');
   });
 });
+
+describe('parseCosting (donor Form 3 / Form 7 cost table layout)', () => {
+  const form7: string[][] = [
+    ['Package 1'],
+    ['Definition', 'Measure (Piece/kg/lt etc.)', 'Quantity', 'Unit Price (Local)', 'Unit Price (EURO)', 'Total Price (Local)', 'Total Price (EURO)'],
+    ['Transportation', 'Per Animal', '50', '1,755.00', '13.00', '87,750', '650.0'],
+    ['Packaging', 'Per Animal', '50', '2,430.00', '18.00', '121,500', '900.00'],
+    ['etc.', '', '0', '0.00', '0', '0.00', '0'],
+    ['', '', '', '', '', '', ''],
+    ['Grand Total', '209,250', '1,550.00'],
+  ];
+  it('reads Definition / Measure / Quantity / Unit Price (Local) tables', () => {
+    const p = parseCosting(form7);
+    expect(p.lines).toEqual([
+      { name: 'Transportation', measure: 'Per Animal', quantity: 50, unitPriceBdt: 1755, section: null },
+      { name: 'Packaging', measure: 'Per Animal', quantity: 50, unitPriceBdt: 2430, section: null },
+    ]);
+    expect(p.warnings).toEqual([]);
+  });
+  it('keeps the package name when there are several package tables', () => {
+    const two = [...form7, ['Package 2'], form7[1], ['Rice', 'Kg', '10', '72', '0.53', '720', '5.3']];
+    const p = parseCosting(two);
+    expect(p.lines.map((l) => l.section)).toEqual(['Package 1', 'Package 1', 'Package 2']);
+  });
+});

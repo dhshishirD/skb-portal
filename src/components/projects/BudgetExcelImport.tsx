@@ -100,7 +100,10 @@ export function BudgetExcelImport({ projectId }: { projectId: string }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-base font-bold text-slate-900">Import budget lines from Excel</h2>
-          <p className="text-sm text-slate-600">Use a costing sheet (food packet, iftar packet ...). The file is read in your browser and is not uploaded.</p>
+          <p className="text-sm text-slate-600">
+            Use a costing sheet (food packet, iftar packet ...) or the template. The file is read in your browser and is not uploaded.{' '}
+            <a href="/templates/SKB-budget-template.xlsx" download className="font-semibold text-slate-900 underline">Download the Excel template</a>
+          </p>
         </div>
         {!open && (
           <button type="button" className={btnCls} onClick={() => void start()}>

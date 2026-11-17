@@ -3,8 +3,8 @@ import { buildForm3Data, moneyWithCurrency, type Form3Data, type Form3CostRow } 
 /**
  * Form 7 (project feedback report) export: the pure part. The first sections are the same as Form 3; this adds
  * the real spending (approved expense claims and issued purchase orders), the money received from the donor,
- * the administration share, the unspent amount and the invoice list. The portal does not record the shop,
- * invoice number or quantity of a claim, so those boxes stay empty for the person to fill in Word.
+ * the administration share, the unspent amount and the invoice list. A claim carries the shop name and invoice
+ * number, and optionally a quantity and measure; where a box is not recorded it stays empty for Word.
  */
 
 export interface ActualClaim {
@@ -14,6 +14,11 @@ export interface ActualClaim {
   amount: number;
   fxRateToBdt: number;
   expenseDate: string;
+  vendorName?: string | null;
+  /** The invoice / voucher number written on the receipt. */
+  receiptRef?: string | null;
+  quantity?: number | null;
+  measure?: string | null;
 }
 export interface ActualOrder {
   id: string;
@@ -21,6 +26,7 @@ export interface ActualOrder {
   vendorName: string | null;
   totalBdt: number;
   issuedOn: string;
+  invoiceNo?: string | null;
 }
 export interface ActualReceipt {
   receivedOn: string;
@@ -28,8 +34,12 @@ export interface ActualReceipt {
   currency: string;
 }
 
+export interface Form7SpendRow extends Form3CostRow {
+  measure: string;
+}
+
 export interface Form7Invoice {
-  no: number;
+  no: string;
   date: string;
   store: string;
   goods: string;
@@ -45,7 +55,7 @@ export interface Form7Data {
   individuals: number;
   fundsReceivedText: string;
   rateText: string;
-  spend: { rows: Form3CostRow[]; totalLocal: number; totalDonor: number | null };
+  spend: { rows: Form7SpendRow[]; totalLocal: number; totalDonor: number | null };
   admin: { percent: number; local: number; donor: number | null };
   totalExpenditureText: string;
   unspentText: string;
@@ -75,13 +85,36 @@ export function buildForm7Data(input: Parameters<typeof buildForm3Data>[0] & { c
   const toDonor = (local: number): number | null => (rate && rate > 0 ? round2(local / rate) : null);
   const notes = [...base.cost.notes.filter((n) => !n.includes('donor amount'))];
 
-  type Spent = { date: string; store: string; goods: string; local: number };
+  type Spent = { date: string; store: string; goods: string; local: number; invoiceNo: string; quantity: number | null; measure: string };
   const spent: Spent[] = [
-    ...input.orders.map((o) => ({ date: o.issuedOn, store: o.vendorName ?? '', goods: o.description, local: round2(o.totalBdt) })),
-    ...input.claims.map((c) => ({ date: c.expenseDate, store: '', goods: c.description, local: round2(c.amount * c.fxRateToBdt) })),
+    ...input.orders.map((o) => ({ date: o.issuedOn, store: o.vendorName ?? '', goods: o.description, local: round2(o.totalBdt), invoiceNo: o.invoiceNo ?? '', quantity: null, measure: '' })),
+    ...input.claims.map((c) => ({
+      date: c.expenseDate,
+      store: c.vendorName ?? '',
+      goods: c.description,
+      local: round2(c.amount * c.fxRateToBdt),
+      invoiceNo: c.receiptRef ?? '',
+      quantity: c.quantity && c.quantity > 0 ? c.quantity : null,
+      measure: c.measure ?? '',
+    })),
   ].sort((a, b) => a.date.localeCompare(b.date));
 
-  const rows: Form3CostRow[] = spent.map((s) => ({ name: s.goods, quantity: 1, unitLocal: s.local, unitDonor: toDonor(s.local), totalLocal: s.local, totalDonor: toDonor(s.local) }));
+  // 5.2: the same item bought at the same unit price is one line with the quantities added up.
+  const grouped = new Map<string, Form7SpendRow>();
+  for (const s of spent) {
+    const qty = s.quantity ?? 1;
+    const unit = s.quantity ? round2(s.local / s.quantity) : s.local;
+    const key = `${s.goods.trim().toLowerCase()}|${s.measure.trim().toLowerCase()}|${unit}`;
+    const row = grouped.get(key);
+    if (row) {
+      row.quantity = round2(row.quantity + qty);
+      row.totalLocal = round2(row.totalLocal + s.local);
+      row.totalDonor = toDonor(row.totalLocal);
+    } else {
+      grouped.set(key, { name: s.goods, measure: s.measure, quantity: qty, unitLocal: unit, unitDonor: toDonor(unit), totalLocal: s.local, totalDonor: toDonor(s.local) });
+    }
+  }
+  const rows: Form7SpendRow[] = [...grouped.values()];
   const spentLocal = round2(spent.reduce((s, x) => s + x.local, 0));
   const adminLocal = round2((spentLocal * settings.adminPercent) / 100);
   const totalLocal = round2(spentLocal + adminLocal);
@@ -97,7 +130,9 @@ export function buildForm7Data(input: Parameters<typeof buildForm3Data>[0] & { c
   if (skipped > 0) notes.push(`${skipped} fund receipt(s) are in another currency and were not added to "funds received".`);
   if (input.receipts.length === 0) notes.push('No fund receipt is recorded for this project, so "funds received" and "unspent" are blank.');
   if (spent.length === 0) notes.push('No approved expense claim or issued purchase order was found, so the expenditure tables are empty.');
-  notes.push('The portal does not record the shop name, invoice number or quantity of an expense claim. Fill those boxes in Word from the invoices.');
+  const missing = spent.filter((x) => !x.store || !x.invoiceNo).length;
+  if (missing > 0) notes.push(`${missing} spending line(s) have no shop name or invoice number recorded. Fill those boxes in Word from the invoices.`);
+  if (input.claims.some((c) => !c.quantity)) notes.push('Some expense claims have no quantity, so they are shown as quantity 1 at the full amount.');
 
   const totalDonor = toDonor(totalLocal);
   const hasReceived = input.receipts.length > 0;
@@ -115,7 +150,7 @@ export function buildForm7Data(input: Parameters<typeof buildForm3Data>[0] & { c
     admin: { percent: settings.adminPercent, local: adminLocal, donor: toDonor(adminLocal) },
     totalExpenditureText: totalDonor === null ? '' : moneyWithCurrency(totalDonor, currency),
     unspentText: hasReceived && totalDonor !== null ? moneyWithCurrency(round2(received - totalDonor), currency) : '',
-    invoices: spent.map((s, i) => ({ no: i + 1, date: shortDate(s.date), store: s.store, goods: s.goods, totalLocal: s.local, totalDonor: toDonor(s.local) })),
+    invoices: spent.map((s, i) => ({ no: s.invoiceNo || String(i + 1), date: shortDate(s.date), store: s.store, goods: s.goods, totalLocal: s.local, totalDonor: toDonor(s.local) })),
     notes,
   };
 }

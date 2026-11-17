@@ -35,8 +35,8 @@ describe('buildForm7Data', () => {
   });
   it('lists the invoices oldest first, with the supplier for purchase orders', () => {
     expect(d.invoices.map((i) => [i.no, i.date, i.store, i.goods])).toEqual([
-      [1, '15/06/2026', 'National Cattle Market', 'Sacrificial cows'],
-      [2, '16/06/2026', '', 'Transport of cattle'],
+      ['1', '15/06/2026', 'National Cattle Market', 'Sacrificial cows'],
+      ['2', '16/06/2026', '', 'Transport of cattle'],
     ]);
   });
   it('converts a claim in another currency with its own rate', () => {
@@ -50,6 +50,23 @@ describe('buildForm7Data', () => {
     const x = buildForm7Data({ ...base, claims: [], orders: [], receipts: [] });
     expect(x.invoices).toEqual([]);
     expect(x.notes.some((n) => n.includes('No approved expense claim'))).toBe(true);
+  });
+  it('uses the shop name and invoice number recorded on claims and purchase orders', () => {
+    const x = buildForm7Data({
+      ...base,
+      claims: [{ id: 'c', description: 'Rice', amount: 5000, fxRateToBdt: 1, expenseDate: '2026-06-01', vendorName: 'Rahim Store', receiptRef: 'INV-77', quantity: 100, measure: 'kg' }],
+      orders: [{ id: 'o', description: 'Cows', vendorName: 'Cattle Market', totalBdt: 10000, issuedOn: '2026-06-02', invoiceNo: 'PO-9' }],
+      receipts: [],
+    });
+    expect(x.invoices.map((i) => [i.no, i.store])).toEqual([['INV-77', 'Rahim Store'], ['PO-9', 'Cattle Market']]);
+    expect(x.notes.some((n) => n.includes('no shop name or invoice number'))).toBe(false);
+  });
+  it('shows quantity and unit price, and adds up the same item bought twice', () => {
+    const claim = (id: string, amount: number, qty: number) => ({ id, description: 'Rice', amount, fxRateToBdt: 1, expenseDate: '2026-06-01', vendorName: 'S', receiptRef: id, quantity: qty, measure: 'kg' });
+    const x = buildForm7Data({ ...base, claims: [claim('a', 5000, 100), claim('b', 2500, 50)], orders: [], receipts: [] });
+    expect(x.spend.rows).toHaveLength(1);
+    expect(x.spend.rows[0]).toMatchObject({ name: 'Rice', measure: 'kg', quantity: 150, unitLocal: 50, totalLocal: 7500 });
+    expect(x.invoices).toHaveLength(2);
   });
   it('formats dates', () => {
     expect(longDate('2026-05-20')).toBe('20 May 2026');

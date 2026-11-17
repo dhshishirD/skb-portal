@@ -19,6 +19,15 @@ describe('expenseClaimSchema', () => {
     expect(expenseClaimSchema.safeParse({ ...claim, amount: '0' }).success).toBe(false);
     expect(expenseClaimSchema.safeParse({ ...claim, description: 'a' }).success).toBe(false);
   });
+  it('keeps quantity and unit optional, and checks them when given', () => {
+    const none = expenseClaimSchema.safeParse(claim);
+    expect(none.success && [none.data.quantity, none.data.measure]).toEqual([null, null]);
+    const ok = expenseClaimSchema.safeParse({ ...claim, quantity: '25.5', measure: 'kg' });
+    expect(ok.success && [ok.data.quantity, ok.data.measure]).toEqual([25.5, 'kg']);
+    expect(expenseClaimSchema.safeParse({ ...claim, quantity: '0' }).success).toBe(false);
+    expect(expenseClaimSchema.safeParse({ ...claim, quantity: '1.2345' }).success).toBe(false);
+    expect(expenseClaimSchema.safeParse({ ...claim, quantity: '', measure: 'kg' }).success).toBe(false);
+  });
 });
 
 describe('amountInBdt', () => {

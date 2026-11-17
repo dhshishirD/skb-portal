@@ -100,7 +100,7 @@ export function buildForm7Document(d: Form7Data): Document {
 
   children.push(sub('5.2 The details of the expenditure on the implementation of the project'));
   const spendRows = d.spend.rows.length
-    ? d.spend.rows.map((r) => row([r.name, '', '', '', '', `${money(r.totalLocal)} / ${r.totalDonor === null ? '' : money(r.totalDonor)}`].map((v, i) => cell(t(v), cw[i]))))
+    ? d.spend.rows.map((r) => row([r.name, r.measure, String(r.quantity), money(r.unitLocal), r.unitDonor === null ? '' : money(r.unitDonor), `${money(r.totalLocal)} / ${r.totalDonor === null ? '' : money(r.totalDonor)}`].map((v, i) => cell(t(v), cw[i]))))
     : [row([cell(t('(nothing recorded yet)'), W, { span: 6 })])];
   children.push(
     table(cw, [
@@ -130,7 +130,7 @@ export function buildForm7Document(d: Form7Data): Document {
     table(iw, [
       row(['Invoice No', 'Invoice Date', 'Store & Company Name', 'Purchased Goods: Name', `Total Amount (Local)`, `Total Amount (${cur})`].map((h, i) => cell(t(h, true), iw[i], { fill: 'E5E7EB' })), true),
       ...(d.invoices.length
-        ? d.invoices.map((r) => row([String(r.no), r.date, r.store, r.goods, money(r.totalLocal), r.totalDonor === null ? '' : moneyWithCurrency(r.totalDonor, cur)].map((v, i) => cell(t(v), iw[i]))))
+        ? d.invoices.map((r) => row([r.no, r.date, r.store, r.goods, money(r.totalLocal), r.totalDonor === null ? '' : moneyWithCurrency(r.totalDonor, cur)].map((v, i) => cell(t(v), iw[i]))))
         : [row([cell(t('(nothing recorded yet)'), W, { span: 6 })])]),
     ]),
   );

@@ -64,8 +64,25 @@ export const expenseClaimSchema = z
     description: z.string().trim().min(3, 'Describe the expense (at least 3 characters)').max(1000, 'Description must be 1000 characters or fewer'),
     vendorName: optionalText(200, 'Vendor name').refine((v) => v === null || v.length >= 2, 'Vendor name must be at least 2 characters'),
     receiptRef: optionalText(100, 'Receipt or voucher number'),
+    quantity: z
+      .string()
+      .trim()
+      .default('')
+      .transform((v, ctx) => {
+        if (v === '') return null;
+        const r = decimalText('Quantity', { decimals: 3, max: 99_999_999, positive: true }).safeParse(v);
+        if (!r.success) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: r.error.issues[0]?.message ?? 'Quantity is not valid' });
+          return z.NEVER;
+        }
+        return r.data;
+      }),
+    measure: optionalText(30, 'Unit').default(''),
   })
   .superRefine((v, ctx) => {
+    if (v.measure && v.quantity === null) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['quantity'], message: 'Enter the quantity, or clear the unit' });
+    }
     if (v.currency !== 'BDT') {
       const r = fxSchema.safeParse(v.fxRate);
       if (!r.success) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['fxRate'], message: r.error.issues[0]?.message ?? 'Exchange rate is required' });
@@ -85,6 +102,8 @@ export const EMPTY_EXPENSE_FORM: ExpenseClaimFormValues = {
   description: '',
   vendorName: '',
   receiptRef: '',
+  quantity: '',
+  measure: '',
 };
 
 export const expenseCommentSchema = z.string().trim().max(1000, 'Comment must be 1000 characters or fewer');
@@ -114,6 +133,8 @@ export interface ExpenseRow {
   description: string;
   vendorName: string | null;
   receiptRef: string | null;
+  quantity: number | null;
+  measure: string | null;
   status: ExpenseStatus;
   submittedAt: string;
   trail: ExpenseTrailStep[];

@@ -25,7 +25,7 @@ export async function getForm7ActualsAction(projectId: string): Promise<Form7Act
     const supabase = await createClient();
     const [claimsRes, requestsRes, receiptsRes] = await Promise.all([
       (supabase.from('expenses') as any)
-        .select('id, description, amount, fx_rate_to_bdt, expense_date')
+        .select('id, description, amount, fx_rate_to_bdt, expense_date, vendor_name, receipt_ref, quantity, measure')
         .eq('project_id', projectId)
         .in('status', ['director_approved', 'paid']),
       (supabase.from('purchase_requests') as any).select('id, description').eq('project_id', projectId).eq('status', 'po_issued'),
@@ -62,12 +62,16 @@ export async function getForm7ActualsAction(projectId: string): Promise<Form7Act
     return {
       ok: true,
       data: {
-        claims: ((claimsRes.data ?? []) as Array<{ id: string; description: string; amount: number | string; fx_rate_to_bdt: number | string; expense_date: string }>).map((c) => ({
+        claims: ((claimsRes.data ?? []) as Array<{ id: string; description: string; amount: number | string; fx_rate_to_bdt: number | string; expense_date: string; vendor_name: string | null; receipt_ref: string | null; quantity: number | string | null; measure: string | null }>).map((c) => ({
           id: c.id,
           description: c.description,
           amount: Number(c.amount),
           fxRateToBdt: Number(c.fx_rate_to_bdt),
           expenseDate: c.expense_date,
+          vendorName: c.vendor_name,
+          receiptRef: c.receipt_ref,
+          quantity: c.quantity === null ? null : Number(c.quantity),
+          measure: c.measure,
         })),
         orders,
         receipts: ((receiptsRes.data ?? []) as Array<{ received_on: string; amount: number | string; currency: string }>).map((r) => ({

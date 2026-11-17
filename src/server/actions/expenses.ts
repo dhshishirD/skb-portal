@@ -42,6 +42,8 @@ interface ExpenseDb {
   description: string;
   vendor_name: string | null;
   receipt_ref: string | null;
+  quantity: number | string | null;
+  measure: string | null;
   status: ExpenseStatus;
   submitted_at: string;
 }
@@ -69,7 +71,7 @@ export async function listExpensesAction(): Promise<ExpenseDataResult<ExpenseRow
     const supabase = await createClient();
 
     const { data, error } = await (supabase.from('expenses') as any)
-      .select('id, project_id, claimant_id, amount, currency, fx_rate_to_bdt, expense_date, description, vendor_name, receipt_ref, status, submitted_at')
+      .select('id, project_id, claimant_id, amount, currency, fx_rate_to_bdt, expense_date, description, vendor_name, receipt_ref, quantity, measure, status, submitted_at')
       .order('submitted_at', { ascending: false })
       .limit(500);
     if (error) return fail('Could not load the claims. Please refresh the page.');
@@ -131,6 +133,8 @@ export async function listExpensesAction(): Promise<ExpenseDataResult<ExpenseRow
         description: r.description,
         vendorName: r.vendor_name,
         receiptRef: r.receipt_ref,
+        quantity: r.quantity === null || r.quantity === undefined ? null : Number(r.quantity),
+        measure: r.measure ?? null,
         status: r.status,
         submittedAt: r.submitted_at,
         trail,
@@ -164,6 +168,8 @@ export async function fileExpenseAction(values: ExpenseClaimFormValues): Promise
       description: v.description,
       vendor_name: v.vendorName,
       receipt_ref: v.receiptRef,
+      quantity: v.quantity,
+      measure: v.measure,
       status: 'submitted',
     });
     if (error) return fail(friendlyDbError(error, 'Could not file the claim. Please check the values and try again.'));

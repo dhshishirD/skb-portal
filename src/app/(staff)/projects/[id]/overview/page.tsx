@@ -5,6 +5,7 @@ import { Form3ExportPanel } from '@/components/projects/Form3ExportPanel';
 import { canSeeBudgetVsActual } from '@/lib/budgetVsActual';
 import { Form7ExportPanel } from '@/components/projects/Form7ExportPanel';
 import { Form3ImportPanel } from '@/components/projects/Form3ImportPanel';
+import { ProjectDonorPanel } from '@/components/projects/ProjectDonorPanel';
 import { FormTextsPanel } from '@/components/projects/FormTextsPanel';
 import { ProjectAreasPanel } from '@/components/projects/ProjectAreasPanel';
 import { ProjectOverviewActions } from '@/components/projects/ProjectOverviewActions';
@@ -16,6 +17,7 @@ import {
   formatMoney,
 } from '@/lib/projects';
 import { canReadAreas } from '@/lib/projectAreas';
+import { canSetProjectDonor } from '@/lib/donors';
 import { canReadFormTexts } from '@/lib/formTexts';
 import { getProjectHealthAction } from '@/server/actions/projectHealth';
 import { getActor, getProjectById } from '@/server/services/projectsData';
@@ -65,6 +67,8 @@ export default async function ProjectOverviewPage({ params }: { params: Promise<
       </section>
 
       {health.ok && <ProjectHealthPanel projectId={project.id} health={health.data} />}
+
+      {canSetProjectDonor(actor.roles) && <ProjectDonorPanel projectId={project.id} />}
 
       {canReadAreas(actor.roles) && <ProjectAreasPanel projectId={project.id} />}
 

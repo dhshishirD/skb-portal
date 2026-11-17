@@ -49,6 +49,7 @@ export const DESK_RULES: DeskRule[] = [
   { prefix: '/donor-dashboard', roles: ['donor', 'executive', 'board'] },
 
   // Administration
+  { prefix: '/admin/donors', roles: ['super_admin', 'executive', 'programme_manager'] },
   { prefix: '/admin/audit-log', roles: ['super_admin', 'it_officer', 'executive', 'board', 'legal_officer', 'auditor'] },
   { prefix: '/admin', roles: ['super_admin', 'it_officer'] },
 ];

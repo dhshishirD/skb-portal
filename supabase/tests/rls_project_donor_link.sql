@@ -27,6 +27,7 @@ insert into public.grants (id, code, title, donor_org_id, total_amount) values
 insert into public.projects (id, code, title, grant_id, created_by) values
   ('e7300000-0000-0000-0000-00000000000a','DL-1','Donor link project','e7200000-0000-0000-0000-00000000000a','e7100000-0000-0000-0000-000000000001');
 insert into public.user_project_access (user_id, project_id) values
+  ('e7100000-0000-0000-0000-000000000002','e7300000-0000-0000-0000-00000000000a'),
   ('e7100000-0000-0000-0000-000000000003','e7300000-0000-0000-0000-00000000000a');
 
 create or replace function pg_temp.as_user(uid text) returns void language plpgsql as $$

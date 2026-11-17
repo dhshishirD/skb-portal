@@ -4,11 +4,11 @@ import { canOpenPath } from '../desks';
 
 describe('donorPortal', () => {
   it('opens the donor area for donors and the people who may preview it', () => {
-    for (const r of ['donor', 'executive', 'programme_manager', 'board'] as const) {
+    for (const r of ['donor', 'executive', 'programme_manager', 'super_admin', 'board'] as const) {
       expect(canViewDonorPortal([r])).toBe(true);
       expect(canOpenPath('/donor-dashboard/projects/x', [r])).toBe(true);
     }
-    for (const r of ['project_officer', 'finance', 'me_officer'] as const) {
+    for (const r of ['project_officer', 'finance', 'me_officer', 'it_officer'] as const) {
       expect(canViewDonorPortal([r])).toBe(false);
       expect(canOpenPath('/donor-dashboard', [r])).toBe(false);
     }

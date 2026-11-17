@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { OfficerAssignment } from '@/components/projects/OfficerAssignment';
 import { ProjectHealthPanel } from '@/components/projects/ProjectHealthPanel';
+import { Form3ImportPanel } from '@/components/projects/Form3ImportPanel';
 import { ProjectAreasPanel } from '@/components/projects/ProjectAreasPanel';
 import { ProjectOverviewActions } from '@/components/projects/ProjectOverviewActions';
 import {
@@ -61,6 +62,8 @@ export default async function ProjectOverviewPage({ params }: { params: Promise<
       {health.ok && <ProjectHealthPanel projectId={project.id} health={health.data} />}
 
       {canReadAreas(actor.roles) && <ProjectAreasPanel projectId={project.id} />}
+
+      {canEditProjects(actor.roles) && <Form3ImportPanel projectId={project.id} />}
 
       {canAssignOfficers(actor.roles) && <OfficerAssignment projectId={project.id} />}
     </div>

@@ -45,9 +45,9 @@ export interface DonorProjectView {
   documents: DonorDocument[];
 }
 
-export const canViewDonorPortal = (roles: readonly AppRole[]) => roles.some((r) => r === 'donor' || r === 'executive' || r === 'programme_manager' || r === 'board');
-/** Staff who may preview what one donor sees (they pick the donor with ?org=): the Executive Director, Programme Manager and Board. */
-export const canPreviewDonorPortal = (roles: readonly AppRole[]) => roles.some((r) => r === 'executive' || r === 'programme_manager' || r === 'board');
+export const canViewDonorPortal = (roles: readonly AppRole[]) => roles.some((r) => r === 'donor' || r === 'executive' || r === 'programme_manager' || r === 'super_admin' || r === 'board');
+/** Staff who may preview what one donor sees (they pick the donor with ?org=): the Executive Director, Programme Manager, Super Admin and Board. */
+export const canPreviewDonorPortal = (roles: readonly AppRole[]) => roles.some((r) => r === 'executive' || r === 'programme_manager' || r === 'super_admin' || r === 'board');
 
 export function toCard(p: {
   id: string;

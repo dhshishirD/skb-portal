@@ -45,8 +45,8 @@ export const DESK_RULES: DeskRule[] = [
   // Field app (Program Officers also hold field_officer)
   { prefix: '/field-dashboard', roles: ['field_officer', 'project_officer', 'partner'] },
 
-  // Donor portal (executive / programme manager / board may preview what donors see)
-  { prefix: '/donor-dashboard', roles: ['donor', 'executive', 'programme_manager', 'board'] },
+  // Donor portal (executive / programme manager / super admin / board may preview what donors see)
+  { prefix: '/donor-dashboard', roles: ['donor', 'executive', 'programme_manager', 'super_admin', 'board'] },
 
   // Administration
   { prefix: '/admin/donors', roles: ['super_admin', 'executive', 'programme_manager'] },

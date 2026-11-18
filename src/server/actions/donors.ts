@@ -204,7 +204,7 @@ export async function setProjectDonorAction(projectId: string, donorOrgId: strin
     if (!isUuid(projectId) || (donorOrgId !== null && !isUuid(donorOrgId))) return fail('Project not found.');
     const actor = await getActor();
     if (!actor) return fail('Please sign in again.');
-    if (!canSetProjectDonor(actor.roles)) return fail('Only the Executive Director or the Programme Manager can change the donor of a project.');
+    if (!canSetProjectDonor(actor.roles)) return fail('Only the Executive Director, the Programme Manager or the Super Admin can change the donor of a project.');
     const project = (await getProjectById(projectId)) as any;
     if (!project) return fail('Project not found.');
     if (project.stage === 'closed') return fail('This project is closed, so the donor cannot be changed.');

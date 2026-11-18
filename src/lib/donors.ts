@@ -12,7 +12,7 @@ const MANAGERS: AppRole[] = ['executive', 'programme_manager', 'super_admin'];
 export const canManageDonors = (roles: readonly AppRole[]) => roles.some((r) => MANAGERS.includes(r));
 
 /** Who may change the donor of a project (also enforced by the database, migration 0037). */
-const LINKERS: AppRole[] = ['executive', 'programme_manager'];
+const LINKERS: AppRole[] = ['executive', 'programme_manager', 'super_admin'];
 export const canSetProjectDonor = (roles: readonly AppRole[]) => roles.some((r) => LINKERS.includes(r));
 
 export const donorOrgSchema = z.object({

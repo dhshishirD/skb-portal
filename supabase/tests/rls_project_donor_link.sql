@@ -69,9 +69,16 @@ begin
   assert (select grant_id from public.projects where id = pid) = ga, 'the programme manager can change the donor';
 
   perform pg_temp.as_user(sa);
-  update public.projects set grant_id = gb where id = pid;
+  perform public.set_project_donor(pid, gb);
   assert (select grant_id from public.projects where id = pid) = gb, 'the super admin can change the donor';
-  update public.projects set grant_id = ga where id = pid;
+  perform public.set_project_donor(pid, ga);
+  -- a project officer cannot use the function either
+  perform pg_temp.as_user(po);
+  denied := false;
+  begin perform public.set_project_donor(pid, gb);
+  exception when insufficient_privilege then denied := true; end;
+  assert denied, 'a project officer cannot use set_project_donor';
+  perform pg_temp.as_user(sa);
 
   -- 3. A donor sees only the projects of its own organisation
   perform pg_temp.as_user(da);

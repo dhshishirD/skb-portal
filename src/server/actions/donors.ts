@@ -244,7 +244,7 @@ export async function setProjectDonorAction(projectId: string, donorOrgId: strin
       }
     }
     const supabase = await createServerClient();
-    const { error } = await (supabase.from('projects') as any).update({ grant_id: grantId }).eq('id', projectId);
+    const { error } = await (supabase as any).rpc('set_project_donor', { _project_id: projectId, _grant_id: grantId });
     if (error) return fail('You do not have permission to change the donor of this project.');
     revalidatePath(`/projects/${projectId}/overview`);
     revalidatePath('/admin/donors');

@@ -1,5 +1,6 @@
 import type { AppRole } from './database.types';
 import { STAGE_LABELS, formatMoney } from './projects';
+import type { GroupCounts } from './beneficiaries';
 
 /**
  * What a donor sees. Only the projects of the donor's own organisation, and for each only a short summary and the
@@ -76,3 +77,17 @@ export function toCard(p: {
 
 export const fileSizeText = (bytes: number): string =>
   bytes >= 1_048_576 ? `${(bytes / 1_048_576).toFixed(1)} MB` : bytes >= 1024 ? `${Math.round(bytes / 1024)} KB` : `${bytes} B`;
+
+/** The people reached by one of the donor's projects: name, sex and age group only. Never an ID number or phone number. */
+export interface DonorPerson {
+  name: string;
+  sex: 'female' | 'male' | 'other' | null;
+  birthYear: number | null;
+  group: 'women' | 'men' | 'girls' | 'boys' | 'unspecified';
+}
+export interface DonorBeneficiaries {
+  counts: GroupCounts;
+  people: DonorPerson[];
+  /** True when the list is shorter than the total (the counts always cover everyone). */
+  truncated: boolean;
+}

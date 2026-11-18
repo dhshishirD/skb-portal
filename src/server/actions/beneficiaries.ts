@@ -20,6 +20,7 @@ import {
   type RevealField,
   type Sex,
 } from '@/lib/beneficiaries';
+import { IMPORT_MAX_ROWS } from '@/lib/beneficiaryImport';
 import { decryptField, encryptField, encryptionReady, fingerprintNationalId } from '@/server/crypto/beneficiaryCrypto';
 import { getActor, getProjectById, isUuid } from '@/server/services/projectsData';
 
@@ -283,6 +284,78 @@ export async function revealFieldAction(
       return fail('This value cannot be read (the encryption key is missing or has changed).');
     }
     return { ok: true, data: { value } };
+  } catch {
+    return fail('Something went wrong. Please try again.');
+  }
+}
+
+/**
+ * Bulk upload: the people of a checked sheet are registered in one go. The rows are checked again here (nothing
+ * from the browser is trusted), a person whose national ID is already registered in this project is skipped,
+ * and everything is encrypted before it is saved. Runs as the signed-in user, so the same database rules apply
+ * as for one-by-one registration (who may register, closed projects frozen, audit log).
+ */
+export async function importBeneficiariesAction(projectId: string, rows: BeneficiaryFormValues[]): Promise<BeneficiaryActionResult> {
+  try {
+    const g = await guard(projectId, 'register');
+    if (denied(g)) return g;
+    if (!encryptionReady()) return fail(NO_KEY);
+    if (!Array.isArray(rows) || rows.length === 0) return fail('There is no one to register.');
+    if (rows.length > IMPORT_MAX_ROWS) return fail(`A file may hold up to ${IMPORT_MAX_ROWS} people. Please split it into smaller files.`);
+
+    const people: Array<{ p: ReturnType<typeof beneficiarySchema.parse>; nid: string | null }> = [];
+    const seen = new Set<string>();
+    for (let i = 0; i < rows.length; i++) {
+      const parsed = beneficiarySchema.safeParse(rows[i]);
+      if (!parsed.success) return fail(`Row ${i + 1}: ${firstIssue(parsed.error)}`);
+      const nid = parsed.data.nationalId ? normalizeNationalId(parsed.data.nationalId) : null;
+      if (nid) {
+        if (seen.has(nid)) return fail(`Row ${i + 1}: the same national ID appears twice in the file.`);
+        seen.add(nid);
+      }
+      people.push({ p: parsed.data, nid });
+    }
+
+    const supabase = await createClient();
+    const hashes = people.map((x) => (x.nid ? fingerprintNationalId(x.nid) : null));
+    const existing = new Set<string>();
+    const wanted = hashes.filter((h): h is string => !!h);
+    for (let i = 0; i < wanted.length; i += 200) {
+      const { data, error } = await (supabase.from('beneficiaries') as any)
+        .select('national_id_hash')
+        .eq('project_id', projectId)
+        .in('national_id_hash', wanted.slice(i, i + 200));
+      if (error) return fail('Could not check for people already registered. Nothing was saved.');
+      for (const r of (data ?? []) as Array<{ national_id_hash: string }>) existing.add(r.national_id_hash);
+    }
+
+    const records = people
+      .map((x, i) => ({ x, hash: hashes[i] ?? null }))
+      .filter(({ hash }) => !(hash && existing.has(hash)))
+      .map(({ x, hash }) => ({
+        project_id: projectId,
+        full_name_enc: encryptField(x.p.fullName),
+        national_id_enc: x.nid ? encryptField(x.nid) : null,
+        national_id_hash: hash,
+        phone_enc: x.p.phone ? encryptField(normalizePhone(x.p.phone)) : null,
+        sex: x.p.sex,
+        birth_year: x.p.birthYear,
+      }));
+    const skipped = people.length - records.length;
+
+    let saved = 0;
+    for (let i = 0; i < records.length; i += 200) {
+      const chunk = records.slice(i, i + 200);
+      const { error } = await (supabase.from('beneficiaries') as any).insert(chunk);
+      if (error) {
+        revalidatePath(path(projectId));
+        const why = friendlyBeneficiaryError(error);
+        return fail(saved > 0 ? `${saved} people were registered before a problem stopped the upload: ${why} Upload the file again; people already registered are skipped only when they have a national ID.` : why);
+      }
+      saved += chunk.length;
+    }
+    revalidatePath(path(projectId));
+    return { ok: true, message: `${saved} ${saved === 1 ? 'person' : 'people'} registered${skipped > 0 ? `, ${skipped} skipped because their national ID is already registered in this project` : ''}.` };
   } catch {
     return fail('Something went wrong. Please try again.');
   }

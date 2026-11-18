@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Eye, EyeOff, Lock, Trash2, UserPlus } from 'lucide-react';
+import { BeneficiaryImport } from './BeneficiaryImport';
 import {
   FIELD_LABELS,
   SEX_LABELS,
@@ -36,6 +37,7 @@ export function BeneficiariesPanel({ projectId }: { projectId: string }) {
   const [note, setNote] = useState<Note>(null);
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -120,15 +122,32 @@ export function BeneficiariesPanel({ projectId }: { projectId: string }) {
           Showing <b>{data.shown}</b> of <b>{data.counts.total}</b>
         </p>
         {data.canRegister && (
-          <button type="button" className={btnCls} onClick={() => setAdding((v) => !v)}>
-            <UserPlus size={12} className="inline" /> Register person
-          </button>
+          <div className="flex gap-2">
+            <button type="button" className={ghostCls} onClick={() => setImporting((v) => !v)}>
+              Upload list
+            </button>
+            <button type="button" className={btnCls} onClick={() => setAdding((v) => !v)}>
+              <UserPlus size={12} className="inline" /> Register person
+            </button>
+          </div>
         )}
       </div>
       {note && (
         <p role="status" className={`text-sm ${note.kind === 'ok' ? 'text-emerald-700' : 'text-red-700'}`}>
           {note.text}
         </p>
+      )}
+      {importing && data.canRegister && (
+        <BeneficiaryImport
+          projectId={projectId}
+          onDone={(r) => {
+            if (r.ok) {
+              setNote({ kind: 'ok', text: r.message ?? 'Done.' });
+              setImporting(false);
+              void load();
+            }
+          }}
+        />
       )}
       {adding && data.canRegister && (
         <PersonForm

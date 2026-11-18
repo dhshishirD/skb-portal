@@ -3,7 +3,9 @@
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { AppRole } from '@/lib/database.types';
-import { canPreviewDonorPortal, canViewDonorPortal, toCard, type DonorDocument, type DonorHome, type DonorProjectCard, type DonorProjectView } from '@/lib/donorPortal';
+import { countGroups, groupOf } from '@/lib/beneficiaries';
+import { decryptField, encryptionReady } from '@/server/crypto/beneficiaryCrypto';
+import { canPreviewDonorPortal, canViewDonorPortal, toCard, type DonorBeneficiaries, type DonorDocument, type DonorHome, type DonorProjectCard, type DonorProjectView } from '@/lib/donorPortal';
 import { isUuid } from '@/server/services/projectsData';
 
 /*
@@ -141,5 +143,50 @@ export async function getDonorDownloadAction(versionId: string, previewOrgId?: s
     return { ok: true, url: signed.signedUrl };
   } catch {
     return fail('Could not create the download link. Please try again.');
+  }
+}
+
+const DONOR_PEOPLE_LIMIT = 1000;
+
+/**
+ * The people reached by one project of the donor's own organisation: name, sex, birth year and age group.
+ * Only those columns are read, so an ID number or phone number can never reach the donor's browser.
+ * The organisation is decided on the server (see resolveOrg) and the project must belong to it.
+ */
+export async function getDonorBeneficiariesAction(projectId: string, previewOrgId?: string | null): Promise<{ ok: true; data: DonorBeneficiaries } | Failure> {
+  try {
+    if (!isUuid(projectId)) return fail('Project not found.');
+    const org = await resolveOrg(previewOrgId);
+    if (isFailure(org)) return org;
+    const mine = await projectsOf(org.orgId, projectId);
+    if (mine.length === 0) return fail('Project not found.');
+    if (!encryptionReady()) return fail('The list of people is not available right now. Please contact Small Kindness Bangladesh.');
+
+    const admin = createAdminClient();
+    const { data, error } = await (admin.from('beneficiaries') as any)
+      .select('full_name_enc, sex, birth_year')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: true })
+      .range(0, 4999);
+    if (error) return fail('Could not load the list of people. Please refresh the page.');
+    const rows = (data ?? []) as Array<{ full_name_enc: string; sex: string | null; birth_year: number | null }>;
+    const year = new Date().getFullYear();
+    const sexOf = (v: string | null): 'female' | 'male' | 'other' | null => (v === 'female' || v === 'male' || v === 'other' ? v : null);
+    const people = rows.slice(0, DONOR_PEOPLE_LIMIT).map((r) => {
+      let name = '(cannot be read)';
+      try {
+        name = decryptField(r.full_name_enc);
+      } catch {
+        /* keep the placeholder */
+      }
+      const sex = sexOf(r.sex);
+      return { name, sex, birthYear: r.birth_year, group: groupOf(sex, r.birth_year, year) };
+    });
+    return {
+      ok: true,
+      data: { counts: countGroups(rows.map((r) => ({ sex: r.sex, birthYear: r.birth_year })), year), people, truncated: rows.length > people.length },
+    };
+  } catch {
+    return fail('Could not load the list of people. Please refresh the page.');
   }
 }

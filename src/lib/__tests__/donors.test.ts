@@ -10,7 +10,7 @@ describe('donors', () => {
   it('lets only the executive and programme manager set the donor of a project', () => {
     expect(canSetProjectDonor(['executive'])).toBe(true);
     expect(canSetProjectDonor(['programme_manager'])).toBe(true);
-    expect(canSetProjectDonor(['super_admin'])).toBe(false);
+    expect(canSetProjectDonor(['super_admin'])).toBe(true);
     expect(canSetProjectDonor(['project_officer'])).toBe(false);
   });
   it('opens the Donors page for the three roles only', () => {

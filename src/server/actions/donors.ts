@@ -204,8 +204,17 @@ export async function setProjectDonorAction(projectId: string, donorOrgId: strin
     if (!isUuid(projectId) || (donorOrgId !== null && !isUuid(donorOrgId))) return fail('Project not found.');
     const actor = await getActor();
     if (!actor) return fail('Please sign in again.');
-    if (!canSetProjectDonor(actor.roles)) return fail('Only the Executive Director or the Programme Manager can change the donor of a project.');
-    const project = (await getProjectById(projectId)) as any;
+    if (!canSetProjectDonor(actor.roles)) return fail('Only the Executive Director, the Programme Manager or the Super Admin can change the donor of a project.');
+    let project = (await getProjectById(projectId)) as any;
+    if (!project && actor.roles.includes('super_admin')) {
+      // the Super Admin does not read every project through the database rules; the role was checked above
+      const { data } = await (createAdminClient().from('projects') as any)
+        .select('id, code, title, stage, grant_id, budget_currency, budget_amount')
+        .eq('id', projectId)
+        .is('deleted_at', null)
+        .maybeSingle();
+      project = data;
+    }
     if (!project) return fail('Project not found.');
     if (project.stage === 'closed') return fail('This project is closed, so the donor cannot be changed.');
 
@@ -244,7 +253,7 @@ export async function setProjectDonorAction(projectId: string, donorOrgId: strin
       }
     }
     const supabase = await createServerClient();
-    const { error } = await (supabase.from('projects') as any).update({ grant_id: grantId }).eq('id', projectId);
+    const { error } = await (supabase as any).rpc('set_project_donor', { _project_id: projectId, _grant_id: grantId });
     if (error) return fail('You do not have permission to change the donor of this project.');
     revalidatePath(`/projects/${projectId}/overview`);
     revalidatePath('/admin/donors');

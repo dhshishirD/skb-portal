@@ -1,4 +1,4 @@
--- rls_project_donor_link.sql - proves the 0037 rule: only the Executive Director or the Programme Manager can
+-- rls_project_donor_link.sql - proves the 0037 rule: only the Executive Director, the Programme Manager or the Super Admin can
 -- change projects.grant_id, and a donor only sees the projects of its own organisation's grant.
 -- One transaction, rolled back; any failed assert raises an error. LOCAL / STAGING Supabase only.
 -- All values below are synthetic test data.
@@ -12,7 +12,8 @@ insert into auth.users (id) values
   ('e7100000-0000-0000-0000-000000000002'), -- programme manager
   ('e7100000-0000-0000-0000-000000000003'), -- project officer (on the project)
   ('e7100000-0000-0000-0000-000000000004'), -- donor A
-  ('e7100000-0000-0000-0000-000000000005'); -- donor B
+  ('e7100000-0000-0000-0000-000000000005'), -- donor B
+  ('e7100000-0000-0000-0000-000000000006'); -- super admin
 update public.profiles set org_id = 'e7000000-0000-0000-0000-0000000000d1' where id = 'e7100000-0000-0000-0000-000000000004';
 update public.profiles set org_id = 'e7000000-0000-0000-0000-0000000000d2' where id = 'e7100000-0000-0000-0000-000000000005';
 insert into public.user_roles (user_id, role) values
@@ -20,7 +21,8 @@ insert into public.user_roles (user_id, role) values
   ('e7100000-0000-0000-0000-000000000002','programme_manager'),
   ('e7100000-0000-0000-0000-000000000003','project_officer'),
   ('e7100000-0000-0000-0000-000000000004','donor'),
-  ('e7100000-0000-0000-0000-000000000005','donor');
+  ('e7100000-0000-0000-0000-000000000005','donor'),
+  ('e7100000-0000-0000-0000-000000000006','super_admin');
 insert into public.grants (id, code, title, donor_org_id, total_amount) values
   ('e7200000-0000-0000-0000-00000000000a','G-DL-A','Grant A','e7000000-0000-0000-0000-0000000000d1',1000),
   ('e7200000-0000-0000-0000-00000000000b','G-DL-B','Grant B','e7000000-0000-0000-0000-0000000000d2',1000);
@@ -43,6 +45,7 @@ declare
   po text := 'e7100000-0000-0000-0000-000000000003';
   da text := 'e7100000-0000-0000-0000-000000000004';
   db text := 'e7100000-0000-0000-0000-000000000005';
+  sa text := 'e7100000-0000-0000-0000-000000000006';
   pid uuid := 'e7300000-0000-0000-0000-00000000000a';
   ga  uuid := 'e7200000-0000-0000-0000-00000000000a';
   gb  uuid := 'e7200000-0000-0000-0000-00000000000b';
@@ -64,6 +67,20 @@ begin
   perform pg_temp.as_user(pm);
   update public.projects set grant_id = ga where id = pid;
   assert (select grant_id from public.projects where id = pid) = ga, 'the programme manager can change the donor';
+
+  perform pg_temp.as_user(sa);
+  perform public.set_project_donor(pid, gb);
+  perform pg_temp.as_user(ed); -- the super admin has no read access to projects, so check as the executive
+  assert (select grant_id from public.projects where id = pid) = gb, 'the super admin can change the donor';
+  perform pg_temp.as_user(sa);
+  perform public.set_project_donor(pid, ga);
+  -- a project officer cannot use the function either
+  perform pg_temp.as_user(po);
+  denied := false;
+  begin perform public.set_project_donor(pid, gb);
+  exception when insufficient_privilege then denied := true; end;
+  assert denied, 'a project officer cannot use set_project_donor';
+  perform pg_temp.as_user(sa);
 
   -- 3. A donor sees only the projects of its own organisation
   perform pg_temp.as_user(da);

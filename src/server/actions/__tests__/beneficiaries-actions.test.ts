@@ -37,7 +37,7 @@ vi.mock('@/server/services/projectsData', () => ({
 }));
 
 import {
-  deleteBeneficiaryAction, getBeneficiariesAction, registerBeneficiaryAction, revealFieldAction, updateBeneficiaryAction,
+  deleteBeneficiaryAction, getBeneficiariesAction, importBeneficiariesAction, registerBeneficiaryAction, revealFieldAction, updateBeneficiaryAction,
 } from '../beneficiaries';
 import { encryptField } from '@/server/crypto/beneficiaryCrypto';
 
@@ -171,5 +171,53 @@ describe('getBeneficiariesAction', () => {
     state.results.beneficiaries = { data: [], error: null };
     const r = await getBeneficiariesAction(PID);
     expect(r.ok && r.data.log).toEqual([]);
+  });
+});
+
+describe('importBeneficiariesAction', () => {
+  const rows = [
+    { ...form, fullName: 'Person One', nationalId: '1234567890' },
+    { ...form, fullName: 'Person Two', nationalId: '', phone: '' },
+  ];
+  it('needs the right role, an open project and the key', async () => {
+    state.actor = { userId: USER, roles: ['me_officer'] };
+    expect((await importBeneficiariesAction(PID, rows)).ok).toBe(false);
+    state.actor = { userId: USER, roles: ['donor'] };
+    expect((await importBeneficiariesAction(PID, rows)).ok).toBe(false);
+    state.actor = { userId: USER, roles: ['field_officer'] };
+    state.project = proj('closed');
+    expect((await importBeneficiariesAction(PID, rows)).ok).toBe(false);
+    state.project = proj();
+    delete process.env.BENEFICIARY_ENCRYPTION_KEY;
+    expect((await importBeneficiariesAction(PID, rows)).ok).toBe(false);
+    expect(state.calls.some((c) => c.method === 'insert')).toBe(false);
+  });
+  it('saves only encrypted values for every row', async () => {
+    const r = await importBeneficiariesAction(PID, rows);
+    expect(r).toMatchObject({ ok: true, message: expect.stringMatching(/^2 people registered/) });
+    const saved = state.calls.find((c) => c.method === 'insert')?.args[0] as Array<Record<string, unknown>>;
+    expect(saved).toHaveLength(2);
+    for (const row of saved) {
+      expect(row.full_name_enc).toMatch(/^v1:/);
+      expect(row.project_id).toBe(PID);
+    }
+    expect(JSON.stringify(saved)).not.toContain('Person One');
+    expect(JSON.stringify(saved)).not.toContain('1234567890');
+  });
+  it('skips a person whose national ID is already registered in the project', async () => {
+    state.results.beneficiaries = { data: null, error: null };
+    const { fingerprintNationalId } = await import('@/server/crypto/beneficiaryCrypto');
+    state.results.beneficiaries = { data: [{ national_id_hash: fingerprintNationalId('1234567890') }], error: null };
+    const r = await importBeneficiariesAction(PID, rows);
+    expect(r).toMatchObject({ ok: true, message: expect.stringMatching(/^1 person registered, 1 skipped/) });
+    const saved = state.calls.find((c) => c.method === 'insert')?.args[0] as Array<Record<string, unknown>>;
+    expect(saved).toHaveLength(1);
+  });
+  it('rejects a bad row, the same ID twice, an empty list and too many rows', async () => {
+    expect((await importBeneficiariesAction(PID, [{ ...form, fullName: 'A' }])).ok).toBe(false);
+    expect(await importBeneficiariesAction(PID, [rows[0]!, rows[0]!])).toMatchObject({ ok: false, error: expect.stringMatching(/twice/) });
+    expect((await importBeneficiariesAction(PID, [])).ok).toBe(false);
+    expect((await importBeneficiariesAction(PID, Array.from({ length: 2001 }, () => rows[1]!))).ok).toBe(false);
+    expect(state.calls.some((c) => c.method === 'insert')).toBe(false);
   });
 });

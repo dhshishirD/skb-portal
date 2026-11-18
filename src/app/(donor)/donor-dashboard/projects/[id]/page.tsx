@@ -3,9 +3,9 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
-import { fileSizeText, type DonorProjectView } from '@/lib/donorPortal';
+import { fileSizeText, type DonorBeneficiaries, type DonorProjectView } from '@/lib/donorPortal';
 import { formatDate } from '@/lib/fundReceipts';
-import { getDonorDownloadAction, getDonorProjectAction } from '@/server/actions/donorPortal';
+import { getDonorBeneficiariesAction, getDonorDownloadAction, getDonorProjectAction } from '@/server/actions/donorPortal';
 
 function Project() {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +14,8 @@ function Project() {
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [people, setPeople] = useState<DonorBeneficiaries | null>(null);
+  const [peopleError, setPeopleError] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -24,6 +26,20 @@ function Project() {
         else setError(r.error);
       })
       .catch(() => live && setError('Could not load the project. Please refresh the page.'));
+    return () => {
+      live = false;
+    };
+  }, [id, org]);
+
+  useEffect(() => {
+    let live = true;
+    getDonorBeneficiariesAction(id, org)
+      .then((r) => {
+        if (!live) return;
+        if (r.ok) setPeople(r.data);
+        else setPeopleError(r.error);
+      })
+      .catch(() => live && setPeopleError('Could not load the list of people. Please refresh the page.'));
     return () => {
       live = false;
     };
@@ -66,6 +82,53 @@ function Project() {
           <div><dt className="text-xs text-slate-500">Families</dt><dd className="font-medium">{p.families ? p.families.toLocaleString('en-US') : '-'}</dd></div>
         </dl>
         {data.description && <p className="text-sm text-slate-700 whitespace-pre-wrap">{data.description}</p>}
+      </section>
+      <section className="bg-white p-5 rounded-2xl border border-slate-200 space-y-3" aria-labelledby="donor-people">
+        <h2 id="donor-people" className="text-sm font-bold">People reached</h2>
+        {peopleError && <p role="alert" className="text-sm text-red-700">{peopleError}</p>}
+        {!people && !peopleError && <p className="text-sm text-slate-500">Loading…</p>}
+        {people && (
+          <>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center">
+              {([['Women', people.counts.women], ['Men', people.counts.men], ['Girls', people.counts.girls], ['Boys', people.counts.boys], ['Not stated', people.counts.unspecified], ['Total', people.counts.total]] as const).map(([label, n]) => (
+                <div key={label} className="rounded-xl border border-slate-200 p-2">
+                  <p className="text-lg font-bold text-slate-900">{n.toLocaleString('en-US')}</p>
+                  <p className="text-[11px] text-slate-500">{label}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-slate-500">Girls and boys are under 18. National ID numbers and phone numbers are never shown here. Please keep this list confidential.</p>
+            {people.people.length === 0 ? (
+              <p className="text-sm text-slate-500">No one has been registered yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-slate-500 border-b border-slate-200">
+                      <th className="py-1.5 pr-3 font-semibold">#</th>
+                      <th className="py-1.5 pr-3 font-semibold">Name</th>
+                      <th className="py-1.5 pr-3 font-semibold">Sex</th>
+                      <th className="py-1.5 pr-3 font-semibold">Birth year</th>
+                      <th className="py-1.5 font-semibold">Group</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {people.people.map((x, i) => (
+                      <tr key={i}>
+                        <td className="py-1.5 pr-3 text-xs text-slate-500">{i + 1}</td>
+                        <td className="py-1.5 pr-3 text-slate-900">{x.name}</td>
+                        <td className="py-1.5 pr-3 capitalize">{x.sex ?? '-'}</td>
+                        <td className="py-1.5 pr-3">{x.birthYear ?? '-'}</td>
+                        <td className="py-1.5 capitalize">{x.group === 'unspecified' ? '-' : x.group}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {people.truncated && <p className="text-xs text-slate-500">Showing the first 1,000 names. The numbers above cover everyone.</p>}
+          </>
+        )}
       </section>
       <section className="bg-white p-5 rounded-2xl border border-slate-200 space-y-3" aria-labelledby="donor-docs">
         <h2 id="donor-docs" className="text-sm font-bold">Reports and documents released to you</h2>

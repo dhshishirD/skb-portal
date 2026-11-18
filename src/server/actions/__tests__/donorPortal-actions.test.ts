@@ -53,7 +53,8 @@ vi.mock('@/server/services/projectsData', () => ({
   isUuid: (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v),
 }));
 
-import { getDonorDownloadAction, getDonorHomeAction } from '../donorPortal';
+import { encryptField } from '@/server/crypto/beneficiaryCrypto';
+import { getDonorBeneficiariesAction, getDonorDownloadAction, getDonorHomeAction } from '../donorPortal';
 
 const MY_ORG = '11111111-1111-4111-8111-111111111111';
 const OTHER_ORG = '22222222-2222-4222-8222-222222222222';
@@ -143,5 +144,39 @@ describe('donor download', () => {
     state.admin.documents = ok({ project_id: PROJECT, released_to_donor: true, deleted_at: null, current_version_id: VERSION });
     state.admin.projects = ok([]);
     expect((await getDonorDownloadAction(VERSION)).ok).toBe(false);
+  });
+});
+
+describe('donor beneficiaries', () => {
+  const KEY = Buffer.alloc(32, 7).toString('base64');
+  beforeEach(() => {
+    process.env.BENEFICIARY_ENCRYPTION_KEY = KEY;
+  });
+  it('shows names, sex and age group of the donor\'s own project and reads nothing else', async () => {
+    state.admin.projects = ok([{ id: PROJECT }]);
+    state.admin.beneficiaries = ok([
+      { full_name_enc: encryptField('Salma Begum'), sex: 'female', birth_year: 1990 },
+      { full_name_enc: encryptField('Karim Ali'), sex: 'male', birth_year: new Date().getFullYear() - 5 },
+    ]);
+    const r = await getDonorBeneficiariesAction(PROJECT);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.people.map((p) => [p.name, p.group])).toEqual([['Salma Begum', 'women'], ['Karim Ali', 'boys']]);
+    expect(r.data.counts.total).toBe(2);
+    const sel = state.adminCalls.find((c) => c.table === 'beneficiaries' && c.method === 'select');
+    expect(sel?.args[0]).toBe('full_name_enc, sex, birth_year');
+    expect(JSON.stringify(r.data)).not.toMatch(/national|phone/i);
+  });
+  it('refuses a project that is not the donor\'s, and a person who is not allowed', async () => {
+    state.admin.projects = ok([]);
+    expect((await getDonorBeneficiariesAction(PROJECT)).ok).toBe(false);
+    expect(state.adminCalls.some((c) => c.table === 'beneficiaries')).toBe(false);
+    state.roles = ['field_officer'];
+    expect((await getDonorBeneficiariesAction(PROJECT)).ok).toBe(false);
+  });
+  it('is switched off when the key is missing', async () => {
+    state.admin.projects = ok([{ id: PROJECT }]);
+    delete process.env.BENEFICIARY_ENCRYPTION_KEY;
+    expect((await getDonorBeneficiariesAction(PROJECT)).ok).toBe(false);
   });
 });

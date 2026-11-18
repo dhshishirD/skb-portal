@@ -205,7 +205,16 @@ export async function setProjectDonorAction(projectId: string, donorOrgId: strin
     const actor = await getActor();
     if (!actor) return fail('Please sign in again.');
     if (!canSetProjectDonor(actor.roles)) return fail('Only the Executive Director, the Programme Manager or the Super Admin can change the donor of a project.');
-    const project = (await getProjectById(projectId)) as any;
+    let project = (await getProjectById(projectId)) as any;
+    if (!project && actor.roles.includes('super_admin')) {
+      // the Super Admin does not read every project through the database rules; the role was checked above
+      const { data } = await (createAdminClient().from('projects') as any)
+        .select('id, code, title, stage, grant_id, budget_currency, budget_amount')
+        .eq('id', projectId)
+        .is('deleted_at', null)
+        .maybeSingle();
+      project = data;
+    }
     if (!project) return fail('Project not found.');
     if (project.stage === 'closed') return fail('This project is closed, so the donor cannot be changed.');
 

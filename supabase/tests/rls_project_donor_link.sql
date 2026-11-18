@@ -70,7 +70,9 @@ begin
 
   perform pg_temp.as_user(sa);
   perform public.set_project_donor(pid, gb);
+  perform pg_temp.as_user(ed); -- the super admin has no read access to projects, so check as the executive
   assert (select grant_id from public.projects where id = pid) = gb, 'the super admin can change the donor';
+  perform pg_temp.as_user(sa);
   perform public.set_project_donor(pid, ga);
   -- a project officer cannot use the function either
   perform pg_temp.as_user(po);

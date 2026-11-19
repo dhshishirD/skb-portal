@@ -23,7 +23,8 @@ import {
   MessageSquare,
   Camera,
   ChevronDown,
-  User
+  User,
+  CalendarDays
 } from 'lucide-react';
 import { canOpenPath, ROLE_LABELS } from '@/lib/desks';
 import type { AppRole } from '@/lib/database.types';
@@ -82,10 +83,12 @@ export default function StaffLayout({
     { href: '/dashboard', label: navT('dashboard'), icon: LayoutDashboard },
     { href: '/projects', label: navT('projects'), icon: FolderKanban },
     { href: '/finance/approvals', label: 'Finance & Approvals', icon: Receipt },
+    { href: '/workspace/work-log', label: 'My Work Log', icon: CalendarDays },
     { href: '/community', label: 'HQ Staff Community', icon: MessageSquare },
     { href: '/me/dashboard', label: 'M&E Overview', icon: BarChart2 },
     { href: '/admin/users', label: 'Admin & Governance', icon: ShieldCheck },
     { href: '/admin/donors', label: 'Donors', icon: ShieldCheck },
+    { href: '/admin/work-reviewers', label: 'Work Reviewers', icon: ShieldCheck },
     { href: '/admin/audit-log', label: 'Audit Log', icon: ShieldCheck },
   ];
   // Show only what this person's roles can open (the middleware enforces the same rules).

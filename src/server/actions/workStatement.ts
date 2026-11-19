@@ -21,6 +21,7 @@ import {
   type WorkDay,
   type WorkDayInput,
 } from '@/lib/workStatement';
+import { doneText } from '@/lib/workPlan';
 import { getActor, isUuid, listProjects } from '@/server/services/projectsData';
 
 /*
@@ -58,6 +59,8 @@ export interface MonthData {
   reviewersSet: boolean;
   hasSignature: boolean;
   projects: Array<{ id: string; code: string; title: string }>;
+  /** Tasks marked done in the daily plan, by date: text for the "what you did" line, and the place of the first task. */
+  planByDate: Record<string, { text: string; place: string; projectId: string | null }>;
 }
 
 interface DayRow {
@@ -122,7 +125,7 @@ export async function getMyMonthAction(month: string): Promise<WorkDataResult<Mo
     const actor = await getActor();
     if (!actor) return fail('Please sign in again.');
     const supabase = await createClient();
-    const [daysRes, stRes, revRes, sigRes, projects] = await Promise.all([
+    const [daysRes, stRes, revRes, sigRes, projects, planRes] = await Promise.all([
       (supabase.from('work_days') as any)
         .select('work_date, day_type, place, tasks, project_id')
         .eq('user_id', actor.userId)
@@ -133,8 +136,25 @@ export async function getMyMonthAction(month: string): Promise<WorkDataResult<Mo
       (supabase.from('work_reviewers') as any).select('verifier_id, approver_id').eq('user_id', actor.userId).maybeSingle(),
       (supabase.from('staff_signatures') as any).select('user_id').eq('user_id', actor.userId).maybeSingle(),
       listProjects().catch(() => []),
+      (supabase.from('work_plan_items') as any)
+        .select('plan_date, title, place, project_id')
+        .eq('user_id', actor.userId)
+        .eq('status', 'done')
+        .gte('plan_date', firstDay(month))
+        .lte('plan_date', lastDay(month))
+        .order('created_at'),
     ]);
     if (daysRes.error) return fail('Could not load your work log. Please refresh the page.');
+    const planByDate: MonthData['planByDate'] = {};
+    {
+      const grouped = new Map<string, Array<{ title: string; status: 'done'; place: string; projectId: string | null }>>();
+      for (const r of (planRes?.data ?? []) as Array<{ plan_date: string; title: string; place: string | null; project_id: string | null }>) {
+        grouped.set(r.plan_date, [...(grouped.get(r.plan_date) ?? []), { title: r.title, status: 'done', place: r.place ?? '', projectId: r.project_id }]);
+      }
+      for (const [date, list] of grouped) {
+        planByDate[date] = { text: doneText(list), place: list.find((x) => x.place)?.place ?? '', projectId: list.find((x) => x.projectId)?.projectId ?? null };
+      }
+    }
     const statement = stRes.data ? toStatement(stRes.data as StatementRow) : null;
     const rev = (revRes.data ?? null) as { verifier_id: string | null; approver_id: string | null } | null;
     const verifierId = statement && statement.status !== 'draft' && statement.status !== 'returned' ? statement.verifierId : rev?.verifier_id ?? null;
@@ -152,7 +172,8 @@ export async function getMyMonthAction(month: string): Promise<WorkDataResult<Mo
         approver: approverId ? people.get(approverId) ?? null : null,
         verifiedBy: statement?.verifiedBy ? people.get(statement.verifiedBy) ?? null : null,
         approvedBy: statement?.approvedBy ? people.get(statement.approvedBy) ?? null : null,
-        reviewersSet: !!approverId,
+        reviewersSet: !!(approverId || verifierId),
+        planByDate,
         hasSignature: !!sigRes.data,
         projects: ((projects ?? []) as Array<{ id: string; code: string; title: string; stage?: string }>)
           .filter((p) => p.stage !== 'closed')
@@ -225,8 +246,10 @@ export async function submitStatementAction(month: string, sign: boolean): Promi
     }
     const { error } = await (supabase.from('work_statements') as any).update({ status: 'submitted', signed_prepared: !!sign }).eq('id', id);
     if (error) return fail(friendlyWorkError(error));
+    const after = await (supabase.from('work_statements') as any).select('status').eq('id', id).maybeSingle();
     revalidatePath(PAGE);
-    return { ok: true, message: 'Submitted. It now waits for review.' };
+    // With no reviewer set for this person the month is final at once (migration 0041).
+    return { ok: true, message: (after.data as { status?: string } | null)?.status === 'approved' ? 'Submitted. This month is final.' : 'Submitted. It now waits for review.' };
   } catch {
     return fail('Something went wrong. Nothing was submitted.');
   }

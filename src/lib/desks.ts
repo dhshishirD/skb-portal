@@ -35,6 +35,7 @@ export const DESK_RULES: DeskRule[] = [
   { prefix: '/dashboard', roles: STAFF_ROLES },
   { prefix: '/community', roles: STAFF_ROLES },
   { prefix: '/me/profile', roles: [...STAFF_ROLES, 'donor', 'partner', 'auditor'] },
+  { prefix: '/workspace/team-plan', roles: ['super_admin', 'executive'] },
   { prefix: '/workspace', roles: STAFF_ROLES },
 
   // Programme work

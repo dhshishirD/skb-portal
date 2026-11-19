@@ -132,6 +132,19 @@ export function WorkLogPanel() {
     });
   };
 
+  const planDates = Object.keys(data.planByDate).filter((d) => d <= data.today && rows.find((r) => r.date === d)?.dayType === null);
+  const fillFromPlan = async () => {
+    await run(async () => {
+      for (const date of planDates) {
+        const p = data.planByDate[date]!;
+        const place = p.place.trim();
+        const r = await saveWorkDayAction({ date, dayType: /field|camp|visit/i.test(place) ? 'field' : /tour/i.test(place) ? 'tour' : 'office', place, tasks: p.text, projectId: p.projectId });
+        if (!r.ok) return r;
+      }
+      return { ok: true, message: `${planDates.length} ${planDates.length === 1 ? 'day' : 'days'} filled from your daily plan. Check each one.` };
+    });
+  };
+
   return (
     <section className="space-y-4" aria-label="My work log">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -157,8 +170,13 @@ export function WorkLogPanel() {
         </p>
       )}
       <p className="text-xs text-slate-600">
-        Verifier: <b>{data.verifier?.fullName ?? 'none (goes straight to the approver)'}</b> · Approver: <b>{data.approver?.fullName ?? 'not set yet'}</b>
-        {!data.reviewersSet && <span className="text-red-700"> · Ask the administrator to set your approver before you submit.</span>}
+        {data.reviewersSet ? (
+          <>
+            Verifier: <b>{data.verifier?.fullName ?? 'none'}</b> · Approver: <b>{data.approver?.fullName ?? 'none (the Executive Director)'}</b>
+          </>
+        ) : (
+          <>No reviewer is set for you, so when you submit, this month is final at once.</>
+        )}
       </p>
 
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center">
@@ -177,6 +195,11 @@ export function WorkLogPanel() {
         </p>
       )}
 
+      {editable && planDates.length > 0 && (
+        <button type="button" className={ghostCls} disabled={busy} onClick={() => void fillFromPlan()}>
+          Fill {planDates.length} empty {planDates.length === 1 ? 'day' : 'days'} from my daily plan
+        </button>
+      )}
       {editable && gaps.some((d) => d <= data.today) && (
         <button type="button" className={ghostCls} disabled={busy} onClick={() => void fillEmpty()}>
           Mark my empty days up to today as office duty
@@ -209,7 +232,7 @@ export function WorkLogPanel() {
               <input type="checkbox" checked={sign && data.hasSignature} disabled={!data.hasSignature} onChange={(e) => setSign(e.target.checked)} />
               Add my saved signature {!data.hasSignature && <span className="text-xs text-slate-500">(optional; you have not saved one yet, see below)</span>}
             </label>
-            <button type="button" className={btnCls} disabled={busy || !data.reviewersSet} onClick={() => void run(() => submitStatementAction(month, sign && data.hasSignature))}>
+            <button type="button" className={btnCls} disabled={busy} onClick={() => void run(() => submitStatementAction(month, sign && data.hasSignature))}>
               Submit {monthTitle(month)}
             </button>
             <p className="text-[11px] text-slate-500">After you submit, the days of this month are locked. A signature is never required.</p>
@@ -228,11 +251,12 @@ export function WorkLogPanel() {
 
 function DayRowView({ row, data, editable, busy, run }: { row: StatementRow; data: MonthData; editable: boolean; busy: boolean; run: (fn: () => Promise<WorkActionResult>) => Promise<boolean> }) {
   const entered = data.days.find((d) => d.date === row.date);
+  const planned = data.planByDate[row.date];
   const [open, setOpen] = useState(false);
   const [dayType, setDayType] = useState<DayType>(entered?.dayType ?? 'office');
-  const [place, setPlace] = useState(entered?.place ?? '');
-  const [tasks, setTasks] = useState(entered?.tasks ?? '');
-  const [projectId, setProjectId] = useState(entered?.projectId ?? '');
+  const [place, setPlace] = useState(entered?.place ?? planned?.place ?? '');
+  const [tasks, setTasks] = useState(entered?.tasks ?? planned?.text ?? '');
+  const [projectId, setProjectId] = useState(entered?.projectId ?? planned?.projectId ?? '');
 
   const save = async () => {
     if (await run(() => saveWorkDayAction({ date: row.date, dayType, place, tasks, projectId: projectId || null }))) setOpen(false);
@@ -285,6 +309,11 @@ function DayRowView({ row, data, editable, busy, run }: { row: StatementRow; dat
           </div>
           <div className="sm:col-span-2">
             <label className={labelCls} htmlFor={`tasks-${row.date}`}>What you did</label>
+            {planned && planned.text !== tasks && (
+              <button type="button" className="text-[11px] text-slate-600 underline mb-1" onClick={() => setTasks(planned.text)}>
+                Use the tasks I marked done in my daily plan
+              </button>
+            )}
             <textarea id={`tasks-${row.date}`} className={inputCls} rows={3} maxLength={1500} value={tasks} onChange={(e) => setTasks(e.target.value)} />
           </div>
           {data.projects.length > 0 && (

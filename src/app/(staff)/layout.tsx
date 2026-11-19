@@ -24,7 +24,8 @@ import {
   Camera,
   ChevronDown,
   User,
-  CalendarDays
+  CalendarDays,
+  ListChecks
 } from 'lucide-react';
 import { canOpenPath, ROLE_LABELS } from '@/lib/desks';
 import type { AppRole } from '@/lib/database.types';
@@ -83,7 +84,9 @@ export default function StaffLayout({
     { href: '/dashboard', label: navT('dashboard'), icon: LayoutDashboard },
     { href: '/projects', label: navT('projects'), icon: FolderKanban },
     { href: '/finance/approvals', label: 'Finance & Approvals', icon: Receipt },
+    { href: '/workspace/daily-plan', label: 'My Daily Plan', icon: ListChecks },
     { href: '/workspace/work-log', label: 'My Work Log', icon: CalendarDays },
+    { href: '/workspace/team-plan', label: 'Team Plan', icon: Users },
     { href: '/community', label: 'HQ Staff Community', icon: MessageSquare },
     { href: '/me/dashboard', label: 'M&E Overview', icon: BarChart2 },
     { href: '/admin/users', label: 'Admin & Governance', icon: ShieldCheck },

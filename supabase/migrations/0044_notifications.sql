@@ -33,6 +33,15 @@ create policy staff_notifications_mark_read on public.staff_notifications for up
   using (recipient_id = (select auth.uid()))
   with check (recipient_id = (select auth.uid()));
 
+-- new rows reach the open page at once (Supabase Realtime sends each row only to its owner, under the policy above)
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'staff_notifications') then
+    alter publication supabase_realtime add table public.staff_notifications;
+  end if;
+end $$;
+
 -- a new direct message -> notify the person it was sent to
 create or replace function public.notify_direct_message() returns trigger
 language plpgsql security definer set search_path = '' as $$

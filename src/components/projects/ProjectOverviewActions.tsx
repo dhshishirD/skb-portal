@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil, Archive } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { ProjectForm } from './ProjectForm';
 import { archiveProjectAction, updateProjectAction } from '@/server/actions/projects';
 import { projectRowToForm, type ProjectRow } from '@/lib/projects';
@@ -63,9 +63,9 @@ export function ProjectOverviewActions({
       {canArchive &&
         (confirming ? (
           <>
-            <span className="text-xs text-slate-700">Archive this project for everyone?</span>
+            <span className="text-xs text-slate-700">Delete this project for everyone? It disappears from every list. You can restore it later.</span>
             <button onClick={archive} disabled={busy} className="px-3 py-2 text-xs font-bold text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-60">
-              {busy ? 'Archiving…' : 'Yes, archive'}
+              {busy ? 'Deleting…' : 'Yes, delete'}
             </button>
             <button onClick={() => setConfirming(false)} className="px-3 py-2 text-xs font-bold text-slate-700 bg-slate-100 rounded-lg">
               Keep
@@ -73,7 +73,7 @@ export function ProjectOverviewActions({
           </>
         ) : (
           <button onClick={() => setConfirming(true)} className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-red-700 bg-red-50 rounded-lg hover:bg-red-100">
-            <Archive className="w-3.5 h-3.5" aria-hidden="true" /> Archive
+            <Trash2 className="w-3.5 h-3.5" aria-hidden="true" /> Delete
           </button>
         ))}
       {error && (

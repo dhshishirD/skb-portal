@@ -22,7 +22,7 @@ describe('permissions', () => {
     // who,                     roles,                              create, archive, stage, assign
     ['Executive Director', ['executive', 'super_admin'], true, true, true, true],
     ['Program Officer', ['project_officer', 'field_officer'], true, false, false, false],
-    ['HR & Admin', ['super_admin', 'project_officer', 'field_officer'], true, false, false, true],
+    ['HR & Admin', ['super_admin', 'project_officer', 'field_officer'], true, true, false, true],
     ['Chairman (board)', ['board'], false, false, false, false],
     ['Law Officer', ['legal_officer'], false, false, false, false],
     ['IT Officer', ['it_officer'], false, false, false, false],

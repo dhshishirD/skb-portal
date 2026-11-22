@@ -50,8 +50,8 @@ const PROJECT_WRITERS: AppRole[] = ['executive', 'programme_manager', 'project_o
 
 export const canCreateProjects = (roles: AppRole[]) => hasAny(roles, PROJECT_WRITERS);
 export const canEditProjects = (roles: AppRole[]) => hasAny(roles, PROJECT_WRITERS);
-/** Only the Executive Director archives a project. */
-export const canArchiveProjects = (roles: AppRole[]) => roles.includes('executive');
+/** The Executive Director and the Super Admin delete (hide), restore and remove a project for good. */
+export const canArchiveProjects = (roles: AppRole[]) => roles.includes('executive') || roles.includes('super_admin');
 /** Only the Executive Director changes a project's stage. */
 export const canChangeStage = (roles: AppRole[]) => roles.includes('executive');
 /** A Super Admin or Programme Manager assigns officers to projects. */

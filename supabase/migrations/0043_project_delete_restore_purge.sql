@@ -9,24 +9,26 @@
 -- Every change is written to the audit log with the person who did it.
 -- Additive: new functions and a changed guard only. No table changes.
 
--- the Executive Director still deletes directly; the new functions below set a flag for the Super Admin's turn
-create or replace function public.guard_project_update()
-returns trigger language plpgsql set search_path = '' as $$
+-- Only the delete rule of guard_project_update() changes (the Executive Director still deletes directly; the
+-- functions below set a flag for the Super Admin's turn). Every other rule in it (created_by, stage gate, donor)
+-- stays exactly as it is, so the function is patched in place, as 0037 and 0038 did.
+do $$
+declare
+  def text;
+  old_rule constant text := 'if new.deleted_at is distinct from old.deleted_at and not public.has_role(''executive'') then';
+  new_rule constant text := 'if new.deleted_at is distinct from old.deleted_at and coalesce(current_setting(''app.project_trash'', true), '''') <> ''1'' and not public.has_role(''executive'') then';
 begin
-  if (select auth.uid()) is null then
-    return new;
+  select pg_get_functiondef('public.guard_project_update()'::regprocedure) into def;
+  if position('app.project_trash' in def) > 0 then
+    return; -- already patched
   end if;
-  if new.created_by is distinct from old.created_by then
-    raise exception 'created_by cannot be changed' using errcode = '42501';
+  if position(old_rule in def) = 0 then
+    raise exception '0043: the delete rule was not found in guard_project_update(); review before applying';
   end if;
-  if new.deleted_at is distinct from old.deleted_at
-     and coalesce(current_setting('app.project_trash', true), '') <> '1'
-     and not public.has_role('executive') then
-    raise exception 'only the Executive Director or the Super Admin can delete a project' using errcode = '42501';
-  end if;
-  return new;
+  def := replace(def, old_rule, new_rule);
+  def := replace(def, 'only the Executive Director can archive a project', 'only the Executive Director or the Super Admin can delete a project');
+  execute def;
 end $$;
-revoke execute on function public.guard_project_update() from public, anon, authenticated;
 
 -- what stops a project from being removed for good (empty array = nothing)
 create or replace function public.project_keep_reasons(_id uuid)

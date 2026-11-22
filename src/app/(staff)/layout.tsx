@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { createClient } from '@/lib/supabase/client';
 import { 
   LayoutDashboard, 
@@ -228,6 +229,7 @@ export default function StaffLayout({
               </div>
             )}
 
+            <NotificationBell />
             <LanguageSwitcher />
             
             <a

@@ -89,6 +89,7 @@ export default function StaffLayout({
     { href: '/workspace/daily-plan', label: 'My Daily Plan', icon: ListChecks },
     { href: '/workspace/work-log', label: 'My Work Log', icon: CalendarDays },
     { href: '/workspace/team-plan', label: 'Team Plan', icon: Users },
+    { href: '/workspace/attendance', label: 'Team Attendance', icon: UserCheck },
     { href: '/workspace/letters', label: 'Letters', icon: Mail },
     { href: '/community', label: 'HQ Staff Community', icon: MessageSquare },
     { href: '/me/dashboard', label: 'M&E Overview', icon: BarChart2 },

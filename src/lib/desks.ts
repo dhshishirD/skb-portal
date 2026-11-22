@@ -53,7 +53,6 @@ export const DESK_RULES: DeskRule[] = [
 
   // Administration
   { prefix: '/admin/donors', roles: ['super_admin', 'executive', 'programme_manager'] },
-  { prefix: '/admin/work-reviewers', roles: ['super_admin', 'executive'] },
   { prefix: '/admin/audit-log', roles: ['super_admin', 'it_officer', 'executive', 'board', 'legal_officer', 'auditor'] },
   { prefix: '/admin', roles: ['super_admin', 'it_officer'] },
 ];

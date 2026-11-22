@@ -19,10 +19,10 @@ export interface BudgetXlsxInput {
 }
 
 // ----- style ids (see STYLES_XML) -----
-const S = { text: 0, title: 1, head: 2, money: 3, moneyBold: 4, bold: 5, qty: 6, milli: 7, milliBold: 8, pct: 9, note: 10, section: 11 } as const;
+export const S = { text: 0, title: 1, head: 2, money: 3, moneyBold: 4, bold: 5, qty: 6, milli: 7, milliBold: 8, pct: 9, note: 10, section: 11 } as const;
 
-type Cell = { v?: string | number | null; f?: string; s?: number };
-type Row = Array<Cell | null>;
+export type Cell = { v?: string | number | null; f?: string; s?: number };
+export type Row = Array<Cell | null>;
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 // Excel rejects control characters in XML text.
@@ -37,7 +37,7 @@ export const colName = (i: number): string => {
   return out;
 };
 
-function sheetXml(rows: Row[], widths: number[], opts: { freezeRow?: number } = {}): string {
+export function sheetXml(rows: Row[], widths: number[], opts: { freezeRow?: number } = {}): string {
   const cols = widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('');
   const body = rows
     .map((row, r) => {
@@ -232,13 +232,18 @@ export function actualSheetRows(input: BudgetXlsxInput & { actual: BudgetVsActua
 const sheetName = (s: string) => s.replace(/[\\/?*[\]:]/g, ' ').slice(0, 31);
 
 export async function buildBudgetXlsx(input: BudgetXlsxInput): Promise<Blob> {
-  const { default: JSZip } = await import('jszip');
   const budget = budgetSheetRows(input);
   const sheets: Array<{ name: string; xml: string }> = [{ name: 'Budget', xml: sheetXml(budget.rows, budget.widths) }];
   if (input.actual) {
     const act = actualSheetRows({ ...input, actual: input.actual });
     sheets.push({ name: 'Budget vs Actual', xml: sheetXml(act.rows, act.widths) });
   }
+  return buildXlsxBlob(sheets);
+}
+
+/** Packs ready-made sheets into an .xlsx file (shared by the budget and the attendance downloads). */
+export async function buildXlsxBlob(sheets: Array<{ name: string; xml: string }>): Promise<Blob> {
+  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
   zip.file(
     '[Content_Types].xml',

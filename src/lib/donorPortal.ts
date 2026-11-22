@@ -91,3 +91,25 @@ export interface DonorBeneficiaries {
   /** True when the list is shorter than the total (the counts always cover everyone). */
   truncated: boolean;
 }
+
+const dayNumber = (iso: string): number | null => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  return m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) / 86_400_000 : null;
+};
+
+/** Today in Dhaka as YYYY-MM-DD. */
+export const dhakaDay = (now: Date = new Date()): string => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dhaka' }).format(now);
+
+/**
+ * How much of the project's planned time has passed, as a whole number from 0 to 100.
+ * This is TIME only (not work done). Null when either date is missing or the end is before the start.
+ */
+export function timeProgress(start: string | null, end: string | null, today: string = dhakaDay()): number | null {
+  if (!start || !end) return null;
+  const s = dayNumber(start);
+  const e = dayNumber(end);
+  const t = dayNumber(today);
+  if (s === null || e === null || t === null || e < s) return null;
+  if (e === s) return t >= e ? 100 : 0;
+  return Math.max(0, Math.min(100, Math.round(((t - s) / (e - s)) * 100)));
+}

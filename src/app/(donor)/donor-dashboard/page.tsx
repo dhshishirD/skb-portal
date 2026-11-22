@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import type { DonorHome } from '@/lib/donorPortal';
+import { timeProgress, type DonorHome } from '@/lib/donorPortal';
 import { formatDate } from '@/lib/fundReceipts';
 import { getDonorHomeAction } from '@/server/actions/donorPortal';
 
@@ -43,23 +43,42 @@ function Home() {
         </section>
       ) : (
         <ul className="grid sm:grid-cols-2 gap-4">
-          {data.projects.map((p) => (
-            <li key={p.id}>
-              <Link href={`/donor-dashboard/projects/${p.id}${q}`} className="block h-full bg-white p-5 rounded-2xl border border-slate-200 hover:border-slate-400 transition space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-bold text-slate-900">{p.title}</p>
-                  <span className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">{p.stageLabel}</span>
-                </div>
-                <p className="text-xs text-slate-500">{p.code}{p.location ? ` · ${p.location}` : ''}</p>
-                <dl className="grid grid-cols-2 gap-2 text-xs pt-1">
-                  <div><dt className="text-slate-500">Period</dt><dd className="font-medium text-slate-800">{p.startDate ? formatDate(p.startDate) : '-'} to {p.endDate ? formatDate(p.endDate) : '-'}</dd></div>
-                  <div><dt className="text-slate-500">Budget</dt><dd className="font-medium text-slate-800">{p.budgetText || '-'}</dd></div>
-                  <div><dt className="text-slate-500">Families</dt><dd className="font-medium text-slate-800">{p.families ? p.families.toLocaleString('en-US') : '-'}</dd></div>
-                  <div><dt className="text-slate-500">Reports released</dt><dd className="font-medium text-slate-800">{p.documentCount}</dd></div>
-                </dl>
-              </Link>
-            </li>
-          ))}
+          {data.projects.map((p) => {
+            const progress = timeProgress(p.startDate, p.endDate);
+            return (
+              <li key={p.id}>
+                <Link href={`/donor-dashboard/projects/${p.id}${q}`} className="block h-full bg-white p-5 rounded-2xl border border-slate-200 hover:border-slate-400 transition space-y-3">
+                  <div className="space-y-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-bold text-slate-900">{p.title}</p>
+                      <span className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{p.stageLabel}</span>
+                    </div>
+                    <p className="text-xs text-slate-500">{p.code}{p.location ? ` · ${p.location}` : ''}</p>
+                  </div>
+                  {progress !== null && (
+                    <div>
+                      <div className="flex justify-between text-[11px] text-slate-500 mb-1">
+                        <span>{formatDate(p.startDate as string)}</span>
+                        <span>Time passed: {progress}%</span>
+                        <span>{formatDate(p.endDate as string)}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-slate-100" role="progressbar" aria-label="Share of the planned time that has passed" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
+                        <div className="h-1.5 rounded-full bg-blue-600" style={{ width: `${progress}%` }} />
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
+                    {p.families ? <span><b className="font-semibold text-slate-900">{p.families.toLocaleString('en-US')}</b> families</span> : null}
+                    <span><b className="font-semibold text-slate-900">{p.documentCount}</b> {p.documentCount === 1 ? 'report' : 'reports'}</span>
+                    {p.budgetText ? <span className="font-semibold text-slate-900">{p.budgetText}</span> : null}
+                  </div>
+                  {progress === null && (p.startDate || p.endDate) && (
+                    <p className="text-[11px] text-slate-500">{p.startDate ? formatDate(p.startDate) : '-'} to {p.endDate ? formatDate(p.endDate) : '-'}</p>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

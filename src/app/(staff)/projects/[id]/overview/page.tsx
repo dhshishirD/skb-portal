@@ -5,6 +5,7 @@ import { Form3ExportPanel } from '@/components/projects/Form3ExportPanel';
 import { canSeeBudgetVsActual } from '@/lib/budgetVsActual';
 import { Form7ExportPanel } from '@/components/projects/Form7ExportPanel';
 import { Form3ImportPanel } from '@/components/projects/Form3ImportPanel';
+import { ProjectDeckPanel } from '@/components/projects/ProjectDeckPanel';
 import { ProjectDonorPanel } from '@/components/projects/ProjectDonorPanel';
 import { FormTextsPanel } from '@/components/projects/FormTextsPanel';
 import { ProjectAreasPanel } from '@/components/projects/ProjectAreasPanel';
@@ -76,6 +77,19 @@ export default async function ProjectOverviewPage({ params }: { params: Promise<
 
       {canEditProjects(actor.roles) && <Form3ImportPanel projectId={project.id} />}
 
+      <ProjectDeckPanel
+        project={{
+          id: project.id,
+          code: project.code,
+          title: project.title,
+          stageLabel: STAGE_LABELS[project.stage],
+          location: project.location,
+          donorName: project.donor_name,
+          startDate: project.start_date,
+          endDate: project.end_date,
+          beneficiaryTarget: project.beneficiary_target,
+        }}
+      />
       {canEditProjects(actor.roles) && <Form3ExportPanel projectId={project.id} />}
 
       {canSeeBudgetVsActual(actor.roles) && <Form7ExportPanel projectId={project.id} />}

@@ -34,7 +34,7 @@ export const safeLink = (link: string): string => (link.startsWith('/') && !link
 
 export async function loadNotifications(limit: number): Promise<NotificationRow[]> {
   const { data, error } = await (createClient() as any)
-    .from('notifications')
+    .from('staff_notifications')
     .select(COLUMNS)
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -44,7 +44,7 @@ export async function loadNotifications(limit: number): Promise<NotificationRow[
 
 export async function loadUnreadTotal(): Promise<number> {
   const { count, error } = await (createClient() as any)
-    .from('notifications')
+    .from('staff_notifications')
     .select('id', { count: 'exact', head: true })
     .is('read_at', null);
   if (error) throw new Error(error.message);
@@ -52,9 +52,9 @@ export async function loadUnreadTotal(): Promise<number> {
 }
 
 export async function markRead(id: string): Promise<void> {
-  await (createClient() as any).from('notifications').update({ read_at: new Date().toISOString() }).eq('id', id).is('read_at', null);
+  await (createClient() as any).from('staff_notifications').update({ read_at: new Date().toISOString() }).eq('id', id).is('read_at', null);
 }
 
 export async function markAllRead(): Promise<void> {
-  await (createClient() as any).from('notifications').update({ read_at: new Date().toISOString() }).is('read_at', null);
+  await (createClient() as any).from('staff_notifications').update({ read_at: new Date().toISOString() }).is('read_at', null);
 }

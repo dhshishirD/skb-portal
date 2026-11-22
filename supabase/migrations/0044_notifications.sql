@@ -1,4 +1,5 @@
 -- 0044: in-app notifications (bell). First two kinds: a new direct message, and a task assigned to you.
+-- They live in the new table staff_notifications; the old `notifications` table from 0003 is left untouched.
 --
 -- Each notification belongs to ONE person (the recipient). The recipient can read their own and mark them as read;
 -- nobody else can see them, and nobody can create or change one from the browser: they are written only by the
@@ -6,7 +7,7 @@
 -- The message preview is the first 140 characters of the message, visible only to the person it was sent to.
 -- Additive: one new table and two new triggers on existing tables. No existing rule is changed.
 
-create table public.notifications (
+create table public.staff_notifications (
   id uuid primary key default gen_random_uuid(),
   recipient_id uuid not null references public.profiles(id) on delete cascade,
   kind text not null check (kind in ('message', 'task_assigned')),
@@ -18,17 +19,17 @@ create table public.notifications (
   read_at timestamptz,
   created_at timestamptz not null default now()
 );
-create index notifications_recipient_idx on public.notifications (recipient_id, created_at desc);
-create index notifications_unread_idx on public.notifications (recipient_id) where read_at is null;
+create index staff_notifications_recipient_idx on public.staff_notifications (recipient_id, created_at desc);
+create index staff_notifications_unread_idx on public.staff_notifications (recipient_id) where read_at is null;
 
-alter table public.notifications enable row level security;
-revoke all on public.notifications from anon, authenticated;
-grant select on public.notifications to authenticated;
-grant update (read_at) on public.notifications to authenticated;
+alter table public.staff_notifications enable row level security;
+revoke all on public.staff_notifications from anon, authenticated;
+grant select on public.staff_notifications to authenticated;
+grant update (read_at) on public.staff_notifications to authenticated;
 
-create policy notifications_select on public.notifications for select to authenticated
+create policy staff_notifications_select on public.staff_notifications for select to authenticated
   using (recipient_id = (select auth.uid()));
-create policy notifications_mark_read on public.notifications for update to authenticated
+create policy staff_notifications_mark_read on public.staff_notifications for update to authenticated
   using (recipient_id = (select auth.uid()))
   with check (recipient_id = (select auth.uid()));
 
@@ -36,7 +37,7 @@ create policy notifications_mark_read on public.notifications for update to auth
 create or replace function public.notify_direct_message() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
-  insert into public.notifications (recipient_id, kind, title, body, link, actor_id, ref_id)
+  insert into public.staff_notifications (recipient_id, kind, title, body, link, actor_id, ref_id)
   values (
     new.recipient_id, 'message',
     'New message from ' || coalesce(nullif(new.sender_name, ''), 'a colleague'),
@@ -63,7 +64,7 @@ begin
   if new.assignee_id is not distinct from _actor then return new; end if;
   select full_name into _actor_name from public.profiles where id = _actor;
   select code into _code from public.projects where id = new.project_id;
-  insert into public.notifications (recipient_id, kind, title, body, link, actor_id, ref_id)
+  insert into public.staff_notifications (recipient_id, kind, title, body, link, actor_id, ref_id)
   values (
     new.assignee_id, 'task_assigned',
     case when nullif(_actor_name, '') is null then 'A task was assigned to you'

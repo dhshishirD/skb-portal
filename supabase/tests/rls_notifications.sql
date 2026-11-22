@@ -37,14 +37,14 @@ begin
   insert into public.direct_messages (recipient_id, text, sender_name, recipient_name, sender_role)
     values (fa::uuid, repeat('x', 400), '', '', '');
   perform pg_temp.as_user(fa);
-  assert (select count(*) from public.notifications where kind = 'message') = 1, 'the recipient gets one message notification';
-  assert (select title from public.notifications where kind = 'message') = 'New message from Test Officer', 'the title names the sender';
-  assert (select char_length(body) from public.notifications where kind = 'message') = 140, 'the preview is cut to 140 characters';
-  assert (select link from public.notifications where kind = 'message') = '/community', 'the link opens the messages';
+  assert (select count(*) from public.staff_notifications where kind = 'message') = 1, 'the recipient gets one message notification';
+  assert (select title from public.staff_notifications where kind = 'message') = 'New message from Test Officer', 'the title names the sender';
+  assert (select char_length(body) from public.staff_notifications where kind = 'message') = 140, 'the preview is cut to 140 characters';
+  assert (select link from public.staff_notifications where kind = 'message') = '/community', 'the link opens the messages';
   perform pg_temp.as_user(po);
-  assert (select count(*) from public.notifications) = 0, 'the sender gets no notification';
+  assert (select count(*) from public.staff_notifications) = 0, 'the sender gets no notification';
   perform pg_temp.as_user(fin);
-  assert (select count(*) from public.notifications) = 0, 'a bystander sees no notification';
+  assert (select count(*) from public.staff_notifications) = 0, 'a bystander sees no notification';
 
   -- 2. assigning a task notifies the assignee; assigning to yourself or leaving it unassigned does not
   perform pg_temp.as_user(po);
@@ -52,37 +52,37 @@ begin
   insert into public.tasks (project_id, title) values (pid, 'Unassigned task');
   insert into public.tasks (project_id, title, assignee_id) values (pid, 'My own task', po::uuid);
   perform pg_temp.as_user(fa);
-  assert (select count(*) from public.notifications where kind = 'task_assigned') = 1, 'one task notification, only for the assigned task';
-  assert (select title from public.notifications where kind = 'task_assigned') = 'Test Officer assigned you a task', 'the title names who assigned';
-  assert (select body from public.notifications where kind = 'task_assigned') = 'Buy kits · NT-1', 'the body names the task and project';
-  assert (select link from public.notifications where kind = 'task_assigned') = '/projects/' || pid || '/tasks', 'the link opens the project tasks';
+  assert (select count(*) from public.staff_notifications where kind = 'task_assigned') = 1, 'one task notification, only for the assigned task';
+  assert (select title from public.staff_notifications where kind = 'task_assigned') = 'Test Officer assigned you a task', 'the title names who assigned';
+  assert (select body from public.staff_notifications where kind = 'task_assigned') = 'Buy kits · NT-1', 'the body names the task and project';
+  assert (select link from public.staff_notifications where kind = 'task_assigned') = '/projects/' || pid || '/tasks', 'the link opens the project tasks';
   perform pg_temp.as_user(po);
-  assert (select count(*) from public.notifications) = 0, 'assigning to yourself notifies nobody';
+  assert (select count(*) from public.staff_notifications) = 0, 'assigning to yourself notifies nobody';
 
   -- editing the task without changing the assignee sends nothing new
   update public.tasks set priority = 'high' where id = t1;
   perform pg_temp.as_user(fa);
-  assert (select count(*) from public.notifications where kind = 'task_assigned') = 1, 'no new notification when the assignee did not change';
+  assert (select count(*) from public.staff_notifications where kind = 'task_assigned') = 1, 'no new notification when the assignee did not change';
 
   -- 3. the recipient can mark as read; nobody else can; nobody can create, edit or delete
-  update public.notifications set read_at = now() where kind = 'message';
-  assert (select read_at is not null from public.notifications where kind = 'message'), 'the recipient can mark a notification read';
+  update public.staff_notifications set read_at = now() where kind = 'message';
+  assert (select read_at is not null from public.staff_notifications where kind = 'message'), 'the recipient can mark a notification read';
   denied := false;
-  begin update public.notifications set title = 'changed'; exception when others then denied := true; end;
+  begin update public.staff_notifications set title = 'changed'; exception when others then denied := true; end;
   assert denied, 'a notification text cannot be edited';
   denied := false;
-  begin insert into public.notifications (recipient_id, kind, title, link) values (fa::uuid, 'message', 'forged', '/x');
+  begin insert into public.staff_notifications (recipient_id, kind, title, link) values (fa::uuid, 'message', 'forged', '/x');
   exception when others then denied := true; end;
   assert denied, 'a notification cannot be created from the browser';
   denied := false;
-  begin delete from public.notifications; exception when others then denied := true; end;
+  begin delete from public.staff_notifications; exception when others then denied := true; end;
   assert denied, 'a notification cannot be deleted from the browser';
   perform pg_temp.as_user(fin);
-  update public.notifications set read_at = null;
+  update public.staff_notifications set read_at = null;
   get diagnostics n = row_count;
   assert n = 0, 'a bystander cannot touch someone else''s notifications';
   perform pg_temp.as_user(fa);
-  assert (select read_at is not null from public.notifications where kind = 'message'), 'the other person''s update changed nothing';
+  assert (select read_at is not null from public.staff_notifications where kind = 'message'), 'the other person''s update changed nothing';
 end $$;
 
 rollback;

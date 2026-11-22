@@ -7,6 +7,18 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // pptxgenjs (the PowerPoint draft) mentions Node-only modules it never uses in the browser: switch them off there.
+  webpack: (config, { isServer, webpack }) => {
+    if (!isServer) {
+      config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
+          resource.request = resource.request.replace(/^node:/, '');
+        }),
+      );
+      config.resolve.fallback = { ...(config.resolve.fallback ?? {}), fs: false, https: false, http: false, os: false, path: false, stream: false };
+    }
+    return config;
+  },
   async headers() {
     return [
       {

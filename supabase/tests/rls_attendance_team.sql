@@ -94,7 +94,9 @@ begin
   assert n = 1, 'a missing day can be added, without a place';
 
   -- 6. leave days are listed
+  reset role;
   insert into public.work_days (user_id, work_date, day_type) values (fo::uuid, today - 2, 'leave');
+  perform pg_temp.as_user(sa);
   assert (select count(*) from public.attendance_team_leave(today - 5, today)) = 1, 'the Super Admin sees the leave days';
 
   -- 7. audit entries exist and hold no coordinates

@@ -60,7 +60,7 @@ BEGIN
   begin perform public.issue_letter(a);
   exception when insufficient_privilege then denied := true; end;
   assert denied, 'an empty letter cannot be issued';
-  assert coalesce((select last_seq from public.letter_counters where year = yr), 0) = 0, 'a refused issue spends no number';
+  assert public.next_letter_number(yr) = 1, 'a refused issue spends no number';
 
   -- 3. Issue: the next number of the year
   update public.letters set to_lines = 'The Director', subject = 'First', body = 'Text', signatory_name = 'A Person' where id = a;

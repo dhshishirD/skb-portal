@@ -1,5 +1,5 @@
 -- rls_attendance.sql - proves the 0045 rules: check in and check out use the database clock and Dhaka's day, once
--- each, only for yourself; a person reads only their own rows and never the coordinates; nobody writes the table
+-- each, only for yourself; a person reads only their own rows (with their own places, 0047); nobody writes the table
 -- directly. One transaction, rolled back. LOCAL / STAGING Supabase only. All values are synthetic test data.
 begin;
 
@@ -64,16 +64,17 @@ begin
   begin perform public.attendance_check_in(23.8, null, 5); exception when invalid_parameter_value then denied := true; end;
   assert denied, 'a latitude without a longitude is refused';
 
-  -- 5. reading: only own rows, never the coordinates
+  -- 5. reading: only own rows (with their own places); never the correction details
   perform pg_temp.as_user(fi);
   assert (select count(*) from public.attendance_logs) = 0, 'another staff member sees none of the first person''s rows';
   perform public.attendance_check_in(null, null, null);
   assert (select count(*) from public.attendance_logs) = 1, 'a person sees their own row';
   assert (select not check_in_location_shared from public.attendance_logs), 'and that no place was shared';
   perform pg_temp.as_user(fo);
-  denied := false;
-  begin perform check_in_lat from public.attendance_logs; exception when insufficient_privilege then denied := true; end;
-  assert denied, 'the coordinates cannot be read through the table';
+  assert (select check_in_lat = 23.874 and check_in_lng = 90.399 from public.attendance_logs), 'a person reads the place of their own check-in';
+  perform pg_temp.as_user(fi);
+  assert (select count(*) from public.attendance_logs where check_in_lat is not null) = 0, 'and never the place of someone else''s check-in';
+  perform pg_temp.as_user(fo);
   denied := false;
   begin perform correction_reason from public.attendance_logs; exception when insufficient_privilege then denied := true; end;
   assert denied, 'correction details cannot be read through the table by the person';

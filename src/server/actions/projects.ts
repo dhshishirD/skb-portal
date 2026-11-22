@@ -131,24 +131,84 @@ export async function updateProjectAction(id: string, values: ProjectFormValues)
   }
 }
 
-/** Archive hides a project from every list. Only the Executive Director can do it. */
+/** Delete hides a project from every list; it can be restored. The Executive Director and the Super Admin can do it. */
 export async function archiveProjectAction(id: string): Promise<ActionResult> {
   try {
     if (!isUuid(id)) return fail('Project not found.');
     const actor = await getActor();
     if (!actor) return fail('Please sign in again.');
-    if (!canArchiveProjects(actor.roles)) return fail('Only the Executive Director can archive a project.');
+    if (!canArchiveProjects(actor.roles)) return fail('Only the Executive Director or the Super Admin can delete a project.');
 
     const supabase = await createClient();
-    const { data, error } = await (supabase.from('projects') as any)
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', id)
-      .is('deleted_at', null)
-      .select('id');
-    if (error) return fail(friendlyDbError(error.message));
-    if (!data || data.length === 0) return fail('Project not found.');
+    const { error } = await (supabase as any).rpc('delete_project', { _id: id });
+    if (error) return fail(/not found/i.test(error.message) ? 'Project not found.' : friendlyDbError(error.message));
     revalidatePath('/projects');
-    return { ok: true, message: 'Project archived.' };
+    return { ok: true, message: 'Project deleted. You can restore it from "Deleted projects".' };
+  } catch {
+    return fail('Something went wrong. Please try again.');
+  }
+}
+
+export interface DeletedProject {
+  id: string;
+  code: string;
+  title: string;
+  stage: string;
+  donorName: string | null;
+  deletedAt: string;
+  /** Records that stop the project from being removed for good (empty = it can be removed). */
+  keepReasons: string[];
+}
+
+/** The deleted projects, for the Executive Director and the Super Admin. */
+export async function listDeletedProjectsAction(): Promise<DataResult<DeletedProject[]>> {
+  try {
+    const actor = await getActor();
+    if (!actor) return fail('Please sign in again.');
+    if (!canArchiveProjects(actor.roles)) return fail('Only the Executive Director or the Super Admin can see deleted projects.');
+    const supabase = await createClient();
+    const { data, error } = await (supabase as any).rpc('list_deleted_projects');
+    if (error) return fail(friendlyDbError(error.message));
+    const rows = (data ?? []) as Array<{ id: string; code: string; title: string; stage: string; donor_name: string | null; deleted_at: string; keep_reasons: string[] | null }>;
+    return { ok: true, data: rows.map((r) => ({ id: r.id, code: r.code, title: r.title, stage: r.stage, donorName: r.donor_name, deletedAt: r.deleted_at, keepReasons: r.keep_reasons ?? [] })) };
+  } catch {
+    return fail('Could not load the deleted projects. Please refresh the page.');
+  }
+}
+
+export async function restoreProjectAction(id: string): Promise<ActionResult> {
+  try {
+    if (!isUuid(id)) return fail('Project not found.');
+    const actor = await getActor();
+    if (!actor) return fail('Please sign in again.');
+    if (!canArchiveProjects(actor.roles)) return fail('Only the Executive Director or the Super Admin can restore a project.');
+    const supabase = await createClient();
+    const { error } = await (supabase as any).rpc('restore_project', { _id: id });
+    if (error) return fail(/not found/i.test(error.message) ? 'Project not found.' : friendlyDbError(error.message));
+    revalidatePath('/projects');
+    return { ok: true, message: 'Project restored.' };
+  } catch {
+    return fail('Something went wrong. Please try again.');
+  }
+}
+
+/** Removes a deleted project for good. The database refuses while it has money, people or file records. */
+export async function purgeProjectAction(id: string): Promise<ActionResult> {
+  try {
+    if (!isUuid(id)) return fail('Project not found.');
+    const actor = await getActor();
+    if (!actor) return fail('Please sign in again.');
+    if (!canArchiveProjects(actor.roles)) return fail('Only the Executive Director or the Super Admin can remove a project for good.');
+    const supabase = await createClient();
+    const { error } = await (supabase as any).rpc('purge_project', { _id: id });
+    if (error) {
+      const m = error.message ?? '';
+      if (/still has/i.test(m)) return fail(`${m.replace(/^.*?this project/i, 'This project')}. Keep it deleted (hidden) instead.`);
+      if (/delete the project first/i.test(m)) return fail('Delete the project first. Only a deleted project can be removed for good.');
+      return fail(friendlyDbError(m));
+    }
+    revalidatePath('/projects');
+    return { ok: true, message: 'Project removed for good.' };
   } catch {
     return fail('Something went wrong. Please try again.');
   }

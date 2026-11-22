@@ -26,7 +26,7 @@ function builder(table: string): any {
 }
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
-vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({ from: (t: string) => builder(t) }) }));
+vi.mock('@/lib/supabase/server', () => ({ createClient: async () => ({ from: (t: string) => builder(t), rpc: (fn: string, args: unknown) => { state.calls.push({ table: 'rpc', method: fn, args: [args] }); return Promise.resolve(state.result); } }) }));
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient: () => ({ from: (t: string) => builder(t) }) }));
 vi.mock('@/server/services/projectsData', () => ({
   getActor: async () => state.actor,
@@ -37,6 +37,8 @@ vi.mock('@/server/services/projectsData', () => ({
 
 import {
   archiveProjectAction,
+  purgeProjectAction,
+  restoreProjectAction,
   createProjectAction,
   setProjectOfficersAction,
   updateOrganizationDetailsAction,
@@ -121,18 +123,43 @@ describe('updateProjectAction', () => {
   });
 });
 
-describe('archiveProjectAction', () => {
+describe('archiveProjectAction (Delete)', () => {
   it('refuses a Program Officer', async () => {
     const r = await archiveProjectAction(ID);
-    expect(r).toMatchObject({ ok: false, error: expect.stringMatching(/Executive Director/) });
+    expect(r).toMatchObject({ ok: false, error: expect.stringMatching(/Executive Director or the Super Admin/) });
     expect(state.calls).toHaveLength(0);
   });
 
-  it('lets the Executive Director archive', async () => {
+  it('lets the Executive Director and the Super Admin delete', async () => {
+    for (const role of ['executive', 'super_admin'] as AppRole[]) {
+      state.calls = [];
+      state.actor = { userId: USER, roles: [role] };
+      expect(await archiveProjectAction(ID)).toMatchObject({ ok: true });
+      expect(state.calls.find((c) => c.method === 'delete_project')?.args[0]).toEqual({ _id: ID });
+    }
+  });
+});
+
+describe('restoreProjectAction and purgeProjectAction', () => {
+  it('refuse a Program Officer without touching the database', async () => {
+    expect(await restoreProjectAction(ID)).toMatchObject({ ok: false });
+    expect(await purgeProjectAction(ID)).toMatchObject({ ok: false });
+    expect(state.calls).toHaveLength(0);
+  });
+
+  it('restore and purge call the database for the Super Admin', async () => {
+    state.actor = { userId: USER, roles: ['super_admin'] };
+    expect(await restoreProjectAction(ID)).toMatchObject({ ok: true });
+    expect(await purgeProjectAction(ID)).toMatchObject({ ok: true });
+    expect(state.calls.map((c) => c.method)).toEqual(['restore_project', 'purge_project']);
+  });
+
+  it('says in plain words why a project cannot be removed for good', async () => {
     state.actor = { userId: USER, roles: ['executive'] };
-    state.result = { data: [{ id: ID }], error: null };
-    expect(await archiveProjectAction(ID)).toMatchObject({ ok: true });
-    expect(state.calls.find((c) => c.method === 'update')?.args[0]).toHaveProperty('deleted_at');
+    state.result = { data: null, error: { message: 'this project still has expense claims, documents and cannot be removed for good' } };
+    const r = await purgeProjectAction(ID);
+    expect(r).toMatchObject({ ok: false, error: expect.stringMatching(/expense claims, documents/) });
+    expect(r).toMatchObject({ error: expect.stringMatching(/Keep it deleted/) });
   });
 });
 

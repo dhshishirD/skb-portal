@@ -4,9 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronRight, FolderKanban, MapPin, Plus, Search, Users } from 'lucide-react';
+import { DeletedProjectsPanel } from '@/components/projects/DeletedProjectsPanel';
 import { ProjectForm } from '@/components/projects/ProjectForm';
 import { createProjectAction, listProjectsAction, type PortfolioData } from '@/server/actions/projects';
-import { STAGE_LABELS, canCreateProjects, formatMoney } from '@/lib/projects';
+import { STAGE_LABELS, canArchiveProjects, canCreateProjects, formatMoney } from '@/lib/projects';
 
 /*
  * Projects portfolio. Every project here comes from the shared database, filtered by the
@@ -167,6 +168,7 @@ export default function ProjectsPortfolioPage() {
           )}
         </>
       )}
+      {data && canArchiveProjects(data.roles) && <DeletedProjectsPanel onChanged={() => void load()} />}
     </div>
   );
 }

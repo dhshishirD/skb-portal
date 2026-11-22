@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { LogIn, LogOut, MapPin } from 'lucide-react';
 import { checkInAction, checkOutAction, getMyAttendanceAction } from '@/server/actions/attendance';
 import { LOCATION_NOTICE, dayState, hoursText, timeText, workedMinutes, type LocationFix, type MyAttendance } from '@/lib/attendance';
+import { mapLink } from '@/lib/teamAttendance';
 import { monthOf, monthTitle, shortDate, todayInDhaka } from '@/lib/workStatement';
 
 /** Asks the browser for the place; resolves to null when the person says no, the device cannot, or it takes too long. */
@@ -64,6 +65,13 @@ export function AttendanceCard() {
   const tile = 'rounded-xl border border-slate-200 bg-slate-50 px-4 py-3';
   const tileLabel = 'text-[11px] font-semibold uppercase tracking-wide text-slate-500';
   const tileValue = 'mt-0.5 text-xl font-bold text-slate-900 tabular-nums';
+  const placeOf = (at: string | null | undefined, lat: number | null | undefined, lng: number | null | undefined) => {
+    if (!at) return null;
+    const link = mapLink(lat ?? null, lng ?? null);
+    return link
+      ? <a href={link} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-sky-700 underline underline-offset-2"><MapPin className="w-3 h-3" /> View place</a>
+      : <span className="mt-1 block text-xs text-slate-400">Location not shared</span>;
+  };
 
   return (
     <section className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-5" aria-labelledby="attendance-today">
@@ -85,8 +93,8 @@ export function AttendanceCard() {
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <div className={tile}><p className={tileLabel}>Check-in</p><p className={tileValue}>{row?.checkInAt ? timeText(row.checkInAt) : '-'}</p></div>
-        <div className={tile}><p className={tileLabel}>Check-out</p><p className={tileValue}>{row?.checkOutAt ? timeText(row.checkOutAt) : '-'}</p></div>
+        <div className={tile}><p className={tileLabel}>Check-in</p><p className={tileValue}>{row?.checkInAt ? timeText(row.checkInAt) : '-'}</p>{placeOf(row?.checkInAt, row?.checkInLat, row?.checkInLng)}</div>
+        <div className={tile}><p className={tileLabel}>Check-out</p><p className={tileValue}>{row?.checkOutAt ? timeText(row.checkOutAt) : '-'}</p>{placeOf(row?.checkOutAt, row?.checkOutLat, row?.checkOutLng)}</div>
         <div className={tile}><p className={tileLabel}>{state === 'in' ? 'So far' : 'Total'}</p><p className={tileValue}>{row ? hoursText(workedMinutes(row, now)) : '-'}</p></div>
       </div>
 
@@ -108,6 +116,7 @@ export function AttendanceCard() {
                   <th className="py-2 px-3 font-semibold">In</th>
                   <th className="py-2 px-3 font-semibold">Out</th>
                   <th className="py-2 px-3 font-semibold">Hours</th>
+                  <th className="py-2 px-3 font-semibold">Places</th>
                 </tr>
               </thead>
               <tbody>
@@ -119,6 +128,15 @@ export function AttendanceCard() {
                       {r.checkOutAt ? timeText(r.checkOutAt) : r.date === data.today ? '-' : <span className="px-1.5 py-0.5 text-xs rounded bg-amber-100 text-amber-800">Not checked out</span>}
                     </td>
                     <td className="py-2 px-3 whitespace-nowrap tabular-nums">{r.checkOutAt ? hoursText(workedMinutes(r)) : '-'}</td>
+                    <td className="py-2 px-3 whitespace-nowrap text-xs">
+                      {[['In', r.checkInAt, r.checkInLat, r.checkInLng], ['Out', r.checkOutAt, r.checkOutLat, r.checkOutLng]].map(([label, at, lat, lng]) => {
+                        if (!at) return null;
+                        const link = mapLink(lat as number | null, lng as number | null);
+                        return link
+                          ? <a key={label as string} href={link} target="_blank" rel="noopener noreferrer" className="mr-2 text-sky-700 underline underline-offset-2">{label as string}</a>
+                          : <span key={label as string} className="mr-2 text-slate-400">{label as string}: not shared</span>;
+                      })}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -8,7 +8,7 @@ import { getActor } from '@/server/services/projectsData';
 
 /*
  * Check in / check out (migration 0045). The database sets the time and the Dhaka day, and decides who may record;
- * the checks here only give clear messages. A person reads only their own rows, and never the coordinates.
+ * the checks here only give clear messages. A person reads only their own rows, with their own places (0047).
  */
 
 type Failure = { ok: false; error: string };
@@ -16,21 +16,29 @@ export type AttendanceResult = { ok: true; message: string } | Failure;
 export type AttendanceDataResult<T> = { ok: true; data: T } | Failure;
 const fail = (error: string): Failure => ({ ok: false, error });
 const PAGE = '/workspace/work-log';
-const COLUMNS = 'work_date, check_in_at, check_in_location_shared, check_out_at, check_out_location_shared';
+const COLUMNS = 'work_date, check_in_at, check_in_lat, check_in_lng, check_in_location_shared, check_out_at, check_out_lat, check_out_lng, check_out_location_shared';
 
 interface Row {
   work_date: string;
   check_in_at: string | null;
+  check_in_lat: number | string | null;
+  check_in_lng: number | string | null;
   check_in_location_shared: boolean;
   check_out_at: string | null;
+  check_out_lat: number | string | null;
+  check_out_lng: number | string | null;
   check_out_location_shared: boolean;
 }
 const toRow = (r: Row): AttendanceRow => ({
   date: r.work_date,
   checkInAt: r.check_in_at,
   checkInShared: r.check_in_location_shared,
+  checkInLat: r.check_in_lat === null ? null : Number(r.check_in_lat),
+  checkInLng: r.check_in_lng === null ? null : Number(r.check_in_lng),
   checkOutAt: r.check_out_at,
   checkOutShared: r.check_out_location_shared,
+  checkOutLat: r.check_out_lat === null ? null : Number(r.check_out_lat),
+  checkOutLng: r.check_out_lng === null ? null : Number(r.check_out_lng),
 });
 
 export async function getMyAttendanceAction(month: string): Promise<AttendanceDataResult<MyAttendance>> {

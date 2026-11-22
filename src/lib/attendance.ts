@@ -5,8 +5,12 @@ export interface AttendanceRow {
   date: string;
   checkInAt: string | null;
   checkInShared: boolean;
+  checkInLat: number | null;
+  checkInLng: number | null;
   checkOutAt: string | null;
   checkOutShared: boolean;
+  checkOutLat: number | null;
+  checkOutLng: number | null;
 }
 
 export interface LocationFix {
@@ -25,7 +29,7 @@ export interface MyAttendance {
   leaveDaysThisYear: number;
 }
 
-export const LOCATION_NOTICE = 'Your location is recorded when you check in and check out. Only the Executive Director and the Super Admin can see it.';
+export const LOCATION_NOTICE = 'Your location is recorded when you check in and check out. You can see your own; the Executive Director and the Super Admin can see everyone\'s.';
 
 export type DayState = 'not_in' | 'in' | 'done';
 export const dayState = (row: Pick<AttendanceRow, 'checkInAt' | 'checkOutAt'> | null): DayState =>

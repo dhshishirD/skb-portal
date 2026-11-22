@@ -1,3 +1,4 @@
+import { AttendanceCard } from '@/components/workspace/AttendanceCard';
 import { ReviewPanel } from '@/components/workspace/ReviewPanel';
 import { WorkLogPanel } from '@/components/workspace/WorkLogPanel';
 
@@ -10,6 +11,7 @@ export default function WorkLogPage() {
         <h1 className="text-xl font-bold text-slate-900">My Work Log</h1>
         <p className="text-sm text-slate-600">Record where you worked and what you did each day. At the end of the month, submit it as your Work Statement.</p>
       </div>
+      <AttendanceCard />
       <ReviewPanel />
       <WorkLogPanel />
     </div>

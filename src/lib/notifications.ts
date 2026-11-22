@@ -58,3 +58,43 @@ export async function markRead(id: string): Promise<void> {
 export async function markAllRead(): Promise<void> {
   await (createClient() as any).from('staff_notifications').update({ read_at: new Date().toISOString() }).is('read_at', null);
 }
+
+/**
+ * The unread notifications that were not in the list the last time we looked: these are the ones to announce
+ * with a pop-up and a sound. The first look (seen = null) announces nothing, so old unread items stay quiet.
+ */
+export function newArrivals(seen: ReadonlySet<string> | null, rows: NotificationRow[]): NotificationRow[] {
+  if (seen === null) return [];
+  return rows.filter((r) => !r.read_at && !seen.has(r.id));
+}
+
+const MUTE_KEY = 'skb-bell-muted';
+export function isMuted(): boolean {
+  try { return window.localStorage.getItem(MUTE_KEY) === '1'; } catch { return false; }
+}
+export function setMuted(muted: boolean): void {
+  try { window.localStorage.setItem(MUTE_KEY, muted ? '1' : '0'); } catch { /* private mode: the choice lasts until the page closes */ }
+}
+
+/** A short, soft two-note chime. Browsers allow sound only after the person has used the page once; if not, it stays silent. */
+export function playChime(): void {
+  try {
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const start = ctx.currentTime;
+    [[880, 0], [1175, 0.16]].forEach(([freq, offset]) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, start + offset);
+      gain.gain.exponentialRampToValueAtTime(0.18, start + offset + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + offset + 0.35);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start + offset);
+      osc.stop(start + offset + 0.4);
+    });
+    setTimeout(() => { void ctx.close(); }, 900);
+  } catch { /* no sound available: the pop-up still shows */ }
+}

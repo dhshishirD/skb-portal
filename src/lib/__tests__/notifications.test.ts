@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { badgeText, safeLink, titleWithCount, unreadCount } from '../notifications';
+import { badgeText, newArrivals, safeLink, titleWithCount, unreadCount, type NotificationRow } from '../notifications';
 import { canOpenPath } from '../desks';
 
 describe('notifications helpers', () => {
@@ -27,5 +27,15 @@ describe('notifications helpers', () => {
   it('lets staff, not donors, open the notifications page', () => {
     expect(canOpenPath('/notifications', ['project_officer'])).toBe(true);
     expect(canOpenPath('/notifications', ['donor'])).toBe(false);
+  });
+
+  const row = (id: string, read: string | null = null): NotificationRow => ({
+    id, kind: 'message', title: 't', body: null, link: '/community', read_at: read, created_at: '2026-11-22T10:00:00Z',
+  });
+  it('announces only unread items it has not seen, and nothing on the first look', () => {
+    expect(newArrivals(null, [row('a'), row('b')])).toEqual([]);
+    const seen = new Set(['a']);
+    expect(newArrivals(seen, [row('b'), row('a'), row('c', '2026-11-22T11:00:00Z')]).map((r) => r.id)).toEqual(['b']);
+    expect(newArrivals(new Set(['a', 'b']), [row('a'), row('b')])).toEqual([]);
   });
 });

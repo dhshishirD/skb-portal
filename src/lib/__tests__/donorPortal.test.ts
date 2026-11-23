@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canPreviewDonorPortal, canViewDonorPortal, fileSizeText, toCard } from '../donorPortal';
+import { canPreviewDonorPortal, canViewDonorPortal, fileSizeText, timeProgress, toCard } from '../donorPortal';
 import { canOpenPath } from '../desks';
 
 describe('donorPortal', () => {
@@ -28,5 +28,27 @@ describe('donorPortal', () => {
     expect(fileSizeText(500)).toBe('500 B');
     expect(fileSizeText(2048)).toBe('2 KB');
     expect(fileSizeText(3 * 1_048_576)).toBe('3.0 MB');
+  });
+});
+
+describe('timeProgress', () => {
+  it('shows how much of the planned time has passed', () => {
+    expect(timeProgress('2026-10-01', '2027-03-31', '2026-10-01')).toBe(0);
+    expect(timeProgress('2026-10-01', '2026-10-31', '2026-10-16')).toBe(50);
+    expect(timeProgress('2026-10-01', '2027-03-31', '2027-03-31')).toBe(100);
+  });
+  it('stays between 0 and 100', () => {
+    expect(timeProgress('2026-10-01', '2026-12-31', '2026-09-01')).toBe(0);
+    expect(timeProgress('2026-10-01', '2026-12-31', '2028-01-01')).toBe(100);
+  });
+  it('shows nothing when the dates cannot give an answer', () => {
+    expect(timeProgress(null, '2026-12-31', '2026-11-01')).toBeNull();
+    expect(timeProgress('2026-10-01', null, '2026-11-01')).toBeNull();
+    expect(timeProgress('2026-12-31', '2026-10-01', '2026-11-01')).toBeNull();
+    expect(timeProgress('bad', '2026-10-01', '2026-11-01')).toBeNull();
+  });
+  it('handles a one-day project', () => {
+    expect(timeProgress('2026-10-01', '2026-10-01', '2026-09-30')).toBe(0);
+    expect(timeProgress('2026-10-01', '2026-10-01', '2026-10-01')).toBe(100);
   });
 });

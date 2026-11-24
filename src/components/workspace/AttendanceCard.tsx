@@ -61,9 +61,9 @@ export function AttendanceCard() {
     state === 'not_in' ? { text: 'Not checked in', cls: 'bg-slate-100 text-slate-700' }
     : state === 'in' ? { text: 'At work', cls: 'bg-emerald-100 text-emerald-800' }
     : { text: 'Day complete', cls: 'bg-sky-100 text-sky-800' };
-  const tile = 'rounded-xl border border-slate-200 bg-slate-50 px-4 py-3';
+  const tile = 'rounded-xl border border-slate-200 bg-slate-50 px-2 sm:px-4 py-3';
   const tileLabel = 'text-[11px] font-semibold uppercase tracking-wide text-slate-500';
-  const tileValue = 'mt-0.5 text-xl font-bold text-slate-900 tabular-nums';
+  const tileValue = 'mt-0.5 text-base sm:text-xl font-bold text-slate-900 tabular-nums';
 
   return (
     <section className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-5" aria-labelledby="attendance-today">
@@ -84,7 +84,7 @@ export function AttendanceCard() {
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <div className={tile}><p className={tileLabel}>Check-in</p><p className={tileValue}>{row?.checkInAt ? timeText(row.checkInAt) : '-'}</p></div>
         <div className={tile}><p className={tileLabel}>Check-out</p><p className={tileValue}>{row?.checkOutAt ? timeText(row.checkOutAt) : '-'}</p></div>
         <div className={tile}><p className={tileLabel}>{state === 'in' ? 'So far' : 'Total'}</p><p className={tileValue}>{row ? hoursText(workedMinutes(row, now)) : '-'}</p></div>

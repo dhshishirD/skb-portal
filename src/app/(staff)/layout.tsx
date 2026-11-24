@@ -105,7 +105,7 @@ export default function StaffLayout({
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {/* Top Navbar */}
       <header className="sticky top-0 z-40 bg-slate-900 text-white border-b border-slate-800 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+        <div className="max-w-portal mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -244,7 +244,7 @@ export default function StaffLayout({
       </header>
 
       {/* Main Staff Container */}
-      <div className="flex-1 flex max-w-7xl w-full mx-auto">
+      <div className="flex-1 flex max-w-portal w-full mx-auto">
         {/* Navigation Sidebar (Desktop) */}
         <aside className={`
           fixed md:static inset-y-0 left-0 z-30 w-64 bg-white border-r border-slate-200 p-4 space-y-6 transform transition-transform duration-200 ease-in-out

@@ -9,6 +9,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      // One shared page-width cap for the staff shell (header and body must match).
+      maxWidth: {
+        portal: "1600px",
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
